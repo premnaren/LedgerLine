@@ -18,16 +18,18 @@
 
 ## 1. The 60-Second Elevator Pitch
 
-> *"LedgerLine is a mission-critical, double-entry core ledger engine and financial compliance dashboard. In financial technology, the biggest catastrophes occur due to subtle concurrency bugs: double-spending money under network retries, balances dropping below zero during simultaneous requests, rounding errors from floating-point arithmetic, and audit logs being tampered with.*
+> *"LedgerLine is a mission-critical, double-entry core ledger engine and financial compliance dashboard. In financial technology, the biggest catastrophes occur due to subtle concurrency bugs: double-spending money under network retries, balances dropping below zero during simultaneous requests, rounding errors from floating-point arithmetic, and audit logs being tampered with.
 >
-> *I engineered LedgerLine around five mathematical guarantees:*
-> 1. *Zero balance drift: Debits and credits are executed inside a single PostgreSQL `SERIALIZABLE` transaction with row-level locks sorted by ID to eliminate deadlocks.*
+> *I engineered LedgerLine around seven non-negotiable architectural guarantees:*
+> 1. *Zero balance drift: Debits and credits are executed inside a single PostgreSQL `SERIALIZABLE` transaction with row-level locks sorted by ID (`SELECT ... FOR UPDATE ORDER BY id ASC`) to eliminate deadlocks.*
 > 2. *An append-only immutable ledger: Enforced by an engine-level PostgreSQL trigger that physically rejects any `UPDATE` or `DELETE`.*
-> 3. *Race-free idempotency: Powered by atomic `INSERT ... ON CONFLICT DO NOTHING`, protecting against network retries and duplicate charges.*
+> 3. *Race-free compound idempotency: Powered by atomic `INSERT ... ON CONFLICT ("userId", key) DO NOTHING`, protecting against network retries and cross-tenant key snooping.*
 > 4. *Double-barrier negative balance protection: Both in code and via a database engine `CHECK` constraint.*
 > 5. *Zero floating-point errors: All currency is stored in smallest integer units (paise/pence) using PostgreSQL `BIGINT`.*
+> 6. *Independent double-entry reconciliation: Real-time mathematical verification (`GET /accounts/:id/reconcile` and `GET /admin/reconcile-all`) proving that the sum of immutable ledger entries equals account balances.*
+> 7. *Compensating-entry reversal workflow: Reversals append `ADJUSTMENT` entries; historical transaction rows are never modified or deleted.*
 >
-> *On top of this engine, I built a Next.js 14 App Router dashboard with role-based access for Administrators, Account Holders, and Auditors, complete with automated verification suites proving these guarantees under 20-thread concurrent overdraw stress tests."*
+> *On top of this engine, I built a Next.js 14 App Router dashboard with role-based access for Administrators, Account Holders, and Auditors, complete with a comprehensive 39-test verification and chaos engineering suite (testing serialization storms under 100 concurrent requests, mid-transaction connection drops, and drift detection) and a live GitHub Actions CI pipeline running against real PostgreSQL."*
 
 ---
 
@@ -50,7 +52,7 @@ UPDATE accounts SET balance = balance - 50 WHERE id = 'A';
 
 ---
 
-## 3. The 5 Non-Negotiable Engineering Pillars
+## 3. The 7 Non-Negotiable Engineering Pillars
 
 | # | Pillar | Implementation | Why It Matters |
 | :--- | :--- | :--- | :--- |
@@ -59,6 +61,8 @@ UPDATE accounts SET balance = balance - 50 WHERE id = 'A';
 | **3** | **Zero-Race Compound Idempotency** | Atomic `INSERT INTO "IdempotencyKey" ("id", "userId", "key", ...) ON CONFLICT ("userId", key) DO NOTHING` via `idempotencyService.ts`. | Eliminates both TOCTOU race windows and cross-tenant key snooping. In-flight requests get `HTTP 409 Conflict`; finished requests return cached responses with `Idempotent-Replay: true`. |
 | **4** | **Engine-Level Non-Negative Constraint** | PostgreSQL engine constraint: `CHECK ("balancePence" >= -"overdraftLimit")`. | Even if an application bug bypassed the service check, PostgreSQL will abort the transaction before writing a negative balance. |
 | **5** | **Integer Smallest-Unit Currency** | PostgreSQL `BIGINT` and JavaScript `BigInt` (paise/pence). Serialized as strings in JSON. | Completely eliminates IEEE 754 floating-point precision loss. ₹100.00 is stored strictly as `10000` paise. |
+| **6** | **Real-Time Double-Entry Reconciliation** | `reconciliationService.ts` via `GET /accounts/:id/reconcile` and `GET /admin/reconcile-all`. | Proves mathematical self-consistency: independently aggregates all immutable ledger entries and flags any balance drift. |
+| **7** | **Compensating-Entry Reversals** | `POST /transfers/:entryId/reverse` creates paired `ADJUSTMENT` entries. | Reverses transactions while strictly preserving append-only immutability. Historical rows are never altered or deleted. |
 
 ---
 

@@ -51,6 +51,10 @@ The database seed (`prisma/seed.ts`) provisions three accounts corresponding to 
    - `ADMIN`: view and operate on all accounts.
    - `HOLDER`: strictly view and debit own accounts (`AccountHolder.userId == user.id`).
    - `AUDITOR`: read-only access to all accounts, statements, and audit ledgers.
+7. **Continuous Double-Entry Reconciliation**:
+   An independent reconciliation engine (`reconciliationService.ts`) independently aggregates all immutable ledger entries (`(sum(DEPOSIT) + sum(TRANSFER_CREDIT)) - (sum(WITHDRAWAL) + sum(TRANSFER_DEBIT)) +/- adjustments`) and verifies against `Account.balancePence`. Exposed at `GET /accounts/:id/reconcile` and `GET /admin/reconcile-all`.
+8. **Compensating-Entry Corrections (100% Append-Only)**:
+   Corrections and reversals (`POST /transfers/:entryId/reverse`) strictly append compensating `ADJUSTMENT` entries referencing the original transaction. Historical entries are never updated or deleted, preserving absolute audit trail integrity.
 
 ---
 
