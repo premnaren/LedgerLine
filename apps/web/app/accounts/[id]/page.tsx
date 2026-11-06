@@ -306,6 +306,7 @@ export default function AccountStatementPage() {
               ) : (
                 statement?.entries.map((entry) => {
                   const isPosted = entry.status === 'POSTED';
+                  const isSelected = inspectedEntry?.id === entry.id;
                   const dateStr = new Date(entry.createdAt).toLocaleString('en-IN', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
@@ -315,15 +316,22 @@ export default function AccountStatementPage() {
                     <tr
                       key={entry.id}
                       onClick={() => setInspectedEntry(entry as any)}
-                      className={`cursor-pointer transition ${
-                        !isPosted
-                          ? 'bg-red-50/60 hover:bg-red-100/60'
-                          : 'hover:bg-sky-50/60'
+                      className={`cursor-pointer transition border-l-4 ${
+                        isSelected
+                          ? 'bg-sky-50/90 border-l-sky-600 font-medium ring-1 ring-inset ring-sky-300/80 shadow-2xs'
+                          : !isPosted
+                          ? 'bg-red-50/60 hover:bg-red-100/60 border-l-transparent'
+                          : 'hover:bg-sky-50/50 border-l-transparent'
                       }`}
                       title="Click row to inspect cryptographic seal & double-entry T-account details"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-slate-700 font-mono text-xs">
-                        {dateStr}
+                        <div className="flex items-center space-x-1.5">
+                          {isSelected && (
+                            <span className="inline-block w-2 h-2 rounded-full bg-sky-600 shrink-0 animate-pulse" />
+                          )}
+                          <span>{dateStr}</span>
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 whitespace-nowrap">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   ShieldCheck,
@@ -17,6 +17,8 @@ import {
   ChevronUp,
   ChevronDown,
   Download,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { formatPaiseToRupees } from '@/lib/utils';
 
@@ -66,6 +68,19 @@ export default function TransactionDrawer({
   const [copiedId, setCopiedId] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   const [showRawJson, setShowRawJson] = useState(false);
+  const [showFullEntryHash, setShowFullEntryHash] = useState(false);
+  const [showFullPrevHash, setShowFullPrevHash] = useState(false);
+
+  // Keyboard accessibility: Escape to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && entry) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [entry, onClose]);
 
   if (!entry) return null;
 
@@ -94,54 +109,72 @@ export default function TransactionDrawer({
     URL.revokeObjectURL(url);
   };
 
+  const activeAccountName = isDebit
+    ? entry.debitAccountName || (entry.debitAccountId ? `Account ${entry.debitAccountId.slice(0, 8)}` : 'Debit Account')
+    : entry.creditAccountName || (entry.creditAccountId ? `Account ${entry.creditAccountId.slice(0, 8)}` : 'Credit Account');
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Transaction Details"
-      className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
+      aria-labelledby="transaction-drawer-title"
+      className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[1px] transition-opacity duration-200"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-[520px] h-dvh bg-white flex flex-col border-l border-slate-200 shadow-2xl text-slate-900 transform transition-transform duration-200 animate-in slide-in-from-right"
+        className="w-full sm:max-w-[540px] h-dvh bg-white flex flex-col border-l border-slate-200 shadow-2xl text-slate-900 transform transition-transform duration-200 animate-in slide-in-from-right"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pinned Header */}
         <div className="shrink-0 p-6 border-b border-slate-100 flex items-start justify-between bg-white">
           <div>
             <div className="flex items-center space-x-2">
+              {/* Financial State Badge */}
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
                   entry.status === 'POSTED'
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-red-100 text-red-900 border-red-300'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-rose-50 text-rose-800 border-rose-300'
                 }`}
               >
                 {entry.status}
               </span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                {entry.type} · {formattedDate}
+
+              {/* Integrity State Badge */}
+              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <ShieldCheck className="h-3 w-3 text-indigo-600" />
+                <span>{entry.hash ? 'SHA-256 Sealed' : 'Genesis Block'}</span>
+              </span>
+
+              <span className="text-xs font-semibold text-slate-400">
+                · {formattedDate}
               </span>
             </div>
 
-            <h2 className="text-xl font-bold tracking-tight-display text-slate-950 mt-1">
+            <h2 id="transaction-drawer-title" className="text-xl font-bold tracking-tight-display text-slate-950 mt-1.5">
               Transaction Details
             </h2>
 
-            <div className="flex items-center space-x-1.5 mt-0.5">
+            <div className="flex items-center space-x-2 mt-1">
               <span className="text-xs font-mono text-slate-500">
                 ID: entry_{entry.id.slice(0, 10)}...
               </span>
               <button
                 type="button"
                 onClick={() => handleCopy(entry.id, setCopiedId)}
-                className="text-slate-400 hover:text-slate-700 transition"
+                className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800 transition pressable"
                 title="Copy full entry UUID"
               >
                 {copiedId ? (
-                  <Check className="h-3 w-3 text-emerald-600" />
+                  <>
+                    <Check className="h-3 w-3 mr-1 text-emerald-600" />
+                    <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
+                  </>
                 ) : (
-                  <Copy className="h-3 w-3" />
+                  <>
+                    <Copy className="h-3 w-3 mr-1 text-slate-400" />
+                    <span className="text-slate-500 text-[11px]">Copy ID</span>
+                  </>
                 )}
               </button>
             </div>
@@ -155,8 +188,8 @@ export default function TransactionDrawer({
                   type="button"
                   onClick={onNavigatePrevious}
                   disabled={!hasPrevious}
-                  className="p-1 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  title="Previous transaction (↑)"
+                  className="p-1.5 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  title="Previous transaction in sequence (↑)"
                   aria-label="Previous transaction"
                 >
                   <ChevronUp className="h-4 w-4" />
@@ -165,8 +198,8 @@ export default function TransactionDrawer({
                   type="button"
                   onClick={onNavigateNext}
                   disabled={!hasNext}
-                  className="p-1 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  title="Next transaction (↓)"
+                  className="p-1.5 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  title="Next transaction in sequence (↓)"
                   aria-label="Next transaction"
                 >
                   <ChevronDown className="h-4 w-4" />
@@ -177,7 +210,7 @@ export default function TransactionDrawer({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition pressable"
-              title="Close (ESC)"
+              title="Close drawer (ESC)"
               aria-label="Close dialog"
             >
               <X className="h-5 w-5" />
@@ -185,14 +218,14 @@ export default function TransactionDrawer({
           </div>
         </div>
 
-        {/* Scrollable Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Section 1: Amount & Account Impact Hero Card */}
+        {/* Scrollable Body - 3-Tier Information Hierarchy */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5">
+          {/* TIER 1 (PRIMARY): Hero Card - Amount & Account Impact */}
           <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Account Impact
+                  Account Impact ({isDebit ? 'Outflow' : 'Inflow'})
                 </span>
                 <div
                   className={`text-3xl font-black tracking-tight-display tabular-nums mt-0.5 ${
@@ -202,7 +235,7 @@ export default function TransactionDrawer({
                   {isDebit ? `−${amountStr}` : `+${amountStr}`}
                 </div>
                 <span className="text-xs text-slate-500 mt-0.5 block font-medium">
-                  {isDebit ? 'Subtracted from account balance' : 'Added to account balance'}
+                  {isDebit ? 'Subtracted from account balance' : 'Credited to account balance'}
                 </span>
               </div>
 
@@ -224,32 +257,31 @@ export default function TransactionDrawer({
             <div className="pt-3 border-t border-slate-200/60 grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-slate-500 block font-medium">Transfer Amount:</span>
-                <span className="font-bold text-slate-900 font-mono">{amountStr}</span>
+                <span className="font-bold text-slate-900 font-mono text-sm">{amountStr}</span>
                 <span className="text-[11px] text-slate-400 block font-mono">
                   {entry.amountPence} paise
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 block font-medium">Entry Status:</span>
-                <span
-                  className={`font-semibold ${
-                    entry.status === 'POSTED' ? 'text-emerald-700' : 'text-red-600'
-                  }`}
-                >
-                  {entry.status === 'POSTED' ? 'Successfully posted' : 'Refused / Overdraft'}
+                <span className="text-slate-500 block font-medium">Transaction Type:</span>
+                <span className="font-semibold text-slate-800 font-mono">
+                  {entry.type}
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  Double-entry leg
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Classical T-Account Double-Entry Breakdown */}
+          {/* TIER 2 (SECONDARY): T-Account Double-Entry Movement & Attribution */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3.5 shadow-2xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
                 <ArrowRightLeft className="h-4 w-4 text-slate-500" />
                 <span>Double-Entry Flow (T-Account)</span>
               </span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase font-semibold">
                 Atomic Zero-Sum
               </span>
             </div>
@@ -258,7 +290,7 @@ export default function TransactionDrawer({
               {/* Debit Side */}
               <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/70">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
-                  Debit · Source
+                  DEBIT ACCOUNT · SOURCE
                 </span>
                 <span className="text-xs font-bold text-slate-900 mt-1 block truncate">
                   {entry.debitAccountName ||
@@ -274,7 +306,7 @@ export default function TransactionDrawer({
               {/* Credit Side */}
               <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/70">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                  Credit · Destination
+                  CREDIT ACCOUNT · DEST
                 </span>
                 <span className="text-xs font-bold text-slate-900 mt-1 block truncate">
                   {entry.creditAccountName ||
@@ -288,129 +320,195 @@ export default function TransactionDrawer({
               </div>
             </div>
 
+            {/* Clear Attribution of Running Balance */}
             <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-              <span className="font-medium">Post-entry Running Balance:</span>
-              <span className="font-bold tabular-nums font-mono text-slate-950">
+              <span className="font-medium">
+                Post-entry Balance ({activeAccountName}):
+              </span>
+              <span className="font-bold tabular-nums font-mono text-slate-950 text-sm">
                 {formatPaiseToRupees(entry.runningBalance)}
               </span>
             </div>
           </div>
 
-          {/* Section 3: Cryptographic SHA-256 Chain Verification */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3.5 shadow-2xs">
+          {/* TIER 3 (SUPPORTING): Cryptographic SHA-256 Proof of Custody */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-4 shadow-2xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-1.5">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
+                <ShieldCheck className="h-4 w-4 text-indigo-600" />
                 <span>Cryptographic Proof of Custody</span>
               </span>
-              <span className="inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>SHA-256 Sealed</span>
+              <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+                SHA-256 Chain
               </span>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 block">
+            {/* Entry Hash */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">
                   Entry Hash (Block Seal)
                 </span>
-                <div className="flex items-center justify-between mt-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/70">
-                  <span
-                    className="text-xs font-mono text-slate-800 truncate mr-2 font-medium"
-                    title={entry.hash || 'Genesis Block'}
-                  >
-                    {entry.hash || 'Genesis Block / Pre-migration entry'}
-                  </span>
-                  {entry.hash && (
+                {entry.hash && (
+                  <div className="flex items-center space-x-2">
                     <button
                       type="button"
                       onClick={() => handleCopy(entry.hash!, setCopiedHash)}
-                      className="text-slate-400 hover:text-slate-700 transition pressable shrink-0"
+                      className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition pressable"
                       title="Copy full SHA-256 hash"
                     >
                       {copiedHash ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <>
+                          <Check className="h-3 w-3 mr-1 text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
+                        </>
                       ) : (
-                        <Copy className="h-3.5 w-3.5" />
+                        <>
+                          <Copy className="h-3 w-3 mr-1 text-slate-400" />
+                          <span className="text-[11px]">Copy</span>
+                        </>
                       )}
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullEntryHash(!showFullEntryHash)}
+                      className="inline-flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-800 transition pressable"
+                    >
+                      {showFullEntryHash ? (
+                        <>
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          <span className="text-[11px]">Collapse</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 mr-1" />
+                          <span className="text-[11px]">View full hash</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 block">
+              {showFullEntryHash ? (
+                <div className="p-3 bg-slate-900 text-emerald-400 rounded-xl font-mono text-xs break-all border border-slate-800 select-all tracking-wide leading-relaxed">
+                  {entry.hash || 'Genesis Block'}
+                </div>
+              ) : (
+                <div className="flex items-center bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/70">
+                  <span className="font-mono text-xs text-slate-800 truncate font-medium">
+                    {entry.hash ? `${entry.hash.slice(0, 36)}...` : 'Genesis Block / Pre-migration entry'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Parent Hash */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">
                   Parent Block Hash (prevHash)
                 </span>
-                <div className="flex items-center justify-between mt-1 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/70">
-                  <span
-                    className="text-xs font-mono text-slate-600 truncate mr-2"
-                    title={entry.prevHash || '0'.repeat(64)}
-                  >
-                    {entry.prevHash || '0000000000000000000000000000000000000000000000000000000000000000'}
-                  </span>
-                  {entry.prevHash && (
+                {entry.prevHash && (
+                  <div className="flex items-center space-x-2">
                     <button
                       type="button"
                       onClick={() => handleCopy(entry.prevHash!, setCopiedPrevHash)}
-                      className="text-slate-400 hover:text-slate-700 transition pressable shrink-0"
+                      className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition pressable"
                       title="Copy parent hash"
                     >
                       {copiedPrevHash ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <>
+                          <Check className="h-3 w-3 mr-1 text-emerald-600" />
+                          <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
+                        </>
                       ) : (
-                        <Copy className="h-3.5 w-3.5" />
+                        <>
+                          <Copy className="h-3 w-3 mr-1 text-slate-400" />
+                          <span className="text-[11px]">Copy</span>
+                        </>
                       )}
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullPrevHash(!showFullPrevHash)}
+                      className="inline-flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-800 transition pressable"
+                    >
+                      {showFullPrevHash ? (
+                        <>
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          <span className="text-[11px]">Collapse</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 mr-1" />
+                          <span className="text-[11px]">View full hash</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {showFullPrevHash ? (
+                <div className="p-3 bg-slate-900 text-slate-300 rounded-xl font-mono text-xs break-all border border-slate-800 select-all tracking-wide leading-relaxed">
+                  {entry.prevHash || '0'.repeat(64)}
+                </div>
+              ) : (
+                <div className="flex items-center bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/70">
+                  <span className="font-mono text-xs text-slate-600 truncate">
+                    {entry.prevHash ? `${entry.prevHash.slice(0, 36)}...` : '0000000000000000000000000000000000000000000000000000000000000000'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Section 4: Audit Metadata */}
+          {/* TIER 3 (SUPPORTING): Audit Metadata in Definition List Layout */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3 text-xs shadow-2xs">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block pb-2 border-b border-slate-100">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block pb-2 border-b border-slate-100">
               Audit Metadata
             </span>
 
-            <div className="flex items-center justify-between py-1 border-b border-slate-100">
-              <span className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                <User className="h-3.5 w-3.5" />
-                <span>Initiated By:</span>
-              </span>
-              <span className="font-semibold text-slate-900">{email}</span>
-            </div>
-
-            <div className="flex items-center justify-between py-1 border-b border-slate-100">
-              <span className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                <Hash className="h-3.5 w-3.5" />
-                <span>Transaction ID:</span>
-              </span>
-              <span className="font-mono text-slate-900 font-medium">{entry.id}</span>
-            </div>
-
-            <div className="flex items-center justify-between py-1 border-b border-slate-100">
-              <span className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Timestamp:</span>
-              </span>
-              <span className="font-mono text-slate-900">
-                {new Date(entry.createdAt).toLocaleTimeString()} · {formattedDate}
-              </span>
-            </div>
-
-            {entry.note && (
-              <div className="pt-1">
-                <span className="text-slate-500 font-medium block">Note / Reason:</span>
-                <p className="mt-1 text-slate-800 bg-slate-50 p-2.5 rounded-xl font-mono text-xs border border-slate-200/60">
-                  {entry.note}
-                </p>
+            <dl className="space-y-2.5">
+              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
+                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
+                  <User className="h-3.5 w-3.5" />
+                  <span>Initiated By:</span>
+                </dt>
+                <dd className="font-semibold text-slate-900">{email}</dd>
               </div>
-            )}
+
+              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
+                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
+                  <Hash className="h-3.5 w-3.5" />
+                  <span>Transaction ID:</span>
+                </dt>
+                <dd className="font-mono text-slate-900 font-medium">{entry.id}</dd>
+              </div>
+
+              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
+                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Timestamp:</span>
+                </dt>
+                <dd className="font-mono text-slate-900">
+                  {new Date(entry.createdAt).toLocaleTimeString()} · {formattedDate}
+                </dd>
+              </div>
+
+              {entry.note && (
+                <div className="pt-1">
+                  <dt className="text-slate-500 font-medium block">Note / Reason Reference:</dt>
+                  <dd className="mt-1 text-slate-800 bg-slate-50 p-2.5 rounded-xl font-mono text-xs border border-slate-200/60">
+                    {entry.note}
+                  </dd>
+                </div>
+              )}
+            </dl>
           </div>
 
-          {/* Section 5: Structured In-Drawer Raw JSON Viewer */}
+          {/* TIER 3 (SUPPORTING): Structured In-Drawer Raw JSON Viewer */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
             <div className="flex items-center justify-between">
               <button
