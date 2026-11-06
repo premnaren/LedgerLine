@@ -39,3 +39,11 @@ Output: Built complete end-to-end integration test suites in `tests/concurrency.
 Problem: When 20 concurrent requests attempt to lock the exact same account row under PostgreSQL `SERIALIZABLE` isolation, unmanaged tuple lock contention causes severe cascading 40001 serialization failures. Furthermore, invoking `writeRefusedEntry` on an independent connection while holding `FOR UPDATE` on `Account` caused a distributed deadlock because PostgreSQL's foreign key check on `LedgerEntry.debitAccountId` waited for the uncommitted `Account` lock.
 Fix: Isolated the REFUSED entry writing to occur after transaction abort/rollback when the row lock has been released. Implemented an in-process account lock queue (`AccountLockManager`) combined with exponential retry backoff and elevated transaction timeouts, preventing thundering-herd aborts while maintaining full database Serializable isolation and row-level locking.
 ---
+
+---
+Date: 2026-11-06
+Prompt: Sub-prompt 6 — Statement endpoint and accounts API
+Output: Implemented accounts CRUD routes with role filtering (`GET /accounts`, `POST /accounts`, `GET /accounts/:id/balance`) and cursor-paginated statement generation (`GET /accounts/:id/statement`) displaying both POSTED and REFUSED transactions. Verified composite database indexes on `(debitAccountId, createdAt DESC)` and `(creditAccountId, createdAt DESC)`. Added comprehensive tests in `tests/accounts_statement.test.ts`.
+Problem: Excluding REFUSED entries from statements obscures critical failed or unauthorized attempts from auditors. In addition, offset-based pagination on high-frequency ledger tables suffers from drift and scan degradation under concurrent insertions.
+Fix: Implemented keyset/cursor-based pagination (`take: limit + 1`, `cursor: { id }`) ordered by `[createdAt DESC, id DESC]` leveraging composite indexes. Ensured statement queries query both debit and credit associations and explicitly include REFUSED entries for AUDITOR and authorized account holders.
+---

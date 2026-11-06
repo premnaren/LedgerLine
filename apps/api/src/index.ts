@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import accountsRouter from './routes/accounts';
 import transfersRouter from './routes/transfers';
+import statementsRouter from './routes/statements';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRouter);
 app.use('/accounts', accountsRouter);
 app.use('/transfers', transfersRouter);
+app.use('/statements', statementsRouter);
 
 const PORT = process.env.PORT || 4000;
 

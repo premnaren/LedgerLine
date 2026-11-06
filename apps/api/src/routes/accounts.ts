@@ -3,11 +3,15 @@ import { Role } from '@prisma/client';
 import { prisma } from '../config/db';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/roleGuard';
+import statementsRouter from './statements';
 
 const router = Router();
 
 // Apply auth middleware to all account routes
 router.use(authenticate);
+
+// Mount statement sub-routes
+router.use('/', statementsRouter);
 
 // GET /accounts - ADMIN: all, AUDITOR: all, HOLDER: own accounts
 router.get('/', async (req: Request, res: Response) => {
@@ -94,6 +98,20 @@ router.post('/', requireRole(Role.ADMIN), async (req: Request, res: Response) =>
         holders: true,
       },
     });
+
+    if (initBalancePence > 0n) {
+      await prisma.ledgerEntry.create({
+        data: {
+          type: 'DEPOSIT',
+          status: 'POSTED',
+          amountPence: initBalancePence,
+          creditAccountId: account.id,
+          initiatedById: req.user!.userId,
+          runningBalance: initBalancePence,
+          note: 'Initial account balance',
+        },
+      });
+    }
 
     return res.status(201).json({
       ...account,
