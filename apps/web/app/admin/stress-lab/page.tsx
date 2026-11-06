@@ -80,6 +80,7 @@ export default function StressLabPage() {
   const [toAccountId, setToAccountId] = useState<string>('');
 
   const [running, setRunning] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [result, setResult] = useState<StressResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedHeadHash, setCopiedHeadHash] = useState<boolean>(false);
@@ -165,7 +166,7 @@ export default function StressLabPage() {
   }, [result]);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-16">
       {/* Top Banner Navigation & Status */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
@@ -176,32 +177,37 @@ export default function StressLabPage() {
             <ArrowLeft className="mr-1 h-3.5 w-3.5" />
             Back to Dashboard
           </Link>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
             <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200">
               <Zap className="h-4 w-4 fill-amber-500" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight-display text-slate-950">
-              Engine Stress &amp; Concurrency Workbench
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight-display text-slate-950">
+              <span className="sm:hidden">Stress Lab</span>
+              <span className="hidden sm:inline">Engine Stress &amp; Concurrency Workbench</span>
             </h1>
             {running ? (
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center space-x-1.5 animate-pulse">
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                <span>Running Simulation...</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 animate-pulse">
+                <RefreshCw className="h-3 w-3 animate-spin text-amber-600" />
+                <span>Running</span>
               </span>
             ) : result ? (
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center space-x-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Completed · Run #{runCount}</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                <span>Completed</span>
               </span>
             ) : (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                Ready to run
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>Ready</span>
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500 mt-1 max-w-2xl font-medium">
-            Configure concurrent money movements, execute atomic transactions under parallel contention,
-            and inspect database consistency in real time.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl font-medium">
+            <span className="sm:hidden">Concurrency testing workbench</span>
+            <span className="hidden sm:inline">
+              Configure concurrent money movements, execute atomic transactions under parallel contention,
+              and inspect database consistency in real time.
+            </span>
           </p>
         </div>
 
@@ -229,8 +235,8 @@ export default function StressLabPage() {
       )}
 
       {/* Stage 1: Simulation Configuration Panel */}
-      <div className="glass-card rounded-2xl p-6 shadow-xs border border-slate-200/80 space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+      <div className="glass-card rounded-2xl p-5 sm:p-6 shadow-xs border border-slate-200/80 space-y-5 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
               Simulation Configuration
@@ -251,7 +257,7 @@ export default function StressLabPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-6 items-end">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Concurrency Selector */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -263,14 +269,23 @@ export default function StressLabPage() {
                   key={num}
                   type="button"
                   onClick={() => setConcurrency(num)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition pressable flex items-center justify-center space-x-1.5 ${
+                  className={`relative min-h-[52px] rounded-xl border px-2 py-2.5 text-xs sm:text-sm font-semibold transition flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 pressable ${
                     concurrency === num
-                      ? 'bg-slate-950 text-white shadow-xs ring-2 ring-slate-950'
-                      : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200/60'
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  {concurrency === num && <Check className="h-3.5 w-3.5 text-white" />}
-                  <span>{num} Requests</span>
+                  {concurrency === num && (
+                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-emerald-400" />
+                  )}
+                  <span className="font-bold text-sm sm:text-base leading-tight">{num}</span>
+                  <span
+                    className={`text-[10px] sm:text-xs font-medium ${
+                      concurrency === num ? 'text-slate-300' : 'text-slate-500'
+                    }`}
+                  >
+                    Requests
+                  </span>
                 </button>
               ))}
             </div>
@@ -294,14 +309,23 @@ export default function StressLabPage() {
                   key={opt.paise}
                   type="button"
                   onClick={() => setAmountPence(opt.paise)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition pressable flex items-center justify-center space-x-1.5 ${
+                  className={`relative min-h-[52px] rounded-xl border px-2 py-2.5 text-xs sm:text-sm font-semibold transition flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 pressable ${
                     amountPence === opt.paise
-                      ? 'bg-slate-950 text-white shadow-xs ring-2 ring-slate-950'
-                      : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200/60'
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  {amountPence === opt.paise && <Check className="h-3.5 w-3.5 text-white" />}
-                  <span>{opt.label}</span>
+                  {amountPence === opt.paise && (
+                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-emerald-400" />
+                  )}
+                  <span className="font-bold text-sm sm:text-base leading-tight">{opt.label}</span>
+                  <span
+                    className={`text-[10px] sm:text-xs font-medium ${
+                      amountPence === opt.paise ? 'text-slate-300' : 'text-slate-500'
+                    }`}
+                  >
+                    per transfer
+                  </span>
                 </button>
               ))}
             </div>
@@ -309,31 +333,155 @@ export default function StressLabPage() {
               Exact paise integer math: {amountPence} paise.
             </p>
           </div>
+        </div>
 
-          {/* Action Trigger Button */}
-          <div className="w-full lg:w-auto">
-            <button
-              onClick={handleRunStress}
-              disabled={running}
-              className="w-full lg:min-w-[320px] py-3.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md hover:shadow-lg disabled:opacity-50 transition pressable flex items-center justify-center space-x-2"
-            >
-              {running ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin text-slate-950" />
-                  <span>Locking Rows &amp; Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 fill-slate-950" />
-                  <span>
-                    Run {concurrency} Concurrent Transfers · {formatPaiseToRupees(amountPence)} Each
-                  </span>
-                </>
-              )}
-            </button>
+        {/* Execution Safety Notice */}
+        <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 flex items-start space-x-2.5">
+          <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <div className="font-bold text-amber-950 flex items-center gap-1.5">
+              <span>Execution Safety Notice</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-200/70 text-amber-800">
+                SANDBOX
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+              Testing environment only. Confirm that the selected accounts are designated for stress testing before execution. Total ledger balance remains invariant (ΔΣ = 0).
+            </p>
           </div>
         </div>
+
+        {/* Action Trigger Button */}
+        <div>
+          <button
+            onClick={() => setShowConfirmModal(true)}
+            disabled={running}
+            className="w-full py-3.5 px-5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-bold shadow-md hover:shadow-lg disabled:opacity-50 transition pressable flex items-center justify-between min-h-[52px]"
+          >
+            {running ? (
+              <div className="flex items-center space-x-3 mx-auto">
+                <RefreshCw className="h-5 w-5 animate-spin text-slate-950 shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-bold leading-tight">Simulating Contention...</div>
+                  <div className="text-[11px] text-slate-800 font-medium">Acquiring SSI row locks</div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-400/80 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 fill-slate-950 text-slate-950" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm sm:text-base font-black tracking-tight leading-tight text-slate-950">
+                      Run {concurrency} Transfers
+                    </div>
+                    <div className="text-[11px] sm:text-xs font-semibold text-slate-800">
+                      {formatPaiseToRupees(amountPence)} per transfer · {formatPaiseToRupees(concurrency * amountPence)} volume
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-slate-950 bg-amber-400/90 px-2.5 py-1.5 rounded-lg border border-amber-500/40">
+                  Start →
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* Pre-Execution Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6 space-y-5 animate-in zoom-in-95 duration-150"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200">
+                  <Zap className="h-5 w-5 fill-amber-500" />
+                </div>
+                <div>
+                  <h3 id="confirm-modal-title" className="text-base font-bold text-slate-950">
+                    Confirm Stress Simulation
+                  </h3>
+                  <span className="text-xs font-mono text-slate-500 font-medium">
+                    PostgreSQL Serializable SSI
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition pressable"
+                aria-label="Close confirmation dialog"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Simulation Parameters Summary */}
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Parallel Requests:</span>
+                <span className="font-bold text-slate-950 font-mono">
+                  {concurrency} concurrent (Promise.all)
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Amount per Transfer:</span>
+                <span className="font-bold text-slate-950 font-mono">
+                  {formatPaiseToRupees(amountPence)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Total Simulated Volume:</span>
+                <span className="font-bold text-amber-600 font-mono">
+                  {formatPaiseToRupees(concurrency * amountPence)}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Account Routing:</span>
+                <span className="font-semibold text-slate-800 truncate max-w-[200px]">
+                  {accounts.length >= 2 ? `${accounts[0].name} ⇄ ${accounts[1].name}` : 'Designated test accounts'}
+                </span>
+              </div>
+            </div>
+
+            {/* Environmental Safety Notice */}
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 flex items-start space-x-2">
+              <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong className="font-bold">Testing Environment Guarantee:</strong> Each transfer creates an append-only entry with serializable row locks. Total ledger balance remains invariant (ΔΣ = 0).
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="py-2.5 px-4 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  handleRunStress();
+                }}
+                className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 rounded-xl text-xs font-bold transition pressable shadow-xs flex items-center justify-center space-x-1.5"
+              >
+                <Zap className="h-3.5 w-3.5 fill-slate-950" />
+                <span>Launch Simulation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stage 2 & 3: Execution Results & Invariant Telemetry */}
       {result && (
@@ -347,69 +495,69 @@ export default function StressLabPage() {
             </p>
           </div>
 
-          {/* 4 Explicit Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 4 Explicit Metric Cards: 2x2 on mobile, 4 columns on lg */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Balance Conservation */}
-            <div className="glass-card rounded-2xl p-5 shadow-xs border border-slate-200/80">
+            <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Balance Conservation
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Conservation
                 </span>
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               </div>
-              <div className="text-2xl font-black tracking-tight-display text-emerald-700 mt-2">
+              <div className="text-xl sm:text-2xl font-black tracking-tight-display text-emerald-700 mt-2">
                 100% Conserved
               </div>
-              <span className="text-xs font-mono text-slate-600 mt-1 block font-medium">
-                ΔDebits + ΔCredits = 0.00 (0 drift)
+              <span className="text-[11px] sm:text-xs font-mono text-slate-600 mt-1 block font-medium">
+                ΔDebits + ΔCredits = 0
               </span>
             </div>
 
             {/* Card 2: Transaction Throughput */}
-            <div className="glass-card rounded-2xl p-5 shadow-xs border border-slate-200/80">
+            <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Transaction Throughput
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Throughput
                 </span>
                 <TrendingUp className="h-4 w-4 text-sky-600" />
               </div>
-              <div className="text-2xl font-black tracking-tight-display tabular-nums text-slate-950 mt-2">
-                {result.telemetry.transfersPerSecond} tx/sec
+              <div className="text-xl sm:text-2xl font-black tracking-tight-display tabular-nums text-slate-950 mt-2">
+                {result.telemetry.transfersPerSecond} tx/s
               </div>
-              <span className="text-xs font-mono text-slate-600 mt-1 block font-medium">
-                {result.telemetry.durationMs} ms total latency
+              <span className="text-[11px] sm:text-xs font-mono text-slate-600 mt-1 block font-medium">
+                {result.telemetry.durationMs} ms latency
               </span>
             </div>
 
             {/* Card 3: Successful Transactions */}
-            <div className="glass-card rounded-2xl p-5 shadow-xs border border-slate-200/80">
+            <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Successful Transactions
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Success
                 </span>
                 <Lock className="h-4 w-4 text-purple-600" />
               </div>
-              <div className="text-2xl font-black tracking-tight-display tabular-nums text-slate-950 mt-2">
-                {result.telemetry.successful} / {result.telemetry.concurrency}
+              <div className="text-xl sm:text-2xl font-black tracking-tight-display tabular-nums text-slate-950 mt-2">
+                {result.telemetry.successful}/{result.telemetry.concurrency}
               </div>
-              <span className="text-xs font-mono text-slate-600 mt-1 block font-medium">
-                {result.telemetry.failed} failed · 0 unhandled collisions
+              <span className="text-[11px] sm:text-xs font-mono text-slate-600 mt-1 block font-medium">
+                0 collisions
               </span>
             </div>
 
             {/* Card 4: Hash Chain Integrity */}
-            <div className="glass-card rounded-2xl p-5 shadow-xs border border-slate-200/80">
+            <div className="glass-card rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Hash Chain Integrity
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Chain Integrity
                 </span>
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
               </div>
-              <div className="text-2xl font-black tracking-tight-display text-emerald-700 mt-2">
-                Verified Intact
+              <div className="text-xl sm:text-2xl font-black tracking-tight-display text-emerald-700 mt-2">
+                Intact
               </div>
-              <span className="text-xs font-mono text-slate-600 mt-1 block truncate font-medium">
-                {result.cryptographicProof.totalEntries} entries sealed Genesis → Head
+              <span className="text-[11px] sm:text-xs font-mono text-slate-600 mt-1 block truncate font-medium">
+                {result.cryptographicProof.totalEntries} sealed
               </span>
             </div>
           </div>
