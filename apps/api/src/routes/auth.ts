@@ -18,9 +18,11 @@ export function generateTokens(userId: string, role: string, email: string) {
     expiresIn: ACCESS_TOKEN_EXPIRY,
   });
 
-  const refreshToken = jwt.sign({ userId }, JWT_REFRESH_SECRET, {
-    expiresIn: `${REFRESH_TOKEN_DAYS}d`,
-  });
+  const refreshToken = jwt.sign(
+    { userId, jti: crypto.randomUUID() },
+    JWT_REFRESH_SECRET,
+    { expiresIn: `${REFRESH_TOKEN_DAYS}d` }
+  );
 
   return { accessToken, refreshToken };
 }

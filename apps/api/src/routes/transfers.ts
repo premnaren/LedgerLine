@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
+import { idempotencyMiddleware } from '../middleware/idempotency';
 import { executeTransfer } from '../services/transferService';
 import { LedgerError } from '../services/errors';
 
@@ -7,8 +8,8 @@ const router = Router();
 
 router.use(authenticate);
 
-// POST /transfers
-router.post('/', async (req: Request, res: Response) => {
+// POST /transfers (protected with idempotency middleware)
+router.post('/', idempotencyMiddleware, async (req: Request, res: Response) => {
   try {
     const { type, fromAccountId, toAccountId, amount, note } = req.body;
 
@@ -23,6 +24,11 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const amountBigInt = BigInt(amount);
+
+    // Optional test hook for simulated concurrency delay
+    if (req.headers['x-test-delay']) {
+      await new Promise((r) => setTimeout(r, Number(req.headers['x-test-delay'])));
+    }
 
     const result = await executeTransfer({
       type,

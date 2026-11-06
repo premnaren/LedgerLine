@@ -77,6 +77,7 @@ describe('Authorization & Role Guard Integration Tests', () => {
     const res = await request(app)
       .post('/transfers')
       .set('Authorization', `Bearer ${holderToken}`)
+      .set('Idempotency-Key', 'test-authz-cross-user-debit')
       .send({
         type: 'transfer',
         fromAccountId: accountBId, // Account B is owned by admin
