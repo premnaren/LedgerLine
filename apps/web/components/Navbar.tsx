@@ -62,7 +62,7 @@ export default function Navbar() {
               href="/dashboard"
               className="flex items-center space-x-2.5 pressable focus:outline-hidden"
             >
-              <div className="h-8 w-8 rounded-xl bg-slate-950 flex items-center justify-center text-white shadow-xs">
+              <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 border border-sky-200/60 flex items-center justify-center shadow-xs">
                 <Layers className="h-4 w-4" />
               </div>
               <span className="font-bold text-lg tracking-tight-display text-slate-950">
