@@ -14,6 +14,8 @@ import {
   AlertCircle,
   RefreshCw,
   Search,
+  RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AuditEntry {
@@ -49,6 +51,13 @@ export default function AuditPage() {
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  // Reversal workflow state
+  const [reversingEntry, setReversingEntry] = useState<AuditEntry | null>(null);
+  const [reversalReason, setReversalReason] = useState<string>('');
+  const [reversalLoading, setReversalLoading] = useState<boolean>(false);
+  const [reversalError, setReversalError] = useState<string | null>(null);
+  const [reversalSuccess, setReversalSuccess] = useState<string | null>(null);
 
   const fetchAuditEntries = useCallback(async () => {
     try {
@@ -94,6 +103,33 @@ export default function AuditPage() {
 
     fetchAuditEntries();
   }, [fetchAuditEntries, router]);
+
+  const handleExecuteReversal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reversingEntry) return;
+
+    setReversalLoading(true);
+    setReversalError(null);
+    setReversalSuccess(null);
+
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      await api.post(
+        `/transfers/${reversingEntry.id}/reverse`,
+        { reason: reversalReason.trim() || undefined },
+        { 'Idempotency-Key': idempotencyKey }
+      );
+
+      setReversalSuccess(`Successfully reversed transaction #${reversingEntry.id.slice(-8)}. Compensating ADJUSTMENT entries posted to ledger.`);
+      setReversingEntry(null);
+      setReversalReason('');
+      fetchAuditEntries();
+    } catch (err: any) {
+      setReversalError(err.message || 'Failed to execute reversal');
+    } finally {
+      setReversalLoading(false);
+    }
+  };
 
   const handleExportCSV = () => {
     if (!entries || entries.length === 0) return;
@@ -177,6 +213,21 @@ export default function AuditPage() {
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-3 text-red-700">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+
+      {reversalSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-emerald-800">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <p className="text-sm font-medium">{reversalSuccess}</p>
+          </div>
+          <button
+            onClick={() => setReversalSuccess(null)}
+            className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -265,18 +316,21 @@ export default function AuditPage() {
                 <th scope="col" className="px-5 py-3.5 text-left">
                   Note
                 </th>
+                <th scope="col" className="px-5 py-3.5 text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
                     Loading global audit entries...
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
                     No matching audit records found.
                   </td>
                 </tr>
@@ -344,6 +398,27 @@ export default function AuditPage() {
                       <td className="px-5 py-3 text-xs text-slate-500 max-w-xs truncate">
                         {entry.note || '—'}
                       </td>
+
+                      <td className="px-5 py-3 whitespace-nowrap text-right text-xs">
+                        {user?.role === 'ADMIN' && isPosted && entry.type !== 'ADJUSTMENT' ? (
+                          <button
+                            onClick={() => {
+                              setReversingEntry(entry);
+                              setReversalReason('');
+                              setReversalError(null);
+                            }}
+                            className="inline-flex items-center px-2.5 py-1 border border-amber-300 rounded-md text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium transition shadow-xs"
+                            title="Execute compensating-entry reversal"
+                          >
+                            <RotateCcw className="mr-1 h-3 w-3" />
+                            Reverse
+                          </button>
+                        ) : entry.type === 'ADJUSTMENT' ? (
+                          <span className="text-slate-400 font-mono text-[11px]">Compensating Leg</span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -352,6 +427,88 @@ export default function AuditPage() {
           </table>
         </div>
       </div>
+
+      {/* Reversal Confirmation Modal */}
+      {reversingEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+                <RotateCcw className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Execute Reversal
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Compensating-entry transaction correction
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 mb-4 space-y-1.5 border border-slate-200 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Entry ID:</span>
+                <span className="font-mono text-slate-800">{reversingEntry.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Amount:</span>
+                <span className="font-bold text-slate-900">{formatPaiseToRupees(reversingEntry.amountPence)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Original Type:</span>
+                <span className="font-semibold text-slate-800">{reversingEntry.type}</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs text-amber-800 mb-4">
+              <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>100% Append-Only Guarantee:</strong> The original ledger entry is never modified or deleted. Reversing appends paired <code>ADJUSTMENT</code> entries into the immutable ledger and restores balances inside a Serializable transaction.
+              </span>
+            </div>
+
+            {reversalError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+                {reversalError}
+              </div>
+            )}
+
+            <form onSubmit={handleExecuteReversal} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+                  Reason for Reversal
+                </label>
+                <input
+                  type="text"
+                  value={reversalReason}
+                  onChange={(e) => setReversalReason(e.target.value)}
+                  placeholder="e.g. Erroneous charge / customer duplicate dispute"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  disabled={reversalLoading}
+                  onClick={() => setReversingEntry(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reversalLoading}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"
+                >
+                  {reversalLoading ? 'Processing...' : 'Confirm Reversal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

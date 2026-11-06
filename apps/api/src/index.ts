@@ -63,7 +63,16 @@ const openApiFilePath = [
 
 if (openApiFilePath) {
   const swaggerDocument = YAML.load(openApiFilePath);
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      swaggerOptions: {
+        docExpansion: 'list',
+        displayRequestDuration: true,
+      },
+    })
+  );
   app.get('/openapi.json', (_req, res) => res.json(swaggerDocument));
 }
 

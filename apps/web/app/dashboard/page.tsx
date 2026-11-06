@@ -14,7 +14,30 @@ import {
   AlertCircle,
   RefreshCw,
   Building,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
+
+interface AccountReconciliationResult {
+  accountId: string;
+  accountName: string;
+  storedBalance: string;
+  computedBalance: string;
+  matches: boolean;
+  discrepancyPence: string;
+  totalCreditsPence: string;
+  totalDebitsPence: string;
+}
+
+interface SystemReconciliationResult {
+  allMatch: boolean;
+  totalAccounts: number;
+  discrepantAccountsCount: number;
+  totalStoredBalancePence: string;
+  totalComputedBalancePence: string;
+  accounts: AccountReconciliationResult[];
+}
 
 interface Account {
   id: string;
@@ -40,6 +63,11 @@ export default function DashboardPage() {
   const [newAccountBalance, setNewAccountBalance] = useState('');
   const [newAccountOverdraft, setNewAccountOverdraft] = useState('0');
   const [createLoading, setCreateLoading] = useState(false);
+
+  // System Reconciliation modal state
+  const [showReconcileModal, setShowReconcileModal] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<SystemReconciliationResult | null>(null);
+  const [reconcileLoading, setReconcileLoading] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -100,6 +128,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleVerifyIntegrity = async () => {
+    setReconcileLoading(true);
+    setShowReconcileModal(true);
+    try {
+      const data = await api.get<SystemReconciliationResult>('/admin/reconcile-all');
+      setReconcileResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Reconciliation check failed');
+    } finally {
+      setReconcileLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -123,6 +164,17 @@ export default function DashboardPage() {
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+
+          {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
+            <button
+              onClick={handleVerifyIntegrity}
+              className="inline-flex items-center px-3.5 py-2 border border-emerald-300 rounded-lg shadow-sm text-sm font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition"
+              title="Verify double-entry reconciliation across all accounts"
+            >
+              <ShieldCheck className="mr-1.5 h-4 w-4 text-emerald-600" />
+              Verify Ledger Integrity
+            </button>
+          )}
 
           {user?.role === 'ADMIN' && (
             <button
@@ -252,33 +304,43 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase">
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                   Initial Balance (₹)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newAccountBalance}
-                  onChange={(e) => setNewAccountBalance(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                  placeholder="0.00"
-                />
+                <div className="relative rounded-lg shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">
+                    ₹
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newAccountBalance}
+                    onChange={(e) => setNewAccountBalance(e.target.value)}
+                    className="block w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase">
+                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                   Overdraft Limit (₹)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newAccountOverdraft}
-                  onChange={(e) => setNewAccountOverdraft(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                  placeholder="0.00"
-                />
+                <div className="relative rounded-lg shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">
+                    ₹
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newAccountOverdraft}
+                    onChange={(e) => setNewAccountOverdraft(e.target.value)}
+                    className="block w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
@@ -298,6 +360,114 @@ export default function DashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* System Double-Entry Reconciliation Modal */}
+      {showReconcileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    System Double-Entry Reconciliation
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Independent mathematical proof: <code>Account.balancePence</code> vs. <code>∑(Credits) - ∑(Debits)</code>
+                  </p>
+                </div>
+              </div>
+
+              {reconcileResult && (
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                    reconcileResult.allMatch
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-red-100 text-red-800 border-red-300'
+                  }`}
+                >
+                  {reconcileResult.allMatch ? '100% BALANCED ✓' : 'DISCREPANCY DETECTED'}
+                </span>
+              )}
+            </div>
+
+            <div className="py-4">
+              {reconcileLoading ? (
+                <div className="py-12 text-center text-slate-500 flex flex-col items-center space-y-3">
+                  <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
+                  <p className="text-sm">Aggregating immutable ledger entries across all system accounts...</p>
+                </div>
+              ) : reconcileResult ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase block">Total Accounts</span>
+                      <span className="text-xl font-bold text-slate-900">{reconcileResult.totalAccounts}</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase block">Unbalanced Accounts</span>
+                      <span className="text-xl font-bold text-emerald-700">{reconcileResult.discrepantAccountsCount}</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase block">System Total</span>
+                      <span className="text-xl font-bold text-slate-900">{formatPaiseToRupees(reconcileResult.totalStoredBalancePence)}</span>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-xs">
+                      <thead className="bg-slate-50 text-slate-700 uppercase font-semibold">
+                        <tr>
+                          <th className="px-4 py-2.5 text-left">Account</th>
+                          <th className="px-4 py-2.5 text-right">Stored Balance</th>
+                          <th className="px-4 py-2.5 text-right">Computed (Ledger)</th>
+                          <th className="px-4 py-2.5 text-right">Discrepancy</th>
+                          <th className="px-4 py-2.5 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {reconcileResult.accounts.map((acc) => (
+                          <tr key={acc.accountId} className="hover:bg-slate-50">
+                            <td className="px-4 py-2.5 font-medium text-slate-900">{acc.accountName}</td>
+                            <td className="px-4 py-2.5 text-right font-mono">{formatPaiseToRupees(acc.storedBalance)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-slate-700">{formatPaiseToRupees(acc.computedBalance)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-emerald-700 font-bold">{formatPaiseToRupees(acc.discrepancyPence)}</td>
+                            <td className="px-4 py-2.5 text-center">
+                              {acc.matches ? (
+                                <span className="inline-flex items-center text-emerald-700 font-semibold">
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                  Matches
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-red-600 font-semibold">
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                                  Drift
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowReconcileModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition"
+              >
+                Close Audit Report
+              </button>
+            </div>
           </div>
         </div>
       )}
