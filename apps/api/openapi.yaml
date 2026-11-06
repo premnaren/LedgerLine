@@ -1,0 +1,617 @@
+openapi: 3.0.3
+info:
+  title: LedgerLine Core Ledger API
+  version: 1.0.0
+  description: |
+    Production-grade, double-entry financial ledger API built with PostgreSQL, 
+    Serializable Snapshot Isolation (SSI), row-level locking (`SELECT ... FOR UPDATE`), 
+    append-only immutable audit entries, and cryptographic idempotency key deduplication.
+servers:
+  - url: http://localhost:4000
+    description: Local Development Server
+  - url: https://api.ledgerline.dev
+    description: Production Railway Environment
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user & issue JWT tokens
+      description: |
+        Authenticates credentials, generates an in-memory 15-minute JWT access token,
+        and sets an httpOnly, SameSite=Lax refresh cookie valid for 7 days.
+        Effect on ledger: None (read-only auth operation).
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: holder@ledgerline.dev
+                password:
+                  type: string
+                  format: password
+                  example: Holder1234!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token using httpOnly cookie
+      description: |
+        Validates refresh token against database revocation table and issues a fresh 15-minute access token.
+        Effect on ledger: None.
+      tags:
+        - Authentication
+      security: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      summary: Revoke session and clear refresh token
+      description: |
+        Marks active refresh token as revoked in the database and clears httpOnly cookie.
+        Effect on ledger: None.
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /accounts:
+    post:
+      summary: Create a new account
+      description: |
+        Creates a new ledger account with optional initial balance and overdraft limits.
+        Required Role: ADMIN only.
+        Effect on ledger: If initialBalancePence > 0, an initial DEPOSIT ledger entry is written.
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: Treasury Reserve
+                initialBalancePence:
+                  type: string
+                  description: Initial balance in integer paise (e.g. "100000" = ₹1,000.00)
+                  example: "1000000"
+                overdraftLimit:
+                  type: string
+                  description: Max permitted overdraft in paise (default "0")
+                  example: "0"
+                holderUserIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of User IDs authorized to debit this account
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+    get:
+      summary: List accounts
+      description: |
+        Lists accounts accessible to the authenticated caller.
+        Required Role: 
+        - ADMIN / AUDITOR: Returns all system accounts.
+        - HOLDER: Returns only accounts where authenticated user is a registered holder.
+        Effect on ledger: None (read-only query).
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+  /accounts/{id}:
+    get:
+      summary: Get account details
+      description: |
+        Retrieves account metadata and current balance.
+        Required Role: ADMIN, AUDITOR, or HOLDER holding ownership of this account.
+        Effect on ledger: None (read-only query).
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /accounts/{id}/balance:
+    get:
+      summary: Get current account balance
+      description: |
+        Retrieves real-time balance in paise and currency formatted string.
+        Required Role: ADMIN, AUDITOR, or authorized HOLDER.
+        Effect on ledger: None (read-only).
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Real-time balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balancePence:
+                    type: string
+                  overdraftLimit:
+                    type: string
+                  version:
+                    type: integer
+
+  /accounts/{id}/statement:
+    get:
+      summary: Paginated account statement
+      description: |
+        Retrieves immutable ledger entries associated with this account with running balance audit trail.
+        Required Role: ADMIN, AUDITOR, or authorized HOLDER.
+        Effect on ledger: None (read-only analytical query).
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated statement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LedgerEntry'
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+  /accounts/{id}/reconcile:
+    get:
+      summary: Reconcile account double-entry consistency
+      description: |
+        Executes real-time mathematical reconciliation comparing Account.balancePence with the sum 
+        of all immutable POSTED credits minus debits on the LedgerEntry table.
+        Required Role: ADMIN or AUDITOR.
+        Effect on ledger: None (read-only verification query).
+      tags:
+        - Reconciliation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reconciliation report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationReport'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/reconcile-all:
+    get:
+      summary: System-wide ledger reconciliation
+      description: |
+        Reconciles double-entry consistency across all accounts in the system.
+        Required Role: ADMIN only.
+        Effect on ledger: None (read-only system audit).
+      tags:
+        - Reconciliation
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Full system reconciliation summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                  totalAccounts:
+                    type: integer
+                  unbalancedCount:
+                    type: integer
+                  isSystemConsistent:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReconciliationReport'
+
+  /transfers:
+    post:
+      summary: Execute money transfer, deposit, or withdrawal
+      description: |
+        Mutates account balances inside a single PostgreSQL Serializable transaction.
+        Enforces SELECT ... FOR UPDATE row-level locking ordered by ascending account ID to eliminate deadlocks.
+        Requires client-supplied `Idempotency-Key` header with atomic `INSERT ... ON CONFLICT DO NOTHING`.
+        
+        Required Role:
+        - `transfer`: ADMIN or HOLDER owning `fromAccountId`.
+        - `deposit`: ADMIN or HOLDER owning `toAccountId`.
+        - `withdraw`: ADMIN or HOLDER owning `fromAccountId`.
+        - AUDITOR is strictly forbidden from initiating transfers (returns 403).
+        - Transfers > ₹100,000 (10,000,000 paise) require ADMIN.
+        
+        Effect on ledger:
+        - `transfer`: Atomically updates balances of both accounts. Creates matching TRANSFER_DEBIT and TRANSFER_CREDIT rows.
+        - `deposit`: Atomically increments credit account balance and writes DEPOSIT row.
+        - `withdraw`: Atomically decrements debit account balance and writes WITHDRAWAL row.
+        - Any refusal (e.g. overdraft limit breach) writes a REFUSED audit entry and leaves balances untouched.
+      tags:
+        - Money Movement
+      security:
+        - BearerAuth: []
+        - IdempotencyKey: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Cryptographic UUID or unique client token guaranteeing once-and-only-once execution.
+          schema:
+            type: string
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - amount
+              properties:
+                type:
+                  type: string
+                  enum: [transfer, deposit, withdraw]
+                fromAccountId:
+                  type: string
+                  description: Required for 'transfer' and 'withdraw'
+                toAccountId:
+                  type: string
+                  description: Required for 'transfer' and 'deposit'
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: Amount in integer paise (e.g. 1000 = ₹10.00)
+                note:
+                  type: string
+                  maxLength: 255
+      responses:
+        '200':
+          description: Transfer executed or idempotently replayed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  amountPence:
+                    type: string
+                  debitAccountId:
+                    type: string
+                  creditAccountId:
+                    type: string
+                  debitEntryId:
+                    type: string
+                  creditEntryId:
+                    type: string
+        '400':
+          description: Validation error or insufficient funds
+        '403':
+          description: Forbidden (HOLDER attempting unowned account operation, or AUDITOR attempting write)
+        '404':
+          description: Account not found
+        '409':
+          description: Idempotent request in-flight (`request_in_flight`)
+        '429':
+          description: Rate limit exceeded (30 requests/min per user)
+
+  /transfers/{entryId}/reverse:
+    post:
+      summary: Execute compensating-entry reversal of a prior transaction
+      description: |
+        Creates compensating ADJUSTMENT entries in the immutable ledger reversing the financial
+        effect of a prior transfer, deposit, or withdrawal.
+        Required Role: ADMIN only.
+        
+        Effect on ledger:
+        - Leaves the original LedgerEntry 100% untouched (preserving immutable append-only guarantees).
+        - Appends compensating ADJUSTMENT entries referencing "Reversal of entry {entryId}".
+        - Re-balances accounts atomically inside a Serializable transaction.
+      tags:
+        - Money Movement
+      security:
+        - BearerAuth: []
+        - IdempotencyKey: []
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: "Customer reported duplicate bill payment"
+      responses:
+        '200':
+          description: Compensating reversal posted successfully
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /health:
+    get:
+      summary: Service health check
+      description: Validates Node.js runtime and PostgreSQL database connection connectivity.
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                  database:
+                    type: string
+                    example: connected
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    IdempotencyKey:
+      type: apiKey
+      in: header
+      name: Idempotency-Key
+
+  responses:
+    ValidationError:
+      description: Request schema validation failure
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              issues:
+                type: array
+                items:
+                  type: object
+    UnauthorizedError:
+      description: Missing or invalid JWT Bearer token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+    ForbiddenError:
+      description: Caller lacks required role or account ownership
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Forbidden
+    NotFoundError:
+      description: Target resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Account not found
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, HOLDER, AUDITOR]
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        balancePence:
+          type: string
+        overdraftLimit:
+          type: string
+        version:
+          type: integer
+        createdAt:
+          type: string
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [DEPOSIT, WITHDRAWAL, TRANSFER_DEBIT, TRANSFER_CREDIT, ADJUSTMENT]
+        status:
+          type: string
+          enum: [POSTED, REFUSED]
+        amountPence:
+          type: string
+        runningBalance:
+          type: string
+        debitAccountId:
+          type: string
+          nullable: true
+        creditAccountId:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+
+    ReconciliationReport:
+      type: object
+      properties:
+        accountId:
+          type: string
+        accountName:
+          type: string
+        storedBalance:
+          type: string
+        computedBalance:
+          type: string
+        matches:
+          type: boolean
+        isBalanced:
+          type: boolean
+        discrepancyPence:
+          type: string
+        totalCreditsPence:
+          type: string
+        totalDebitsPence:
+          type: string

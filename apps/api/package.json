@@ -29,6 +29,8 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^10.4.0",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -39,6 +41,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.12.12",
     "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/yamljs": "^0.2.34",
     "prisma": "^5.14.0",
     "supertest": "^7.0.0",
     "tsx": "^4.11.0",

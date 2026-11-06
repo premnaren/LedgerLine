@@ -3,6 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import YAML from 'yamljs';
+import swaggerUi from 'swagger-ui-express';
 import prisma from './config/db';
 import logger from './config/logger';
 import requestLogger from './middleware/requestLogger';
@@ -23,12 +27,15 @@ dotenv.config();
 
 export const app = express();
 
-// Security headers with restrictive CSP for JSON API
+// Security headers with CSP allowing Swagger UI assets
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'none'"],
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
         frameAncestors: ["'none'"],
       },
     },
@@ -46,6 +53,19 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
+
+// OpenAPI Documentation served at /api-docs
+const openApiFilePath = [
+  path.join(__dirname, '../openapi.yaml'),
+  path.join(process.cwd(), 'openapi.yaml'),
+  path.join(process.cwd(), 'apps/api/openapi.yaml'),
+].find((p) => fs.existsSync(p));
+
+if (openApiFilePath) {
+  const swaggerDocument = YAML.load(openApiFilePath);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.get('/openapi.json', (_req, res) => res.json(swaggerDocument));
+}
 
 // Health check
 app.get('/health', async (req, res) => {

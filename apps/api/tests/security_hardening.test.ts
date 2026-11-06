@@ -32,8 +32,19 @@ describe('Security Hardening & Observability Suite', () => {
     // Verify security headers
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['x-frame-options']).toBe('DENY');
-    expect(res.headers['content-security-policy']).toContain("default-src 'none'");
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
     expect(res.headers['x-request-id']).toBeDefined();
+  });
+
+  it('serves OpenAPI 3.0 specification at /openapi.json and documentation at /api-docs', async () => {
+    const specRes = await request(app).get('/openapi.json');
+    expect(specRes.status).toBe(200);
+    expect(specRes.body.openapi).toBe('3.0.3');
+    expect(specRes.body.info.title).toContain('LedgerLine');
+    expect(specRes.body.paths['/transfers']).toBeDefined();
+
+    const docsRes = await request(app).get('/api-docs/');
+    expect([200, 301, 302]).toContain(docsRes.status);
   });
 
   it('rejects malformed transfer payloads with clean HTTP 400 via Zod, never 500', async () => {
