@@ -12,6 +12,70 @@ body {
   color: rgb(15 23 42);
   background: #f8fafc;
   min-height: 100vh;
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Apple-style typography optical sizing & tracking */
+.tracking-tight-display {
+  letter-spacing: -0.028em;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Translucent Materials & Depth (WWDC Materials & Depth) */
+.glass-chrome {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+}
+
+.glass-drawer {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  box-shadow: -12px 0 40px -4px rgba(15, 23, 42, 0.12);
+}
+
+/* Apple fluid tactile button press: instant response on pointer-down */
+.pressable {
+  transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1), opacity 100ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pressable:active {
+  transform: scale(0.972);
+}
+
+/* Reduced motion & accessibility (WWDC Accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-chrome, .glass-card, .glass-drawer {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
