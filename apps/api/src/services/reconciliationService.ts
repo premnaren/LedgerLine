@@ -40,7 +40,8 @@ export async function reconcileAccount(accountId: string): Promise<AccountReconc
     SELECT COALESCE(SUM("amountPence"), 0) as sum
     FROM "LedgerEntry"
     WHERE "creditAccountId" = ${accountId}
-      AND status = 'POSTED'
+      AND status = 'POSTED'::"EntryStatus"
+      AND type IN ('DEPOSIT'::"EntryType", 'TRANSFER_CREDIT'::"EntryType", 'ADJUSTMENT'::"EntryType")
   `;
   const totalCredits = BigInt(creditsResult[0].sum);
 
@@ -49,7 +50,8 @@ export async function reconcileAccount(accountId: string): Promise<AccountReconc
     SELECT COALESCE(SUM("amountPence"), 0) as sum
     FROM "LedgerEntry"
     WHERE "debitAccountId" = ${accountId}
-      AND status = 'POSTED'
+      AND status = 'POSTED'::"EntryStatus"
+      AND type IN ('WITHDRAWAL'::"EntryType", 'TRANSFER_DEBIT'::"EntryType", 'ADJUSTMENT'::"EntryType")
   `;
   const totalDebits = BigInt(debitsResult[0].sum);
 
@@ -64,7 +66,9 @@ export async function reconcileAccount(accountId: string): Promise<AccountReconc
     storedBalance: storedBalance.toString(),
     computedBalance: computedBalance.toString(),
     matches,
+    isBalanced: matches,
     discrepancyPence: discrepancyPence.toString(),
+    discrepancy: discrepancyPence.toString(),
     totalCreditsPence: totalCredits.toString(),
     totalDebitsPence: totalDebits.toString(),
   };

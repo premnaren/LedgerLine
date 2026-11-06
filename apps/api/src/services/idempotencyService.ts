@@ -54,6 +54,26 @@ export async function claimIdempotencyKey(key: string, userId: string = 'system'
     };
   }
 
+  // 3. If previous attempt FAILED (e.g. server crash or reaped timeout), allow client to retry!
+  if (existing.status === IdempotencyStatus.FAILED) {
+    const reClaim = await prisma.$executeRaw`
+      UPDATE "IdempotencyKey"
+      SET status = 'PROCESSING'::"IdempotencyStatus",
+          "httpStatus" = NULL,
+          "responseBody" = NULL,
+          "createdAt" = NOW()
+      WHERE id = ${existing.id}
+        AND status = 'FAILED'::"IdempotencyStatus"
+    `;
+    if (reClaim === 1) {
+      return {
+        isNew: true,
+        keyId: existing.id,
+        status: IdempotencyStatus.PROCESSING,
+      };
+    }
+  }
+
   return {
     isNew: false,
     keyId: existing.id,
