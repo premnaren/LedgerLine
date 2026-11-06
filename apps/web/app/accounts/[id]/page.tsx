@@ -21,6 +21,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
+import ReversalModal from '@/components/ReversalModal';
 
 interface AccountReconciliationResult {
   accountId: string;
@@ -384,8 +385,8 @@ export default function AccountStatementPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              setInspectedEntry(null);
                               setReversingEntry(entry);
-                              setReversalReason('');
                               setReversalError(null);
                             }}
                             className="inline-flex items-center px-2.5 py-1 border border-amber-300 rounded-md text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium transition shadow-xs"
@@ -526,83 +527,39 @@ export default function AccountStatementPage() {
       )}
 
       {/* Reversal Confirmation Modal */}
-      {reversingEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
-                <RotateCcw className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Execute Reversal
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Compensating-entry transaction correction
-                </p>
-              </div>
-            </div>
+      <ReversalModal
+        entry={reversingEntry}
+        onClose={() => setReversingEntry(null)}
+        onConfirm={async (reason) => {
+          if (!reversingEntry) return;
+          setReversalLoading(true);
+          setReversalError(null);
+          setReversalSuccess(null);
 
-            <div className="bg-slate-50 rounded-xl p-3 mb-3 space-y-1 border border-slate-200 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Entry ID:</span>
-                <span className="font-mono text-slate-800">{reversingEntry.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Amount:</span>
-                <span className="font-bold text-slate-900">{formatPaiseToRupees(reversingEntry.amountPence)}</span>
-              </div>
-            </div>
+          try {
+            const idempotencyKey = crypto.randomUUID();
+            await api.post(
+              `/transfers/${reversingEntry.id}/reverse`,
+              { reason },
+              { 'Idempotency-Key': idempotencyKey }
+            );
 
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start space-x-2 text-xs text-amber-800 mb-4">
-              <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>
-                <strong>Append-Only:</strong> Reversing posts compensating <code>ADJUSTMENT</code> rows. Historical entries remain untouched.
-              </span>
-            </div>
+            setReversalSuccess(
+              `Successfully reversed transaction #${reversingEntry.id.slice(-8)}. Compensating ADJUSTMENT entries posted to ledger.`
+            );
+            setReversingEntry(null);
+            fetchStatement(cursorHistory[currentPageIndex]);
+          } catch (err: any) {
+            setReversalError(err.message || 'Failed to execute reversal');
+          } finally {
+            setReversalLoading(false);
+          }
+        }}
+        loading={reversalLoading}
+        error={reversalError}
+      />
 
-            {reversalError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
-                {reversalError}
-              </div>
-            )}
-
-            <form onSubmit={handleExecuteReversal} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Reason for Reversal
-                </label>
-                <input
-                  type="text"
-                  value={reversalReason}
-                  onChange={(e) => setReversalReason(e.target.value)}
-                  placeholder="e.g. Erroneous charge / customer duplicate dispute"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  disabled={reversalLoading}
-                  onClick={() => setReversingEntry(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={reversalLoading}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition disabled:opacity-50"
-                >
-                  {reversalLoading ? 'Processing...' : 'Confirm Reversal'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Slide-Over Transaction Inspection Drawer */}
+      {/* Slide-Over Transaction Inspection Drawer - Suppressed when Reversal Modal is active */}
       {(() => {
         const currentInspectedIndex = statement?.entries
           ? statement.entries.findIndex((e) => e.id === inspectedEntry?.id)
@@ -610,9 +567,12 @@ export default function AccountStatementPage() {
 
         return (
           <TransactionDrawer
-            entry={inspectedEntry}
+            entry={reversingEntry ? null : inspectedEntry}
             onClose={() => setInspectedEntry(null)}
-            onReverse={(e) => setReversingEntry(e as any)}
+            onReverse={(e) => {
+              setInspectedEntry(null);
+              setReversingEntry(e as any);
+            }}
             isAdmin={user?.role === 'ADMIN'}
             onNavigatePrevious={() => {
               if (currentInspectedIndex > 0 && statement?.entries) {
