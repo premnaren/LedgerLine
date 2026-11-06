@@ -1,0 +1,16 @@
+{
+  "name": "ledgerline-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter ./apps/* build",
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "test": "pnpm --filter api test",
+    "prisma:generate": "pnpm --filter api prisma:generate",
+    "prisma:migrate": "pnpm --filter api prisma:migrate",
+    "prisma:seed": "pnpm --filter api prisma:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

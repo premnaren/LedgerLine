@@ -1,0 +1,97 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  HOLDER
+  AUDITOR
+}
+
+enum EntryType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER_DEBIT
+  TRANSFER_CREDIT
+  ADJUSTMENT
+}
+
+enum EntryStatus {
+  POSTED
+  REFUSED
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  accounts     AccountHolder[]
+  initiatedEntries LedgerEntry[] @relation("InitiatedBy")
+}
+
+model Account {
+  id              String   @id @default(cuid())
+  name            String
+  balancePence    BigInt   @default(0)   // Store in smallest unit — no floats
+  overdraftLimit  BigInt   @default(0)
+  version         Int      @default(0)   // Optimistic lock version
+  createdAt       DateTime @default(now())
+  holders         AccountHolder[]
+  debitEntries    LedgerEntry[] @relation("DebitAccount")
+  creditEntries   LedgerEntry[] @relation("CreditAccount")
+
+  // @@check(balancePence >= -overdraftLimit, name: "no_negative_balance") - Enforced via DB migration SQL constraint
+}
+
+model AccountHolder {
+  userId    String
+  accountId String
+  user      User    @relation(fields: [userId], references: [id])
+  account   Account @relation(fields: [accountId], references: [id])
+  @@id([userId, accountId])
+}
+
+model LedgerEntry {
+  id                String       @id @default(cuid())
+  createdAt         DateTime     @default(now())
+  type              EntryType
+  status            EntryStatus  @default(POSTED)
+  amountPence       BigInt
+  debitAccountId    String?
+  creditAccountId   String?
+  initiatedById     String
+  idempotencyKeyId  String?
+  runningBalance    BigInt       // Balance of debitAccount after this entry
+  note              String?
+  debitAccount      Account?     @relation("DebitAccount",  fields: [debitAccountId],  references: [id])
+  creditAccount     Account?     @relation("CreditAccount", fields: [creditAccountId], references: [id])
+  initiatedBy       User         @relation("InitiatedBy",   fields: [initiatedById],   references: [id])
+  idempotencyKey    IdempotencyKey? @relation(fields: [idempotencyKeyId], references: [id])
+
+  @@index([debitAccountId, createdAt(sort: Desc)])
+  @@index([creditAccountId, createdAt(sort: Desc)])
+}
+
+model IdempotencyKey {
+  id           String            @id @default(cuid())
+  key          String            @unique
+  status       IdempotencyStatus @default(PROCESSING)
+  responseBody Json?
+  httpStatus   Int?
+  createdAt    DateTime          @default(now())
+  entries      LedgerEntry[]
+}
