@@ -70,7 +70,25 @@ if (openApiFilePath) {
       swaggerOptions: {
         docExpansion: 'list',
         displayRequestDuration: true,
+        filter: true,
       },
+      customSiteTitle: 'LedgerLine Core Financial Ledger API Reference',
+      customCss: `
+        .topbar { background-color: #090d16 !important; border-bottom: 1px solid #1e293b; }
+        .topbar-wrapper .link { display: flex; align-items: center; gap: 8px; }
+        .topbar-wrapper img { content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/></svg>"); }
+        .swagger-ui .info { margin: 24px 0 20px 0; }
+        .swagger-ui .info .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; color: #0f172a; }
+        .swagger-ui .info p, .swagger-ui .info li { font-size: 14px; line-height: 1.6; color: #334155; }
+        .swagger-ui .info table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .swagger-ui .info th { background-color: #0f172a; color: #f8fafc; padding: 10px 14px; font-weight: 600; text-align: left; }
+        .swagger-ui .info td { border-bottom: 1px solid #e2e8f0; padding: 8px 14px; background-color: #ffffff; }
+        .swagger-ui .info tr:nth-child(even) td { background-color: #f8fafc; }
+        .swagger-ui .opblock-tag { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-top: 24px; color: #0f172a; }
+        .swagger-ui .opblock { border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); margin-bottom: 12px; }
+        .swagger-ui .btn.authorize { background-color: #0284c7; color: #ffffff; border-color: #0284c7; border-radius: 6px; }
+        .swagger-ui .btn.authorize svg { fill: #ffffff; }
+      `,
     })
   );
   app.get('/openapi.json', (_req, res) => res.json(swaggerDocument));

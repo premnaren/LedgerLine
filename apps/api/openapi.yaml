@@ -1,25 +1,100 @@
 openapi: 3.0.3
 info:
-  title: LedgerLine Core Ledger API
+  title: LedgerLine Core Financial Ledger API
   version: 1.0.0
   description: |
-    Production-grade, double-entry financial ledger API built with PostgreSQL, 
-    Serializable Snapshot Isolation (SSI), row-level locking (`SELECT ... FOR UPDATE`), 
-    append-only immutable audit entries, and cryptographic idempotency key deduplication.
+    # LedgerLine Core Ledger Architecture & API Specification
+
+    LedgerLine is a mission-critical, double-entry financial accounting ledger engineered for high concurrency, zero-loss durability, and strict auditability.
+
+    ---
+
+    ### 1. Core Banking Architecture & Guarantees
+
+    - **Double-Entry Bookkeeping Invariant ($\Delta \Sigma = 0$)**:
+      Every financial event produces strictly balanced debit and credit entries. The system-wide balance conservation rule $\sum \text{Debits} = \sum \text{Credits}$ is enforced mathematically and verified on every transfer.
+    - **PostgreSQL Serializable Snapshot Isolation (SSI)**:
+      All balance-mutating transactions run under PostgreSQL Serializable isolation, preventing dirty reads, non-repeatable reads, phantom reads, and write skew anomalies.
+    - **Deadlock Elimination via Deterministic Locking**:
+      Row-level locks (`SELECT ... FOR UPDATE`) are acquired deterministically in ascending alphanumeric account ID order (`min(fromAccountId, toAccountId)` followed by `max(fromAccountId, toAccountId)`), mathematically eliminating circular wait conditions and transaction deadlocks.
+    - **Append-Only Immutability & SHA-256 Hash Chaining**:
+      Ledger entries are strictly append-only. No historical record is ever updated or deleted (`UPDATE`/`DELETE` triggers are prohibited). Each entry incorporates a SHA-256 seal:
+      $$H_i = \text{SHA-256}(H_{i-1} \parallel \text{id} \parallel \text{amountPence} \parallel \text{type} \parallel \text{debitId} \parallel \text{creditId} \parallel \text{timestamp})$$
+    - **Compensating Reversals**:
+      Corrections and transaction refunds do not alter past entries. Instead, they write compensating `ADJUSTMENT` entries that reference the original entry and restore account balances.
+    - **Atomic Idempotency Deduplication**:
+      All mutating endpoints (`POST /transfers`, `POST /transfers/{entryId}/reverse`) require a client-generated UUID in the `Idempotency-Key` header. Requests are deduplicated at the database layer using atomic state transitions (`PROCESSING` $\to$ `COMPLETED` / `FAILED`), safely returning the cached response during network retries.
+    - **Integer Paise Representation (Zero Floating-Point Drift)**:
+      All balances and transaction amounts are stored and calculated as 64-bit integer paise (1 INR = 100 paise) using `BigInt`, eliminating IEEE 754 floating-point inaccuracies.
+
+    ---
+
+    ### 2. Role-Based Access Control (RBAC) Matrix
+
+    | Endpoint | Method | Tag | ADMIN | HOLDER | AUDITOR | Public |
+    | :--- | :---: | :--- | :---: | :---: | :---: | :---: |
+    | `/auth/login` | `POST` | Authentication | Full | Full | Full | Yes |
+    | `/auth/refresh` | `POST` | Authentication | Full | Full | Full | Cookie |
+    | `/auth/logout` | `POST` | Authentication | Full | Full | Full | Yes |
+    | `/accounts` | `GET` | Accounts | All Accounts | Own Accounts Only | All Accounts | No |
+    | `/accounts` | `POST` | Accounts | Full | Forbidden (403) | Forbidden (403) | No |
+    | `/accounts/{id}` | `GET` | Accounts | Full | Own Account Only | Full | No |
+    | `/accounts/{id}/balance` | `GET` | Accounts | Full | Own Account Only | Full | No |
+    | `/accounts/{id}/statement` | `GET` | Statements & Audit | Full | Own Account Only | Full | No |
+    | `/statements/audit/entries` | `GET` | Statements & Audit | Full | Forbidden (403) | Full (Read-Only) | No |
+    | `/transfers` | `POST` | Transfers & Transactions | Full (Unlimited) | Own Accounts ($\le$ ₹100,000) | Forbidden (403) | No |
+    | `/transfers/{entryId}/reverse` | `POST` | Compensating Reversals | Full | Forbidden (403) | Forbidden (403) | No |
+    | `/accounts/{id}/reconcile` | `GET` | Reconciliation | Full | Forbidden (403) | Full | No |
+    | `/admin/reconcile-all` | `GET` | Reconciliation | Full | Forbidden (403) | Forbidden (403) | No |
+    | `/admin/simulate-stress` | `POST` | Stress & Concurrency Lab | Full | Forbidden (403) | Forbidden (403) | No |
+    | `/health` | `GET` | System | Full | Full | Full | Yes |
+
+    ---
+
+    ### 3. HTTP Error Response Codes
+
+    - **`400 Bad Request`**: Malformed payload, Zod schema validation error, or overdraft limit violation.
+    - **`401 Unauthorized`**: Missing, invalid, or expired JWT bearer token.
+    - **`403 Forbidden`**: Insufficient RBAC privileges or attempt by a `HOLDER` to access unowned accounts.
+    - **`404 Not Found`**: Target account, transaction entry, or resource does not exist.
+    - **`409 Conflict`**: An identical idempotency key is currently `PROCESSING` (`request_in_flight`).
+    - **`429 Too Many Requests`**: Rate limit exceeded (30 transfers per minute per authenticated user).
+    - **`500 Internal Server Error`**: Unexpected database exception or unrecoverable system fault.
+
 servers:
   - url: http://localhost:4000
-    description: Local Development Server
+    description: Local Development Server (Active)
   - url: https://api.ledgerline.dev
     description: Production Railway Environment
+
+tags:
+  - name: Authentication
+    description: Session management, JWT access tokens (15-min expiry), and secure httpOnly refresh cookies.
+  - name: Accounts
+    description: Account lifecycle management, metadata retrieval, and real-time balance queries.
+  - name: Transfers & Transactions
+    description: ACID double-entry money movements with row-level locks, balance checks, and atomic idempotency.
+  - name: Compensating Reversals
+    description: Immutable ledger corrections via compensating adjustment entries (append-only, original preserved).
+  - name: Statements & Audit
+    description: Paginated account statements and global immutable cryptographic audit log queries.
+  - name: Reconciliation
+    description: Real-time mathematical proof of ledger consistency and double-entry conservation (Debit = Credit).
+  - name: Stress & Concurrency Lab
+    description: High-throughput concurrent execution testbed measuring ACID isolation, throughput, and zero-sum conservation.
+  - name: System
+    description: Operational health probes and database connectivity verification.
 
 paths:
   /auth/login:
     post:
-      summary: Authenticate user & issue JWT tokens
+      summary: Authenticate user credentials & issue JWT tokens
       description: |
-        Authenticates credentials, generates an in-memory 15-minute JWT access token,
-        and sets an httpOnly, SameSite=Lax refresh cookie valid for 7 days.
-        Effect on ledger: None (read-only auth operation).
+        Validates email and password credentials. On success, returns an in-memory 15-minute JWT access token
+        and sets an `httpOnly`, `SameSite=Lax` refresh cookie valid for 7 days.
+        
+        **Effect on Ledger**: None (read-only authentication operation).
+        **RBAC**: Open to all users (Public).
       tags:
         - Authentication
       security: []
@@ -36,14 +111,14 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: holder@ledgerline.dev
+                  example: admin@ledgerline.dev
                 password:
                   type: string
                   format: password
-                  example: Holder1234!
+                  example: Admin1234!
       responses:
         '200':
-          description: Login successful
+          description: Login successful. Access token returned; refresh cookie set.
           content:
             application/json:
               schema:
@@ -51,6 +126,7 @@ paths:
                 properties:
                   accessToken:
                     type: string
+                    description: 15-minute JWT access token
                   user:
                     $ref: '#/components/schemas/User'
         '400':
@@ -62,8 +138,11 @@ paths:
     post:
       summary: Refresh access token using httpOnly cookie
       description: |
-        Validates refresh token against database revocation table and issues a fresh 15-minute access token.
-        Effect on ledger: None.
+        Validates the refresh token from the `httpOnly` cookie against the database revocation table
+        and issues a fresh 15-minute access token.
+        
+        **Effect on Ledger**: None.
+        **RBAC**: Any authenticated session with a valid refresh cookie.
       tags:
         - Authentication
       security: []
@@ -84,21 +163,56 @@ paths:
     post:
       summary: Revoke session and clear refresh token
       description: |
-        Marks active refresh token as revoked in the database and clears httpOnly cookie.
-        Effect on ledger: None.
+        Marks active refresh token as revoked in the database and clears the `httpOnly` cookie.
+        
+        **Effect on Ledger**: None.
+        **RBAC**: Any authenticated session.
       tags:
         - Authentication
       responses:
         '200':
           description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
 
   /accounts:
+    get:
+      summary: List accessible ledger accounts
+      description: |
+        Lists accounts accessible to the authenticated caller based on RBAC:
+        - **ADMIN / AUDITOR**: Returns all accounts across the entire financial institution.
+        - **HOLDER**: Returns only accounts where the caller is explicitly registered as an authorized holder.
+        
+        **Effect on Ledger**: None (read-only query).
+      tags:
+        - Accounts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of accessible accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
     post:
       summary: Create a new account
       description: |
-        Creates a new ledger account with optional initial balance and overdraft limits.
-        Required Role: ADMIN only.
-        Effect on ledger: If initialBalancePence > 0, an initial DEPOSIT ledger entry is written.
+        Creates a new ledger account with designated name, initial balance, and overdraft limits.
+        
+        **Effect on Ledger**: If `initialBalance` > 0, an initial `DEPOSIT` ledger entry is written and balance updated atomically.
+        **RBAC**: Strictly `ADMIN` only.
       tags:
         - Accounts
       security:
@@ -114,15 +228,15 @@ paths:
               properties:
                 name:
                   type: string
-                  example: Treasury Reserve
-                initialBalancePence:
-                  type: string
-                  description: Initial balance in integer paise (e.g. "100000" = ₹1,000.00)
-                  example: "1000000"
+                  example: Treasury Reserve Account
+                initialBalance:
+                  type: integer
+                  description: Initial balance in integer paise (e.g. 100000 = ₹1,000.00)
+                  example: 1000000
                 overdraftLimit:
-                  type: string
-                  description: Max permitted overdraft in paise (default "0")
-                  example: "0"
+                  type: integer
+                  description: Max permitted negative balance in paise (default 0)
+                  example: 0
                 holderUserIds:
                   type: array
                   items:
@@ -135,38 +249,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
-    get:
-      summary: List accounts
-      description: |
-        Lists accounts accessible to the authenticated caller.
-        Required Role: 
-        - ADMIN / AUDITOR: Returns all system accounts.
-        - HOLDER: Returns only accounts where authenticated user is a registered holder.
-        Effect on ledger: None (read-only query).
-      tags:
-        - Accounts
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: List of accounts
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Account'
-
   /accounts/{id}:
     get:
-      summary: Get account details
+      summary: Get account metadata and balance
       description: |
-        Retrieves account metadata and current balance.
-        Required Role: ADMIN, AUDITOR, or HOLDER holding ownership of this account.
-        Effect on ledger: None (read-only query).
+        Retrieves account details by UUID.
+        
+        **RBAC**: `ADMIN`, `AUDITOR`, or authorized `HOLDER` owning this account.
+        **Effect on Ledger**: None (read-only query).
       tags:
         - Accounts
       security:
@@ -175,15 +272,18 @@ paths:
         - name: id
           in: path
           required: true
+          description: Account UUID
           schema:
             type: string
       responses:
         '200':
-          description: Account details
+          description: Account details retrieved
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
         '404':
@@ -191,11 +291,12 @@ paths:
 
   /accounts/{id}/balance:
     get:
-      summary: Get current account balance
+      summary: Get real-time account balance & optimistic version
       description: |
-        Retrieves real-time balance in paise and currency formatted string.
-        Required Role: ADMIN, AUDITOR, or authorized HOLDER.
-        Effect on ledger: None (read-only).
+        Retrieves real-time balance in paise, overdraft limit, and optimistic concurrency version counter.
+        
+        **RBAC**: `ADMIN`, `AUDITOR`, or authorized `HOLDER`.
+        **Effect on Ledger**: None (read-only query).
       tags:
         - Accounts
       security:
@@ -204,6 +305,7 @@ paths:
         - name: id
           in: path
           required: true
+          description: Account UUID
           schema:
             type: string
       responses:
@@ -216,35 +318,248 @@ paths:
                 properties:
                   balancePence:
                     type: string
+                    example: "150000"
                   overdraftLimit:
                     type: string
+                    example: "0"
                   version:
                     type: integer
+                    example: 14
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /transfers:
+    post:
+      summary: Execute money transfer, deposit, or withdrawal
+      description: |
+        Mutates account balances inside a single PostgreSQL Serializable transaction.
+        Enforces `SELECT ... FOR UPDATE` row-level locking ordered by ascending account ID to eliminate deadlocks.
+        Requires client-supplied `Idempotency-Key` header with atomic `INSERT ... ON CONFLICT DO NOTHING`.
+        
+        **RBAC Authorization**:
+        - `transfer`: `ADMIN` or `HOLDER` owning `fromAccountId`.
+        - `deposit`: `ADMIN` or `HOLDER` owning `toAccountId`.
+        - `withdraw`: `ADMIN` or `HOLDER` owning `fromAccountId`.
+        - `AUDITOR` is strictly forbidden from initiating transfers (returns 403).
+        - Single transfers > ₹100,000 (10,000,000 paise) require `ADMIN` authorization.
+        
+        **Effect on Ledger**:
+        - `transfer`: Atomically updates balances of both accounts. Creates matching `TRANSFER_DEBIT` and `TRANSFER_CREDIT` entries.
+        - `deposit`: Atomically increments credit account balance and writes `DEPOSIT` entry.
+        - `withdraw`: Atomically decrements debit account balance and writes `WITHDRAWAL` entry.
+        - Any refusal (e.g. overdraft breach) writes a `REFUSED` audit entry and leaves balances untouched.
+      tags:
+        - Transfers & Transactions
+      security:
+        - BearerAuth: []
+        - IdempotencyKey: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Cryptographic UUID guaranteeing once-and-only-once execution across retries.
+          schema:
+            type: string
+            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - amount
+              properties:
+                type:
+                  type: string
+                  enum: [transfer, deposit, withdraw]
+                  example: transfer
+                fromAccountId:
+                  type: string
+                  description: Required for 'transfer' and 'withdraw'
+                  example: "a1b2c3d4-0000-0000-0000-000000000001"
+                toAccountId:
+                  type: string
+                  description: Required for 'transfer' and 'deposit'
+                  example: "b2c3d4e5-0000-0000-0000-000000000002"
+                amount:
+                  type: integer
+                  minimum: 1
+                  description: Amount in integer paise (e.g. 1000 = ₹10.00)
+                  example: 50000
+                note:
+                  type: string
+                  maxLength: 255
+                  example: "Vendor invoice settlement #4810"
+      responses:
+        '200':
+          description: Transfer executed or idempotently replayed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  amountPence:
+                    type: string
+                    example: "50000"
+                  debitAccountId:
+                    type: string
+                    nullable: true
+                  creditAccountId:
+                    type: string
+                    nullable: true
+                  debitEntryId:
+                    type: string
+                    nullable: true
+                  creditEntryId:
+                    type: string
+                    nullable: true
+        '400':
+          description: Validation error or insufficient funds (overdraft breach)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Insufficient funds: overdraft limit exceeded"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden (HOLDER accessing unowned account, or AUDITOR attempting write)
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Account not found
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Idempotent request in-flight (`request_in_flight`)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Concurrent request with this idempotency key is already processing"
+        '429':
+          description: Rate limit exceeded (30 requests/min per user)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Too many transfer requests. Please wait a minute before retrying."
+
+  /transfers/{entryId}/reverse:
+    post:
+      summary: Execute compensating-entry reversal of a prior transaction
+      description: |
+        Creates compensating `ADJUSTMENT` entries in the immutable ledger reversing the financial
+        effect of a prior transfer, deposit, or withdrawal.
+        
+        **Effect on Ledger**:
+        - Leaves the original LedgerEntry 100% untouched (preserving immutable append-only guarantees).
+        - Appends compensating `ADJUSTMENT` entries referencing the original entry.
+        - Re-balances accounts atomically inside a Serializable transaction.
+        
+        **RBAC**: Strictly `ADMIN` only.
+      tags:
+        - Compensating Reversals
+      security:
+        - BearerAuth: []
+        - IdempotencyKey: []
+      parameters:
+        - name: entryId
+          in: path
+          required: true
+          description: UUID of the ledger entry to reverse
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique client key for deduplication
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Audit reason for reversing transaction (10-250 chars)
+                  example: "Customer reported duplicate bill payment #1042"
+      responses:
+        '200':
+          description: Compensating reversal posted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  reversalDebitEntryId:
+                    type: string
+                    nullable: true
+                  reversalCreditEntryId:
+                    type: string
+                    nullable: true
+                  note:
+                    type: string
+                    example: "Reversal of entry a1b2c3d4..."
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /accounts/{id}/statement:
     get:
-      summary: Paginated account statement
+      summary: Paginated account statement with running balance
       description: |
-        Retrieves immutable ledger entries associated with this account with running balance audit trail.
-        Required Role: ADMIN, AUDITOR, or authorized HOLDER.
-        Effect on ledger: None (read-only analytical query).
+        Retrieves immutable ledger entries associated with this account with chronological running balance audit trail.
+        
+        **RBAC**: `ADMIN`, `AUDITOR`, or authorized `HOLDER`.
+        **Effect on Ledger**: None (read-only analytical query).
       tags:
-        - Accounts
+        - Statements & Audit
       security:
         - BearerAuth: []
       parameters:
         - name: id
           in: path
           required: true
+          description: Account UUID
           schema:
             type: string
         - name: limit
           in: query
+          description: Max entries to return (1-100, default 20)
           schema:
             type: integer
-            default: 50
+            default: 20
         - name: cursor
           in: query
+          description: Pagination cursor (ISO timestamp or entry ID)
           schema:
             type: string
       responses:
@@ -262,15 +577,73 @@ paths:
                   nextCursor:
                     type: string
                     nullable: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /statements/audit/entries:
+    get:
+      summary: Global immutable cryptographic audit ledger entries
+      description: |
+        Queries the master append-only ledger entry log with cryptographic hash verification data.
+        
+        **RBAC**: `ADMIN` or `AUDITOR` only. (Forbidden for `HOLDER`).
+        **Effect on Ledger**: None (read-only compliance audit).
+      tags:
+        - Statements & Audit
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: accountId
+          in: query
+          description: Filter entries by participating Account UUID (debit or credit)
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Filter entries created on or after this ISO date
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Filter entries created on or before this ISO date
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Max entries to return (default 100, max 500)
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Audit ledger entries with cryptographic proof hashes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEntry'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /accounts/{id}/reconcile:
     get:
-      summary: Reconcile account double-entry consistency
+      summary: Single account double-entry mathematical reconciliation
       description: |
-        Executes real-time mathematical reconciliation comparing Account.balancePence with the sum 
-        of all immutable POSTED credits minus debits on the LedgerEntry table.
-        Required Role: ADMIN or AUDITOR.
-        Effect on ledger: None (read-only verification query).
+        Executes real-time mathematical reconciliation comparing `Account.balancePence` with the sum 
+        of all immutable `POSTED` credits minus debits on the `LedgerEntry` table:
+        $$B_{\text{stored}} = B_{\text{opening}} + \sum C - \sum D$$
+        
+        **RBAC**: `ADMIN` or `AUDITOR`.
+        **Effect on Ledger**: None (read-only verification query).
       tags:
         - Reconciliation
       security:
@@ -279,32 +652,39 @@ paths:
         - name: id
           in: path
           required: true
+          description: Account UUID
           schema:
             type: string
       responses:
         '200':
-          description: Reconciliation report
+          description: Account reconciliation report
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReconciliationReport'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /admin/reconcile-all:
     get:
-      summary: System-wide ledger reconciliation
+      summary: System-wide full ledger reconciliation & hash chain verification
       description: |
-        Reconciles double-entry consistency across all accounts in the system.
-        Required Role: ADMIN only.
-        Effect on ledger: None (read-only system audit).
+        Performs institution-wide reconciliation across 100% of accounts and verifies the complete
+        SHA-256 cryptographic chain from the genesis block to the head entry.
+        
+        **RBAC**: `ADMIN` only.
+        **Effect on Ledger**: None (read-only system audit).
       tags:
         - Reconciliation
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: Full system reconciliation summary
+          description: Complete system integrity and cryptographic audit report
           content:
             application/json:
               schema:
@@ -312,135 +692,46 @@ paths:
                 properties:
                   timestamp:
                     type: string
+                    format: date-time
                   totalAccounts:
                     type: integer
                   unbalancedCount:
                     type: integer
                   isSystemConsistent:
                     type: boolean
+                  allMatch:
+                    type: boolean
+                  cryptographicIntegrity:
+                    type: object
+                    properties:
+                      verified:
+                        type: boolean
+                      headHash:
+                        type: string
+                      totalEntries:
+                        type: integer
                   results:
                     type: array
                     items:
                       $ref: '#/components/schemas/ReconciliationReport'
-
-  /transfers:
-    post:
-      summary: Execute money transfer, deposit, or withdrawal
-      description: |
-        Mutates account balances inside a single PostgreSQL Serializable transaction.
-        Enforces SELECT ... FOR UPDATE row-level locking ordered by ascending account ID to eliminate deadlocks.
-        Requires client-supplied `Idempotency-Key` header with atomic `INSERT ... ON CONFLICT DO NOTHING`.
-        
-        Required Role:
-        - `transfer`: ADMIN or HOLDER owning `fromAccountId`.
-        - `deposit`: ADMIN or HOLDER owning `toAccountId`.
-        - `withdraw`: ADMIN or HOLDER owning `fromAccountId`.
-        - AUDITOR is strictly forbidden from initiating transfers (returns 403).
-        - Transfers > ₹100,000 (10,000,000 paise) require ADMIN.
-        
-        Effect on ledger:
-        - `transfer`: Atomically updates balances of both accounts. Creates matching TRANSFER_DEBIT and TRANSFER_CREDIT rows.
-        - `deposit`: Atomically increments credit account balance and writes DEPOSIT row.
-        - `withdraw`: Atomically decrements debit account balance and writes WITHDRAWAL row.
-        - Any refusal (e.g. overdraft limit breach) writes a REFUSED audit entry and leaves balances untouched.
-      tags:
-        - Money Movement
-      security:
-        - BearerAuth: []
-        - IdempotencyKey: []
-      parameters:
-        - name: Idempotency-Key
-          in: header
-          required: true
-          description: Cryptographic UUID or unique client token guaranteeing once-and-only-once execution.
-          schema:
-            type: string
-            example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - type
-                - amount
-              properties:
-                type:
-                  type: string
-                  enum: [transfer, deposit, withdraw]
-                fromAccountId:
-                  type: string
-                  description: Required for 'transfer' and 'withdraw'
-                toAccountId:
-                  type: string
-                  description: Required for 'transfer' and 'deposit'
-                amount:
-                  type: integer
-                  minimum: 1
-                  description: Amount in integer paise (e.g. 1000 = ₹10.00)
-                note:
-                  type: string
-                  maxLength: 255
-      responses:
-        '200':
-          description: Transfer executed or idempotently replayed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  amountPence:
-                    type: string
-                  debitAccountId:
-                    type: string
-                  creditAccountId:
-                    type: string
-                  debitEntryId:
-                    type: string
-                  creditEntryId:
-                    type: string
-        '400':
-          description: Validation error or insufficient funds
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
-          description: Forbidden (HOLDER attempting unowned account operation, or AUDITOR attempting write)
-        '404':
-          description: Account not found
-        '409':
-          description: Idempotent request in-flight (`request_in_flight`)
-        '429':
-          description: Rate limit exceeded (30 requests/min per user)
+          $ref: '#/components/responses/ForbiddenError'
 
-  /transfers/{entryId}/reverse:
+  /admin/simulate-stress:
     post:
-      summary: Execute compensating-entry reversal of a prior transaction
+      summary: Concurrency stress lab & ACID isolation telemetry
       description: |
-        Creates compensating ADJUSTMENT entries in the immutable ledger reversing the financial
-        effect of a prior transfer, deposit, or withdrawal.
-        Required Role: ADMIN only.
+        Executes parallel concurrent transfers simultaneously across designated target accounts using `Promise.all`.
+        Evaluates row-level lock serialization, zero-sum balance conservation ($\Delta A + \Delta B = 0$), and transfers-per-second throughput.
         
-        Effect on ledger:
-        - Leaves the original LedgerEntry 100% untouched (preserving immutable append-only guarantees).
-        - Appends compensating ADJUSTMENT entries referencing "Reversal of entry {entryId}".
-        - Re-balances accounts atomically inside a Serializable transaction.
+        **RBAC**: Strictly `ADMIN` only.
+        **Effect on Ledger**: Posts real concurrent transactions with audit trail.
       tags:
-        - Money Movement
+        - Stress & Concurrency Lab
       security:
         - BearerAuth: []
-        - IdempotencyKey: []
-      parameters:
-        - name: entryId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: Idempotency-Key
-          in: header
-          required: true
-          schema:
-            type: string
       requestBody:
         required: false
         content:
@@ -448,27 +739,50 @@ paths:
             schema:
               type: object
               properties:
-                reason:
+                concurrency:
+                  type: integer
+                  minimum: 2
+                  maximum: 50
+                  default: 10
+                  example: 25
+                amountPence:
+                  type: integer
+                  minimum: 1
+                  default: 100
+                  example: 100
+                fromAccountId:
                   type: string
-                  example: "Customer reported duplicate bill payment"
+                  description: Optional debit account UUID (auto-selects highest balance if omitted)
+                toAccountId:
+                  type: string
+                  description: Optional credit account UUID (auto-selects second highest balance if omitted)
       responses:
         '200':
-          description: Compensating reversal posted successfully
+          description: Stress simulation results and real-time ACID telemetry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StressTelemetry'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
 
   /health:
     get:
-      summary: Service health check
-      description: Validates Node.js runtime and PostgreSQL database connection connectivity.
+      summary: Service & database connectivity health probe
+      description: |
+        Validates Node.js Express runtime health and queries PostgreSQL (`SELECT 1`) to ensure active database connectivity.
+        
+        **RBAC**: Public.
       tags:
         - System
       security: []
       responses:
         '200':
-          description: Service is healthy
+          description: Service is healthy and database is connected
           content:
             application/json:
               schema:
@@ -477,11 +791,27 @@ paths:
                   status:
                     type: string
                     example: ok
-                  timestamp:
-                    type: string
-                  database:
+                  db:
                     type: string
                     example: connected
+                  timestamp:
+                    type: string
+                    format: date-time
+        '503':
+          description: Database connectivity unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  db:
+                    type: string
+                    example: disconnected
+                  error:
+                    type: string
 
 components:
   securitySchemes:
@@ -489,14 +819,16 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: Standard RFC 6750 HTTP Authorization header with Bearer token.
     IdempotencyKey:
       type: apiKey
       in: header
       name: Idempotency-Key
+      description: Client-generated unique UUID guaranteeing once-and-only-once execution for mutating requests.
 
   responses:
     ValidationError:
-      description: Request schema validation failure
+      description: Request schema validation failure or invalid payload format
       content:
         application/json:
           schema:
@@ -504,12 +836,14 @@ components:
             properties:
               error:
                 type: string
+                example: Validation error
               issues:
                 type: array
                 items:
                   type: object
+
     UnauthorizedError:
-      description: Missing or invalid JWT Bearer token
+      description: Missing, invalid, or expired JWT Bearer token
       content:
         application/json:
           schema:
@@ -518,6 +852,7 @@ components:
               error:
                 type: string
                 example: Unauthorized
+
     ForbiddenError:
       description: Caller lacks required role or account ownership
       content:
@@ -527,7 +862,8 @@ components:
             properties:
               error:
                 type: string
-                example: Forbidden
+                example: "Forbidden: Insufficient privileges"
+
     NotFoundError:
       description: Target resource was not found
       content:
@@ -537,7 +873,7 @@ components:
             properties:
               error:
                 type: string
-                example: Account not found
+                example: "Account not found"
 
   schemas:
     User:
@@ -545,43 +881,76 @@ components:
       properties:
         id:
           type: string
+          example: "u1a2b3c4-0000-0000-0000-000000000001"
         email:
           type: string
+          example: "admin@ledgerline.dev"
         role:
           type: string
           enum: [ADMIN, HOLDER, AUDITOR]
+          example: "ADMIN"
 
     Account:
       type: object
       properties:
         id:
           type: string
+          example: "a1b2c3d4-0000-0000-0000-000000000001"
         name:
           type: string
+          example: "Corporate Operating Reserve"
         balancePence:
           type: string
+          description: Balance in integer paise
+          example: "12500000"
         overdraftLimit:
           type: string
+          description: Permitted negative overdraft in paise
+          example: "0"
         version:
           type: integer
+          description: Optimistic concurrency lock version counter
+          example: 42
         createdAt:
           type: string
+          format: date-time
+        holders:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+              user:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
 
     LedgerEntry:
       type: object
       properties:
         id:
           type: string
+          example: "e1f2a3b4-0000-0000-0000-000000000001"
         type:
           type: string
           enum: [DEPOSIT, WITHDRAWAL, TRANSFER_DEBIT, TRANSFER_CREDIT, ADJUSTMENT]
+          example: "TRANSFER_CREDIT"
         status:
           type: string
           enum: [POSTED, REFUSED]
+          example: "POSTED"
         amountPence:
           type: string
+          example: "25000"
         runningBalance:
           type: string
+          example: "12500000"
         debitAccountId:
           type: string
           nullable: true
@@ -591,8 +960,61 @@ components:
         note:
           type: string
           nullable: true
+          example: "Settlement payment"
         createdAt:
           type: string
+          format: date-time
+        hash:
+          type: string
+          description: SHA-256 seal of this entry
+          example: "a4f8d38291bce471928374619284729102938475618293041829384756102938"
+        prevHash:
+          type: string
+          description: SHA-256 seal of preceding entry
+          example: "0000000000000000000000000000000000000000000000000000000000000000"
+
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [DEPOSIT, WITHDRAWAL, TRANSFER_DEBIT, TRANSFER_CREDIT, ADJUSTMENT]
+        status:
+          type: string
+          enum: [POSTED, REFUSED]
+        amountPence:
+          type: string
+        amountRupees:
+          type: string
+          example: "250.00"
+        runningBalance:
+          type: string
+        debitAccountId:
+          type: string
+          nullable: true
+        debitAccountName:
+          type: string
+        creditAccountId:
+          type: string
+          nullable: true
+        creditAccountName:
+          type: string
+        initiatedByEmail:
+          type: string
+        note:
+          type: string
+          nullable: true
+        hash:
+          type: string
+          description: 64-character hex SHA-256 hash seal
+        prevHash:
+          type: string
+          description: 64-character hex SHA-256 parent hash
 
     ReconciliationReport:
       type: object
@@ -603,16 +1025,98 @@ components:
           type: string
         storedBalance:
           type: string
+          description: Denormalized cached balance from Account table
         computedBalance:
           type: string
+          description: Sum of all posted ledger credits minus debits
         matches:
           type: boolean
+          description: True if stored balance exactly matches computed balance
         isBalanced:
           type: boolean
         discrepancyPence:
           type: string
+          description: Absolute deviation in paise (0 in consistent state)
         totalCreditsPence:
           type: string
         totalDebitsPence:
           type: string
 
+    StressTelemetry:
+      type: object
+      properties:
+        success:
+          type: boolean
+        telemetry:
+          type: object
+          properties:
+            concurrency:
+              type: integer
+              example: 25
+            amountPence:
+              type: string
+              example: "100"
+            amountRupees:
+              type: string
+              example: "1.00"
+            durationMs:
+              type: integer
+              example: 185
+            transfersPerSecond:
+              type: number
+              example: 135.1
+            successful:
+              type: integer
+              example: 25
+            failed:
+              type: integer
+              example: 0
+        invariants:
+          type: object
+          properties:
+            zeroSumPreserved:
+              type: boolean
+              example: true
+            conservationVerified:
+              type: boolean
+              example: true
+            deltaFromPence:
+              type: string
+              example: "-2500"
+            deltaToPence:
+              type: string
+              example: "2500"
+            fromAccount:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                startBalancePence:
+                  type: string
+                endBalancePence:
+                  type: string
+            toAccount:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                startBalancePence:
+                  type: string
+                endBalancePence:
+                  type: string
+        cryptographicProof:
+          type: object
+          properties:
+            chainVerified:
+              type: boolean
+              example: true
+            headHash:
+              type: string
+              example: "b7e4f9..."
+            totalEntries:
+              type: integer
+              example: 52
