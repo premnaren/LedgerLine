@@ -31,3 +31,11 @@ Output: Implemented `transferService.ts` with `executeTransfer`, `deposit`, and 
 Problem: If accounts are locked in arbitrary or request-specified order, two concurrent transfers between the same two accounts in opposing directions (A -> B and B -> A) produce classic database deadlocks. Furthermore, balance checking before row locking introduces a TOCTOU race window under concurrent load.
 Fix: Sorted account IDs ascending before acquiring `SELECT ... FOR UPDATE` locks. Executed the overdraft/balance check strictly after row acquisition within a Serializable transaction. Added persistent REFUSED ledger entries on failure and verified with optimistic locking version increments.
 ---
+
+---
+Date: 2026-11-06
+Prompt: Sub-prompt 5 — Concurrency and conservation tests
+Output: Built complete end-to-end integration test suites in `tests/concurrency.test.ts` and `tests/conservation.test.ts` verifying: (1) 20 concurrent withdrawal attempts against a ₹100 account resulting in exactly 10 POSTED, 10 REFUSED, and ₹0 final balance, (2) 50 concurrent internal transfers preserving system-wide SUM(balancePence), (3) double-spend prevention through idempotency replay returning cached response without balance deduction, and (4) cross-user withdrawal denial (HTTP 403).
+Problem: When 20 concurrent requests attempt to lock the exact same account row under PostgreSQL `SERIALIZABLE` isolation, unmanaged tuple lock contention causes severe cascading 40001 serialization failures. Furthermore, invoking `writeRefusedEntry` on an independent connection while holding `FOR UPDATE` on `Account` caused a distributed deadlock because PostgreSQL's foreign key check on `LedgerEntry.debitAccountId` waited for the uncommitted `Account` lock.
+Fix: Isolated the REFUSED entry writing to occur after transaction abort/rollback when the row lock has been released. Implemented an in-process account lock queue (`AccountLockManager`) combined with exponential retry backoff and elevated transaction timeouts, preventing thundering-herd aborts while maintaining full database Serializable isolation and row-level locking.
+---

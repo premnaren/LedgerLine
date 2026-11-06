@@ -26,7 +26,44 @@ interface LockedAccount {
   version: number;
 }
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 25;
+
+/**
+ * In-process lock manager to prevent thundering-herd SSI abort storms
+ * while preserving full database-level Serializable isolation & SELECT FOR UPDATE.
+ */
+class AccountLockManager {
+  private locks = new Map<string, Promise<void>>();
+
+  async acquire(accountIds: string[]): Promise<() => void> {
+    const sorted = [...new Set(accountIds)].sort();
+    const releaseFns: (() => void)[] = [];
+
+    for (const id of sorted) {
+      const currentLock = this.locks.get(id) || Promise.resolve();
+      let releaseThisLock!: () => void;
+      const nextLock = new Promise<void>((resolve) => {
+        releaseThisLock = resolve;
+      });
+      this.locks.set(id, nextLock);
+      await currentLock;
+      releaseFns.push(() => {
+        releaseThisLock();
+        if (this.locks.get(id) === nextLock) {
+          this.locks.delete(id);
+        }
+      });
+    }
+
+    return () => {
+      while (releaseFns.length) {
+        releaseFns.pop()!();
+      }
+    };
+  }
+}
+
+const lockManager = new AccountLockManager();
 
 /**
  * Check if the user is authorized to debit the given account.
@@ -117,11 +154,37 @@ export async function executeTransfer(params: TransferParams) {
         throw new InvalidAmountError(`Unsupported transfer type: ${type}`);
       }
     } catch (err: any) {
-      if (err instanceof OptimisticLockError && attempt < MAX_RETRIES - 1) {
+      if (err instanceof InsufficientFundsError) {
+        const debitId = type === 'transfer' ? fromAccountId! : (fromAccountId || toAccountId);
+        const creditId = type === 'transfer' ? toAccountId : null;
+        await writeRefusedEntry(
+          debitId,
+          creditId,
+          amount,
+          user.userId,
+          idempotencyKeyId,
+          err.runningBalance,
+          note || 'Insufficient funds'
+        );
+        throw err;
+      }
+
+      const isConflict =
+        err instanceof OptimisticLockError ||
+        err?.code === 'P2034' ||
+        err?.code === 'P2010' ||
+        err?.code === 'P2028' ||
+        err?.message?.includes('could not serialize') ||
+        err?.message?.includes('write conflict') ||
+        err?.message?.includes('expired transaction') ||
+        err?.message?.includes('Transaction already closed');
+
+      if (isConflict && attempt < MAX_RETRIES - 1) {
         attempt++;
-        // Jittered backoff (10-50ms)
-        const delay = Math.floor(Math.random() * 40) + 10;
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        // Exponential backoff with jitter
+        const baseDelay = Math.min(20 * Math.pow(1.4, attempt), 200);
+        const jitter = Math.floor(Math.random() * 50);
+        await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
         continue;
       }
       throw err;
@@ -189,8 +252,10 @@ async function executeInternalTransfer({
   note?: string;
   idempotencyKeyId?: string;
 }) {
-  return await prisma.$transaction(
-    async (tx) => {
+  const release = await lockManager.acquire([debitId, creditId]);
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
       // 0. Verify authorization inside service
       await verifyDebitAuthorization(tx, debitId, user);
 
@@ -220,18 +285,10 @@ async function executeInternalTransfer({
       const minAllowedBalance = -BigInt(debitAccount.overdraftLimit);
 
       if (newDebitBalance < minAllowedBalance) {
-        // Write a REFUSED ledger entry in an isolated call or save before throwing
-        // Note: within a rolled back txn, entry won't persist, so write outside or log
-        await writeRefusedEntry(
-          debitId,
-          creditId,
-          amount,
-          user.userId,
-          idempotencyKeyId,
-          BigInt(debitAccount.balancePence),
-          note || 'Insufficient funds'
+        throw new InsufficientFundsError(
+          'Insufficient funds for transfer',
+          BigInt(debitAccount.balancePence)
         );
-        throw new InsufficientFundsError('Insufficient funds for transfer');
       }
 
       // 3. Update balances using optimistic version increment
@@ -299,8 +356,15 @@ async function executeInternalTransfer({
         creditEntryId: creditEntry.id,
       };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 15000,
+      timeout: 25000,
+    }
   );
+  } finally {
+    release();
+  }
 }
 
 /**
@@ -319,7 +383,9 @@ async function executeWithdrawal({
   note?: string;
   idempotencyKeyId?: string;
 }) {
-  return await prisma.$transaction(
+  const release = await lockManager.acquire([accountId]);
+  try {
+    return await prisma.$transaction(
     async (tx) => {
       // 0. Verify authorization
       await verifyDebitAuthorization(tx, accountId, user);
@@ -342,16 +408,10 @@ async function executeWithdrawal({
 
       // 2. Check balance
       if (newBalance < minAllowedBalance) {
-        await writeRefusedEntry(
-          accountId,
-          null,
-          amount,
-          user.userId,
-          idempotencyKeyId,
-          BigInt(account.balancePence),
-          note || 'Insufficient funds for withdrawal'
+        throw new InsufficientFundsError(
+          'Insufficient funds for withdrawal',
+          BigInt(account.balancePence)
         );
-        throw new InsufficientFundsError('Insufficient funds for withdrawal');
       }
 
       // 3. Update balance
@@ -390,8 +450,15 @@ async function executeWithdrawal({
         entryId: entry.id,
       };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 15000,
+      timeout: 25000,
+    }
   );
+  } finally {
+    release();
+  }
 }
 
 /**
@@ -414,7 +481,9 @@ async function executeDeposit({
     throw new UnauthorizedAccountAccessError('Auditors are read-only');
   }
 
-  return await prisma.$transaction(
+  const release = await lockManager.acquire([accountId]);
+  try {
+    return await prisma.$transaction(
     async (tx) => {
       // 1. Lock account
       const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
@@ -467,8 +536,15 @@ async function executeDeposit({
         entryId: entry.id,
       };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 15000,
+      timeout: 25000,
+    }
   );
+  } finally {
+    release();
+  }
 }
 
 /**

@@ -6,6 +6,7 @@ import { prisma } from '../src/config/db';
 describe('Authorization & Role Guard Integration Tests', () => {
   let holderToken: string;
   let adminToken: string;
+  let holderUserId: string;
   let accountAId: string;
   let accountBId: string;
 
@@ -16,6 +17,7 @@ describe('Authorization & Role Guard Integration Tests', () => {
       .send({ email: 'holder@ledgerline.dev', password: 'Holder1234!' });
     expect(holderLogin.status).toBe(200);
     holderToken = holderLogin.body.accessToken;
+    holderUserId = holderLogin.body.user.id;
 
     // Login as ADMIN
     const adminLogin = await request(app)
@@ -52,10 +54,15 @@ describe('Authorization & Role Guard Integration Tests', () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    // Holder owns only Account A
-    expect(res.body.length).toBe(1);
-    expect(res.body[0].id).toBe(accountAId);
-    expect(res.body[0].name).toBe('Account A');
+    // Every returned account must be owned by the holder
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+    for (const acc of res.body) {
+      expect(acc.holders.some((h: any) => h.userId === holderUserId)).toBe(true);
+    }
+    // Must contain Account A and MUST NOT contain Account B (owned only by admin)
+    const accountIds = res.body.map((a: any) => a.id);
+    expect(accountIds).toContain(accountAId);
+    expect(accountIds).not.toContain(accountBId);
   });
 
   it('returns all accounts for ADMIN role', async () => {

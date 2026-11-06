@@ -8,9 +8,11 @@ export class LedgerError extends Error {
 }
 
 export class InsufficientFundsError extends LedgerError {
-  constructor(message = 'Insufficient funds for transfer') {
+  runningBalance: bigint;
+  constructor(message = 'Insufficient funds for transfer', runningBalance = 0n) {
     super(message, 400);
     this.name = 'InsufficientFundsError';
+    this.runningBalance = runningBalance;
   }
 }
 
