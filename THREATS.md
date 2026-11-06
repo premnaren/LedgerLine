@@ -106,10 +106,69 @@
 
 ---
 
+### T-14: Unrestricted deposit to unowned account (smurfing / money-laundering vector)
+**Attack**: An authenticated HOLDER discovers another user's or system account ID and submits a `DEPOSIT` operation targeting that account without holding ownership, enabling unauthorized ledger manipulation or money mule structuring.  
+**What we did**: Added `verifyCreditAuthorization()` inside [`apps/api/src/services/transferService.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/transferService.ts). While ADMIN can deposit into any account, HOLDER accounts are validated inside the transaction against the `AccountHolder` association table. If the authenticated user is not an authorized holder on the target credit account, the transaction aborts with `UnauthorizedAccountAccessError` (`HTTP 403 Forbidden`).  
+**Test that covers it**: `blocks HOLDER from depositing into an account they do not own (returns 403)` in [`apps/api/tests/authz.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/authz.test.ts).  
+**Residual risk**: Wire transfers initiated via external banking rails (ACH/NEFT) into virtual account numbers require webhooks with separate signature verification (HMAC-SHA256).
+
+---
+
+### T-15: Resource exhaustion via rapid-fire transfer submission (DDoS / connection pool starvation)
+**Attack**: An attacker scripts automated concurrent calls to `POST /transfers` with varying idempotency keys to exhaust PostgreSQL connection pools, CPU, and database row lock queues.  
+**What we did**: Configured per-user rate limiting using [`apps/api/src/middleware/rateLimiter.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/middleware/rateLimiter.ts). Money-moving routes are capped at 30 requests per minute per authenticated `userId` (independent of IP to avoid NAT/proxy collisions). Exceeding requests are rejected immediately at the HTTP gateway with `HTTP 429 Too Many Requests` and standard `Retry-After: 60` headers, protecting database connection pools from starvation.  
+**Test that covers it**: `rejects rapid bursts exceeding 30 requests per minute with 429 and Retry-After header` in [`apps/api/tests/security_hardening.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/security_hardening.test.ts).  
+**Residual risk**: Distributed botnets possessing hundreds of distinct valid credentials could still generate aggregate load, mitigated at the infrastructure edge via Cloudflare or AWS WAF.
+
+---
+
+### T-16: Malformed payload causing unhandled exception / internal state leakage
+**Attack**: An attacker sends payloads with missing fields, unexpected types (arrays, booleans, SQL keywords), or oversized strings, aiming to crash the Node.js event loop or extract stack traces and internal schema details via HTTP 500 error messages.  
+**What we did**: Strict request validation using Zod schemas in [`apps/api/src/validation/schemas.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/validation/schemas.ts) applied via middleware prior to any route logic or database queries. Invalid payloads return structured `HTTP 400 Bad Request` with field-level issues and never reach the application core. Internal exceptions in production hide stack traces and return clean RFC 7807 problem details.  
+**Test that covers it**: `rejects malformed payloads with 400 Bad Request and detailed schema validation errors` in [`apps/api/tests/security_hardening.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/security_hardening.test.ts).  
+**Residual risk**: Zero-day serialization vulnerabilities in third-party parsing dependencies; mitigated by automated dependency vulnerability auditing (`pnpm audit`).
+
+---
+
+### T-17: Undetected ledger-to-account balance divergence (silent state corruption)
+**Attack**: An out-of-band database error, hardware bit flip, manual administrator direct update, or software defect causes an Account's cached `balancePence` to diverge from the net sum of its immutable `LedgerEntry` rows.  
+**What we did**: Implemented continuous double-entry ledger reconciliation in [`apps/api/src/services/reconciliationService.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/reconciliationService.ts). Computes `reconciledBalance = (sum(DEPOSIT) + sum(TRANSFER_CREDIT)) - (sum(WITHDRAWAL) + sum(TRANSFER_DEBIT)) +/- adjustments` on immutable ledger entries and compares it against `Account.balancePence`. Exposed via `GET /accounts/:id/reconcile` (ADMIN + AUDITOR) and `GET /admin/reconcile-all` (ADMIN). Flagged discrepancies return exact discrepancy delta and entry count for forensic audit.  
+**Test that covers it**: `detects discrepancy between account balance and ledger entries when balance is corrupted via raw SQL` and `reconcileAllAccounts flags corrupted accounts across system` in [`apps/api/tests/reconciliation.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/reconciliation.test.ts).  
+**Residual risk**: High transaction volume accounts may experience slight query contention during ad-hoc full-history aggregation; mitigated by read-committed snapshot queries or periodic checkpointing.
+
+---
+
+### T-18: Server crash mid-transaction leaving idempotency key stuck in PROCESSING
+**Attack**: A server instance experiences power loss, OOM kill, or container restart while a transfer transaction is in-flight. The idempotency key remains recorded as `status='PROCESSING'`, permanently blocking the client from retrying with `HTTP 409 Conflict: request_in_flight`.  
+**What we did**: Built the automated background reaper in [`apps/api/src/services/idempotencyReaper.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/idempotencyReaper.ts). Runs automatically on server startup and every 10 minutes thereafter. Queries all keys where `status = 'PROCESSING'` and `createdAt < NOW() - 5 minutes`, resetting them to `status = 'FAILED'`, and logging forensic warning events. This allows clients to safely retry with the original idempotency key without manual DBA intervention.  
+**Test that covers it**: `reaps orphaned PROCESSING keys older than 5 minutes to FAILED and allows retry` in [`apps/api/tests/security_hardening.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/security_hardening.test.ts).  
+**Residual risk**: In-flight requests executing exceptionally slow external operations could theoretically be reaped if they exceed 5 minutes; money transfers are strictly bounded with a 10s query timeout, preventing false positive reaping.
+
+---
+
+### T-19: Negative or zero-amount transfer bypass via type coercion
+**Attack**: An attacker passes `amountPence: 0`, negative values (`-500`), or scientific notation strings (`"1e5"`) attempting to credit accounts illegally or reverse money movement direction.  
+**What we did**: Enforced layered positive integer validation:
+1. Zod schema `positiveBigIntStringSchema` verifies regex `/^\d+$/` and rejects `"0"` or non-digit characters at the API boundary.
+2. In `transferService.ts`, `BigInt(amountPence) <= 0n` explicitly throws `InvalidTransferAmountError`.
+3. In PostgreSQL schema, database column check guarantees unsigned magnitude.  
+**Test that covers it**: `rejects negative or zero amounts via schema validation and transferService invariants` in [`apps/api/tests/security_hardening.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/security_hardening.test.ts).  
+**Residual risk**: Extremely large strings exceeding 64-bit integer range; guarded by length limits in Zod schema (`max(20)`).
+
+---
+
+### T-20: Transfer to non-existent account ID creating dangling references
+**Attack**: An attacker specifies a non-existent or deleted `toAccountId` or `fromAccountId` in transfer payloads, attempting to debit an account without a matching credit, violating ledger balance conservation.  
+**What we did**: The transfer engine locks all involved accounts in a single query using deterministic sorting (`ORDER BY id ASC`). It immediately validates that the number of locked rows matches the expected account count (`lockedAccounts.length === 2` for internal transfers, `1` for deposits/withdrawals). If any account is missing, the entire transaction rolls back before writing any ledger rows or deducting balances, returning `HTTP 404 Account Not Found`. In addition, foreign key constraints in `LedgerEntry` enforce referential integrity to existing accounts.  
+**Test that covers it**: `blocks transfer when destination or source account does not exist (returns 404)` in [`apps/api/tests/authz.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/authz.test.ts).  
+**Residual risk**: None; referential integrity and count assertion inside row-locked transaction make dangling references mathematically impossible.
+
+---
+
 ## Knowingly accepted risks
 
 1. **Single-Currency Engine**: The ledger records all transactions in a single integer denomination (paise/pence, INR base). Multi-currency conversions, exchange rate fluctuations, and fractional FX spreads are deliberately out of scope for this release to maintain uncompromising ACID correctness and balance conservation invariants.
-2. **In-Flight Key Timeout (Stuck Processing)**: If the backend container suffers an unrecoverable hard crash (SIGKILL or power loss) after inserting an `IdempotencyKey` with status `PROCESSING` and before completing the transaction, that specific key will return 409 indefinitely until an operator or scheduled worker resets it to `FAILED`. A 15-minute expiration reaper was deferred to minimize deployment dependencies.
+2. **In-Flight Key Timeout (Stuck Processing) — [CLOSED via T-18]**: Previously, a server crash during `PROCESSING` could leave keys stuck. This is now fully resolved and closed by the automated background `idempotencyReaper` service, which recovers stale keys older than 5 minutes to `FAILED`.
 3. **Multi-Region Latency on Serializable Isolation**: PostgreSQL Serializable Snapshot Isolation (SSI) with `SELECT ... FOR UPDATE` operates within a single primary database cluster. Cross-datacenter multi-master replication with active-active write distribution is not supported without external consensus coordinators (e.g. Spanner/CockroachDB).
 4. **Shared Database Testing**: In local test environments without containerization, integration tests run against a local PostgreSQL instance. Sequential execution (`--no-file-parallelism`) is enforced to prevent concurrent test suites from cross-contaminating account balances.
 
