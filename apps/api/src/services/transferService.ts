@@ -132,6 +132,46 @@ export async function executeTransfer(params: TransferParams) {
 }
 
 /**
+ * Exported standalone helper for deposit
+ */
+export async function deposit(
+  accountId: string,
+  amount: bigint,
+  user: AuthUser,
+  note?: string,
+  idempotencyKeyId?: string
+) {
+  return executeTransfer({
+    type: 'deposit',
+    toAccountId: accountId,
+    amount,
+    user,
+    note,
+    idempotencyKeyId,
+  });
+}
+
+/**
+ * Exported standalone helper for withdraw
+ */
+export async function withdraw(
+  accountId: string,
+  amount: bigint,
+  user: AuthUser,
+  note?: string,
+  idempotencyKeyId?: string
+) {
+  return executeTransfer({
+    type: 'withdrawal',
+    toAccountId: accountId,
+    amount,
+    user,
+    note,
+    idempotencyKeyId,
+  });
+}
+
+/**
  * Double-entry transfer between two accounts
  */
 async function executeInternalTransfer({

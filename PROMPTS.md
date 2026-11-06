@@ -23,3 +23,11 @@ Output: Implemented `idempotencyMiddleware` (`idempotency.ts`) and `idempotencyS
 Problem: Standard ORM find-or-create patterns execute a `SELECT` followed by an `INSERT`, creating a TOCTOU race condition where two simultaneous requests with the same key can both pass the read check and attempt duplicate transactions. Additionally, deterministic JWT generation for refresh tokens caused unique constraint errors across test runs in the same second.
 Fix: Used Prisma `$executeRaw` with PostgreSQL `INSERT ... ON CONFLICT (key) DO NOTHING` and inspected the returned affected row count. If 0 rows were affected, the existing key status was queried: returning 409 if `PROCESSING` or cached status/body if `COMPLETE`. Added UUID nonces (`jti`) to refresh tokens to ensure distinct tokens per issuance. Verified via `tests/idempotency.test.ts` with concurrent `Promise.all` requests.
 ---
+
+---
+Date: 2026-11-06
+Prompt: Sub-prompt 4 — Transfer engine
+Output: Implemented `transferService.ts` with `executeTransfer`, `deposit`, and `withdraw` inside `prisma.$transaction` using `Serializable` isolation and row-level `SELECT ... FOR UPDATE` ordered by ID to eliminate deadlocks. Balance checks are strictly performed inside the locked transaction and atomic optimistic version increments are applied.
+Problem: If accounts are locked in arbitrary or request-specified order, two concurrent transfers between the same two accounts in opposing directions (A -> B and B -> A) produce classic database deadlocks. Furthermore, balance checking before row locking introduces a TOCTOU race window under concurrent load.
+Fix: Sorted account IDs ascending before acquiring `SELECT ... FOR UPDATE` locks. Executed the overdraft/balance check strictly after row acquisition within a Serializable transaction. Added persistent REFUSED ledger entries on failure and verified with optimistic locking version increments.
+---

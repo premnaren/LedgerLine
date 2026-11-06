@@ -25,6 +25,13 @@ router.post('/', idempotencyMiddleware, async (req: Request, res: Response) => {
 
     const amountBigInt = BigInt(amount);
 
+    // Reject if amount > 10,000,000 (10 M paise) without admin role
+    if (amountBigInt > 10000000n && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({
+        error: 'Transfers exceeding 10,000,000 paise (₹100,000) require ADMIN privileges',
+      });
+    }
+
     // Optional test hook for simulated concurrency delay
     if (req.headers['x-test-delay']) {
       await new Promise((r) => setTimeout(r, Number(req.headers['x-test-delay'])));
