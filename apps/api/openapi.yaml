@@ -45,7 +45,7 @@ info:
     | `/transfers` | `POST` | Transfers & Transactions | Full (Unlimited) | Own Accounts ($\le$ ₹100,000) | Forbidden (403) | No |
     | `/transfers/{entryId}/reverse` | `POST` | Compensating Reversals | Full | Forbidden (403) | Forbidden (403) | No |
     | `/accounts/{id}/reconcile` | `GET` | Reconciliation | Full | Forbidden (403) | Full | No |
-    | `/admin/reconcile-all` | `GET` | Reconciliation | Full | Forbidden (403) | Forbidden (403) | No |
+    | `/admin/reconcile-all` | `GET` | Reconciliation | Full | Forbidden (403) | Full | No |
     | `/admin/simulate-stress` | `POST` | Stress & Concurrency Lab | Full | Forbidden (403) | Forbidden (403) | No |
     | `/health` | `GET` | System | Full | Full | Full | Yes |
 
@@ -697,7 +697,7 @@ paths:
         Performs institution-wide reconciliation across 100% of accounts and verifies the complete
         SHA-256 cryptographic chain from the genesis block to the head entry.
         
-        **RBAC**: `ADMIN` only.
+        **RBAC**: `ADMIN` and `AUDITOR`.
         **Effect on Ledger**: None (read-only system audit).
       tags:
         - Reconciliation

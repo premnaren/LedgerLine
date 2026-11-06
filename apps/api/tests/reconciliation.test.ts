@@ -62,7 +62,7 @@ describe('Double-Entry Reconciliation Invariant Suite', () => {
     expect(res.status).toBe(403);
   });
 
-  it('system-wide reconcile-all succeeds for ADMIN and blocks non-ADMIN', async () => {
+  it('system-wide reconcile-all succeeds for ADMIN and AUDITOR and blocks HOLDER', async () => {
     const adminRes = await request(app)
       .get('/admin/reconcile-all')
       .set('Authorization', `Bearer ${adminToken}`);
@@ -76,7 +76,14 @@ describe('Double-Entry Reconciliation Invariant Suite', () => {
       .get('/admin/reconcile-all')
       .set('Authorization', `Bearer ${auditorToken}`);
 
-    expect(auditorRes.status).toBe(403);
+    expect(auditorRes.status).toBe(200);
+    expect(auditorRes.body.allMatch).toBe(true);
+
+    const holderRes = await request(app)
+      .get('/admin/reconcile-all')
+      .set('Authorization', `Bearer ${holderToken}`);
+
+    expect(holderRes.status).toBe(403);
   });
 
   it('deliberately corrupts Account.balancePence via raw SQL and confirms reconcile detects discrepancy', async () => {

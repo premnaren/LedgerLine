@@ -10,10 +10,9 @@ import { executeTransfer } from '../services/transferService';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole(Role.ADMIN));
 
-// GET /admin/reconcile-all - ADMIN only
-router.get('/reconcile-all', async (req: Request, res: Response) => {
+// GET /admin/reconcile-all - ADMIN and AUDITOR system-wide integrity reconciliation
+router.get('/reconcile-all', requireRole(Role.ADMIN, Role.AUDITOR), async (req: Request, res: Response) => {
   try {
     const result = await reconcileAllAccounts();
     return res.status(200).json(result);
@@ -23,8 +22,8 @@ router.get('/reconcile-all', async (req: Request, res: Response) => {
   }
 });
 
-// POST /admin/simulate-stress - Live real-time concurrency stress & ACID telemetry
-router.post('/simulate-stress', async (req: Request, res: Response) => {
+// POST /admin/simulate-stress - Live real-time concurrency stress & ACID telemetry (ADMIN only)
+router.post('/simulate-stress', requireRole(Role.ADMIN), async (req: Request, res: Response) => {
   try {
     const concurrency = Math.min(Math.max(Number(req.body?.concurrency) || 10, 2), 50);
     const amountPence = BigInt(req.body?.amountPence || 100); // Default ₹1.00

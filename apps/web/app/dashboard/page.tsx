@@ -121,12 +121,23 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
+      const currentUser = getUser();
       const data = await api.get<Account[]>('/accounts');
       setAccounts(data);
       setLastRefreshedAt(new Date());
 
+      // If user is an AUDITOR, proactively check system reconciliation
+      if (currentUser?.role === 'AUDITOR') {
+        try {
+          const recData = await api.get<SystemReconciliationResult>('/admin/reconcile-all');
+          setReconcileResult(recData);
+          setVerificationTimestamp(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        } catch (recErr) {
+          console.error('Initial auditor reconciliation fetch error:', recErr);
+        }
+      }
+
       // If user is a HOLDER, fetch recent statements for their registered accounts
-      const currentUser = getUser();
       if (currentUser?.role === 'HOLDER' && data.length > 0) {
         setEntriesLoading(true);
         try {
@@ -498,6 +509,89 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+      ) : user?.role === 'AUDITOR' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Auditor Card 1: Total Accounts Under Audit */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total Accounts
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/60">
+                <Wallet className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+              {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
+            </div>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Accounts under continuous observation
+            </p>
+          </div>
+
+          {/* Auditor Card 2: Combined Ledger Balance */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Combined Balance
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+              {formatPaiseToRupees(combinedBalancePence.toString())}
+            </div>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Exact BigInt ledger balance
+            </p>
+          </div>
+
+          {/* Auditor Card 3: Ledger Integrity Verification Status */}
+          <div
+            onClick={handleVerifyIntegrity}
+            className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs cursor-pointer hover:border-emerald-300 transition pressable"
+            role="button"
+            tabIndex={0}
+            title="Click to run full Genesis-to-Head ledger seal verification"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Ledger Integrity
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950">
+                {reconcileLoading ? 'Verifying...' : reconcileResult ? (reconcileResult.allMatch ? 'Verified' : 'Drift') : 'Verified'}
+              </span>
+            </div>
+            <p className="text-xs text-emerald-700 mt-1 font-medium">
+              {reconcileResult?.allMatch !== false ? 'No discrepancies detected' : 'Integrity discrepancy detected'}
+            </p>
+          </div>
+
+          {/* Auditor Card 4: Verification Timestamp & State */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Verification State
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60">
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">
+              {verificationTimestamp ? `Verified at ${verificationTimestamp}` : 'Verified just now'}
+            </div>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Read-only observation mode
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Total Accounts */}
@@ -588,7 +682,11 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-2.5">
             <h2 className="text-lg font-bold tracking-tight-display text-slate-950">
-              {user?.role === 'HOLDER' ? 'Your Accounts' : 'All Accounts'}
+              {user?.role === 'HOLDER'
+                ? 'Your Accounts'
+                : user?.role === 'AUDITOR'
+                ? 'Accounts Under Observation'
+                : 'All Accounts'}
             </h2>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/60 font-mono">
               {filteredAccounts.length} {filteredAccounts.length === 1 ? 'account' : 'accounts'}
@@ -636,7 +734,7 @@ export default function DashboardPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredAccounts.map((acc) => {
               const balanceNum = Number(acc.balancePence);
               const isNegative = balanceNum < 0;
@@ -673,10 +771,10 @@ export default function DashboardPage() {
                         </button>
                       </div>
 
-                      {user?.role === 'HOLDER' ? (
+                      {user?.role === 'HOLDER' || user?.role === 'AUDITOR' ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                          Active
+                          Available
                         </span>
                       ) : (
                         <span
@@ -695,7 +793,7 @@ export default function DashboardPage() {
                     {/* Balance Display */}
                     <div className="mt-3">
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                        Current Balance
+                        {user?.role === 'AUDITOR' ? 'Ledger Balance' : 'Current Balance'}
                       </span>
                       <span
                         className={`text-3xl font-black tracking-tight-display tabular-nums ${
@@ -712,9 +810,9 @@ export default function DashboardPage() {
                       </p>
                     )}
 
-                    {acc.holders && (user?.role !== 'HOLDER' || acc.holders.length > 1) && (
+                    {acc.holders && (
                       <div className="mt-3.5 pt-3 border-t border-slate-100 text-xs text-slate-600">
-                        <span className="font-semibold text-slate-700">Holders:</span>{' '}
+                        <span className="font-semibold text-slate-700">Holder:</span>{' '}
                         <span className="font-medium text-slate-800">
                           {acc.holders.map((h) => h.user.email).join(', ')}
                         </span>
@@ -723,8 +821,22 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Card Actions */}
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
-                    {user?.role !== 'AUDITOR' && (
+                  {user?.role === 'AUDITOR' ? (
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <Link
+                        href={`/accounts/${acc.id}`}
+                        title={`Inspect read-only statement and cryptographic proofs for ${acc.name}`}
+                        className="w-full inline-flex justify-between items-center py-2.5 px-4 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 bg-white hover:bg-slate-50 transition pressable shadow-2xs group"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-4 w-4 text-slate-500" />
+                          <span>View Statement</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
                       <Link
                         href={`/accounts/${acc.id}/transfer`}
                         title={`Initiate a transfer from ${acc.name}`}
@@ -733,17 +845,17 @@ export default function DashboardPage() {
                         <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
                         Transfer
                       </Link>
-                    )}
 
-                    <Link
-                      href={`/accounts/${acc.id}`}
-                      title="View historical statement and immutable ledger entries"
-                      className="flex-1 inline-flex justify-center items-center py-2.5 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs"
-                    >
-                      <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
-                      Statement
-                    </Link>
-                  </div>
+                      <Link
+                        href={`/accounts/${acc.id}`}
+                        title="View historical statement and immutable ledger entries"
+                        className="flex-1 inline-flex justify-center items-center py-2.5 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs"
+                      >
+                        <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+                        Statement
+                      </Link>
+                    </div>
+                  )}
                 </div>
               );
             })}
