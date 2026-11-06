@@ -14,3 +14,4 @@ CREATE TRIGGER prevent_ledger_mutation
 BEFORE UPDATE OR DELETE ON "LedgerEntry"
 FOR EACH ROW
 EXECUTE FUNCTION prevent_ledger_mutation();
+

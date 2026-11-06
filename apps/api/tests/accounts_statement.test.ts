@@ -116,3 +116,4 @@ describe('Accounts & Paginated Statement API', () => {
     expect(res.body).toHaveProperty('version');
   });
 });
+

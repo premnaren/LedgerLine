@@ -14,3 +14,4 @@ export function formatPaiseToRupees(pence: string | number | bigint): string {
     maximumFractionDigits: 2,
   });
 }
+

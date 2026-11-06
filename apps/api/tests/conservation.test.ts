@@ -51,3 +51,4 @@ describe('Conservation of Money Invariant Suite', () => {
     expect(finalTotal).toBe(initialTotal);
   });
 });
+

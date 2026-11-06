@@ -283,3 +283,4 @@ describe('Concurrency and Conservation Invariants', () => {
     expect(accountBAfter!.balancePence).toBe(balanceBefore);
   });
 });
+

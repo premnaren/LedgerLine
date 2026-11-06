@@ -42,3 +42,4 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 4000
 
 CMD ["sh", "-c", "pnpm --filter api prisma:deploy && node apps/api/dist/index.js"]
+

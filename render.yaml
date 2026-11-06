@@ -31,3 +31,4 @@ databases:
     databaseName: ledgerline
     user: postgres
     postgresMajorVersion: 16
+
