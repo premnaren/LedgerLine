@@ -7,6 +7,7 @@ import authRouter from './routes/auth';
 import accountsRouter from './routes/accounts';
 import transfersRouter from './routes/transfers';
 import statementsRouter from './routes/statements';
+import adminRouter from './routes/admin';
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use('/auth', authRouter);
 app.use('/accounts', accountsRouter);
 app.use('/transfers', transfersRouter);
 app.use('/statements', statementsRouter);
+app.use('/admin', adminRouter);
 
 const PORT = process.env.PORT || 4000;
 
