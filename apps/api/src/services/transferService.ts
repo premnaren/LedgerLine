@@ -1,5 +1,6 @@
 import { Prisma, Role, EntryType, EntryStatus } from '@prisma/client';
 import { prisma } from '../config/db';
+import { createSealedLedgerEntry } from './cryptoService';
 import {
   InsufficientFundsError,
   UnauthorizedAccountAccessError,
@@ -353,33 +354,32 @@ async function executeInternalTransfer({
 
       const newCreditBalance = BigInt(creditAccount.balancePence) + amount;
 
-      // 4. Write two ledger entries: TRANSFER_DEBIT and TRANSFER_CREDIT
-      const debitEntry = await tx.ledgerEntry.create({
-        data: {
-          type: EntryType.TRANSFER_DEBIT,
-          status: EntryStatus.POSTED,
-          amountPence: amount,
-          debitAccountId: debitId,
-          creditAccountId: creditId,
-          initiatedById: user.userId,
-          idempotencyKeyId: idempotencyKeyId || null,
-          runningBalance: newDebitBalance,
-          note: note || `Transfer to ${creditId}`,
-        },
+      // 4. Write two cryptographically sealed ledger entries: TRANSFER_DEBIT and TRANSFER_CREDIT
+      const now = new Date();
+      const debitEntry = await createSealedLedgerEntry(tx, {
+        createdAt: now,
+        type: EntryType.TRANSFER_DEBIT,
+        status: EntryStatus.POSTED,
+        amountPence: amount,
+        debitAccountId: debitId,
+        creditAccountId: creditId,
+        initiatedById: user.userId,
+        idempotencyKeyId: idempotencyKeyId || null,
+        runningBalance: newDebitBalance,
+        note: note || `Transfer to ${creditId}`,
       });
 
-      const creditEntry = await tx.ledgerEntry.create({
-        data: {
-          type: EntryType.TRANSFER_CREDIT,
-          status: EntryStatus.POSTED,
-          amountPence: amount,
-          debitAccountId: debitId,
-          creditAccountId: creditId,
-          initiatedById: user.userId,
-          idempotencyKeyId: idempotencyKeyId || null,
-          runningBalance: newCreditBalance,
-          note: note || `Transfer from ${debitId}`,
-        },
+      const creditEntry = await createSealedLedgerEntry(tx, {
+        createdAt: new Date(now.getTime() + 1),
+        type: EntryType.TRANSFER_CREDIT,
+        status: EntryStatus.POSTED,
+        amountPence: amount,
+        debitAccountId: debitId,
+        creditAccountId: creditId,
+        initiatedById: user.userId,
+        idempotencyKeyId: idempotencyKeyId || null,
+        runningBalance: newCreditBalance,
+        note: note || `Transfer from ${debitId}`,
       });
 
       return {
@@ -465,18 +465,16 @@ async function executeWithdrawal({
         throw new OptimisticLockError();
       }
 
-      // 4. Ledger entry
-      const entry = await tx.ledgerEntry.create({
-        data: {
-          type: EntryType.WITHDRAWAL,
-          status: EntryStatus.POSTED,
-          amountPence: amount,
-          debitAccountId: accountId,
-          initiatedById: user.userId,
-          idempotencyKeyId: idempotencyKeyId || null,
-          runningBalance: newBalance,
-          note: note || 'Withdrawal',
-        },
+      // 4. Ledger entry (cryptographically sealed)
+      const entry = await createSealedLedgerEntry(tx, {
+        type: EntryType.WITHDRAWAL,
+        status: EntryStatus.POSTED,
+        amountPence: amount,
+        debitAccountId: accountId,
+        initiatedById: user.userId,
+        idempotencyKeyId: idempotencyKeyId || null,
+        runningBalance: newBalance,
+        note: note || 'Withdrawal',
       });
 
       return {
@@ -554,18 +552,16 @@ async function executeDeposit({
         throw new OptimisticLockError();
       }
 
-      // 3. Ledger entry
-      const entry = await tx.ledgerEntry.create({
-        data: {
-          type: EntryType.DEPOSIT,
-          status: EntryStatus.POSTED,
-          amountPence: amount,
-          creditAccountId: accountId,
-          initiatedById: user.userId,
-          idempotencyKeyId: idempotencyKeyId || null,
-          runningBalance: newBalance,
-          note: note || 'Deposit',
-        },
+      // 3. Ledger entry (cryptographically sealed)
+      const entry = await createSealedLedgerEntry(tx, {
+        type: EntryType.DEPOSIT,
+        status: EntryStatus.POSTED,
+        amountPence: amount,
+        creditAccountId: accountId,
+        initiatedById: user.userId,
+        idempotencyKeyId: idempotencyKeyId || null,
+        runningBalance: newBalance,
+        note: note || 'Deposit',
       });
 
       return {
@@ -601,18 +597,16 @@ async function writeRefusedEntry(
   note: string
 ) {
   try {
-    await prisma.ledgerEntry.create({
-      data: {
-        type: debitAccountId && creditAccountId ? EntryType.TRANSFER_DEBIT : EntryType.WITHDRAWAL,
-        status: EntryStatus.REFUSED,
-        amountPence,
-        debitAccountId,
-        creditAccountId,
-        initiatedById,
-        idempotencyKeyId: idempotencyKeyId || null,
-        runningBalance,
-        note,
-      },
+    await createSealedLedgerEntry(prisma, {
+      type: debitAccountId && creditAccountId ? EntryType.TRANSFER_DEBIT : EntryType.WITHDRAWAL,
+      status: EntryStatus.REFUSED,
+      amountPence,
+      debitAccountId,
+      creditAccountId,
+      initiatedById,
+      idempotencyKeyId: idempotencyKeyId || null,
+      runningBalance,
+      note,
     });
   } catch (err) {
     console.error('Failed to write REFUSED ledger entry:', err);
@@ -765,31 +759,30 @@ export async function reverseLedgerEntry(
             },
           });
 
-          // Write compensating ADJUSTMENT entries
-          const compensatingDebit = await tx.ledgerEntry.create({
-            data: {
-              type: EntryType.ADJUSTMENT,
-              status: EntryStatus.POSTED,
-              amountPence: amount,
-              debitAccountId: originalCreditId,
-              initiatedById: user.userId,
-              idempotencyKeyId: idempotencyKeyId || null,
-              runningBalance: newCreditAccountBalance,
-              note: noteReference,
-            },
+          // Write compensating ADJUSTMENT entries (cryptographically sealed)
+          const now = new Date();
+          const compensatingDebit = await createSealedLedgerEntry(tx, {
+            createdAt: now,
+            type: EntryType.ADJUSTMENT,
+            status: EntryStatus.POSTED,
+            amountPence: amount,
+            debitAccountId: originalCreditId,
+            initiatedById: user.userId,
+            idempotencyKeyId: idempotencyKeyId || null,
+            runningBalance: newCreditAccountBalance,
+            note: noteReference,
           });
 
-          const compensatingCredit = await tx.ledgerEntry.create({
-            data: {
-              type: EntryType.ADJUSTMENT,
-              status: EntryStatus.POSTED,
-              amountPence: amount,
-              creditAccountId: originalDebitId,
-              initiatedById: user.userId,
-              idempotencyKeyId: idempotencyKeyId || null,
-              runningBalance: newDebitAccountBalance,
-              note: noteReference,
-            },
+          const compensatingCredit = await createSealedLedgerEntry(tx, {
+            createdAt: new Date(now.getTime() + 1),
+            type: EntryType.ADJUSTMENT,
+            status: EntryStatus.POSTED,
+            amountPence: amount,
+            creditAccountId: originalDebitId,
+            initiatedById: user.userId,
+            idempotencyKeyId: idempotencyKeyId || null,
+            runningBalance: newDebitAccountBalance,
+            note: noteReference,
           });
 
           return {
@@ -837,17 +830,15 @@ export async function reverseLedgerEntry(
             },
           });
 
-          const compensatingEntry = await tx.ledgerEntry.create({
-            data: {
-              type: EntryType.ADJUSTMENT,
-              status: EntryStatus.POSTED,
-              amountPence: amount,
-              debitAccountId: accountId,
-              initiatedById: user.userId,
-              idempotencyKeyId: idempotencyKeyId || null,
-              runningBalance: newBalance,
-              note: noteReference,
-            },
+          const compensatingEntry = await createSealedLedgerEntry(tx, {
+            type: EntryType.ADJUSTMENT,
+            status: EntryStatus.POSTED,
+            amountPence: amount,
+            debitAccountId: accountId,
+            initiatedById: user.userId,
+            idempotencyKeyId: idempotencyKeyId || null,
+            runningBalance: newBalance,
+            note: noteReference,
           });
 
           return {
@@ -890,17 +881,15 @@ export async function reverseLedgerEntry(
             },
           });
 
-          const compensatingEntry = await tx.ledgerEntry.create({
-            data: {
-              type: EntryType.ADJUSTMENT,
-              status: EntryStatus.POSTED,
-              amountPence: amount,
-              creditAccountId: accountId,
-              initiatedById: user.userId,
-              idempotencyKeyId: idempotencyKeyId || null,
-              runningBalance: newBalance,
-              note: noteReference,
-            },
+          const compensatingEntry = await createSealedLedgerEntry(tx, {
+            type: EntryType.ADJUSTMENT,
+            status: EntryStatus.POSTED,
+            amountPence: amount,
+            creditAccountId: accountId,
+            initiatedById: user.userId,
+            idempotencyKeyId: idempotencyKeyId || null,
+            runningBalance: newBalance,
+            note: noteReference,
           });
 
           return {

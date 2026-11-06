@@ -78,6 +78,8 @@ model LedgerEntry {
   idempotencyKeyId  String?
   runningBalance    BigInt       // Balance of the account that this row is filed against after this entry (debitAccount for debit rows, creditAccount for credit rows)
   note              String?
+  hash              String?      // SHA-256 cryptographic seal of this entry
+  prevHash          String?      // Pointer to the prior entry's cryptographic hash
   debitAccount      Account?     @relation("DebitAccount",  fields: [debitAccountId],  references: [id])
   creditAccount     Account?     @relation("CreditAccount", fields: [creditAccountId], references: [id])
   initiatedBy       User         @relation("InitiatedBy",   fields: [initiatedById],   references: [id])

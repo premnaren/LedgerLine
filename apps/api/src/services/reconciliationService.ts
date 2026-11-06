@@ -1,5 +1,6 @@
 import { prisma } from '../config/db';
 import { AccountNotFoundError } from './errors';
+import { verifyLedgerHashChain, ChainVerificationResult } from './cryptoService';
 
 export interface AccountReconciliationResult {
   accountId: string;
@@ -12,6 +13,10 @@ export interface AccountReconciliationResult {
   discrepancy?: string;
   totalCreditsPence: string;
   totalDebitsPence: string;
+  cryptographicSeal?: {
+    headHash: string | null;
+    verified: boolean;
+  };
 }
 
 export interface SystemReconciliationResult {
@@ -21,6 +26,7 @@ export interface SystemReconciliationResult {
   totalStoredBalancePence: string;
   totalComputedBalancePence: string;
   accounts: AccountReconciliationResult[];
+  cryptographicIntegrity: ChainVerificationResult;
 }
 
 /**
@@ -62,6 +68,16 @@ export async function reconcileAccount(accountId: string): Promise<AccountReconc
   const discrepancyPence = storedBalance - computedBalance;
   const matches = discrepancyPence === 0n;
 
+  // Retrieve latest entry cryptographic seal
+  const latestEntry = await prisma.ledgerEntry.findFirst({
+    where: {
+      OR: [{ debitAccountId: accountId }, { creditAccountId: accountId }],
+      hash: { not: null },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { hash: true },
+  });
+
   return {
     accountId: account.id,
     accountName: account.name,
@@ -73,11 +89,16 @@ export async function reconcileAccount(accountId: string): Promise<AccountReconc
     discrepancy: discrepancyPence.toString(),
     totalCreditsPence: totalCredits.toString(),
     totalDebitsPence: totalDebits.toString(),
+    cryptographicSeal: {
+      headHash: latestEntry?.hash || null,
+      verified: matches,
+    },
   };
 }
 
 /**
- * System-wide reconciliation: verifies double-entry consistency across all accounts in the system.
+ * System-wide reconciliation: verifies double-entry consistency across all accounts in the system
+ * AND verifies the full cryptographic SHA-256 hash chain from Genesis to Head.
  */
 export async function reconcileAllAccounts(): Promise<SystemReconciliationResult> {
   const accounts = await prisma.account.findMany({
@@ -100,13 +121,31 @@ export async function reconcileAllAccounts(): Promise<SystemReconciliationResult
     }
   }
 
+  // Cryptographic Ledger Chain verification
+  const allEntries = await prisma.ledgerEntry.findMany({
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true,
+      createdAt: true,
+      type: true,
+      amountPence: true,
+      debitAccountId: true,
+      creditAccountId: true,
+      runningBalance: true,
+      hash: true,
+      prevHash: true,
+    },
+  });
+
+  const cryptoProof = verifyLedgerHashChain(allEntries);
+
   return {
-    allMatch: discrepantCount === 0,
+    allMatch: discrepantCount === 0 && cryptoProof.verified,
     totalAccounts: accounts.length,
     discrepantAccountsCount: discrepantCount,
     totalStoredBalancePence: totalStored.toString(),
     totalComputedBalancePence: totalComputed.toString(),
     accounts: results,
+    cryptographicIntegrity: cryptoProof,
   };
 }
-

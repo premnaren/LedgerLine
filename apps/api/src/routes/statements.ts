@@ -57,6 +57,8 @@ router.get('/audit/entries', async (req: Request, res: Response) => {
       creditAccountName: e.creditAccount?.name || 'N/A',
       initiatedByEmail: e.initiatedBy.email,
       note: e.note,
+      hash: e.hash,
+      prevHash: e.prevHash,
     }));
 
     return res.status(200).json(formatted);
@@ -143,6 +145,8 @@ router.get('/:id/statement', async (req: Request, res: Response) => {
           email: entry.initiatedBy.email,
         },
         note: entry.note,
+        hash: entry.hash,
+        prevHash: entry.prevHash,
       };
     });
 
