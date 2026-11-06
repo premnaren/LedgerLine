@@ -157,7 +157,7 @@ flowchart TD
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/ledgerline.git
+git clone https://github.com/premnaren/LedgerLine.git
 cd ledgerline
 pnpm install
 ```
