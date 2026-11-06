@@ -55,3 +55,11 @@ Output: Built complete Next.js 14 frontend using App Router and Tailwind CSS: (1
 Problem: Persisting JWT access tokens in browser `localStorage` or `sessionStorage` exposes users to cross-site scripting (XSS) credential theft. Furthermore, client-side only double-click prevention on transfer buttons is vulnerable to network latency and bypass.
 Fix: Designed `lib/auth.ts` to store access tokens strictly in JavaScript module memory with silent httpOnly cookie refresh recovery. Configured client-side UUID generation for `Idempotency-Key` headers paired with disabled submit state in-flight, relying on the backend's PostgreSQL atomic `ON CONFLICT DO NOTHING` idempotency store as the authoritative guard against duplicate processing.
 ---
+
+---
+Date: 2026-11-06
+Prompt: Sub-prompt 8 — THREATS.md
+Output: Authoring comprehensive threat model document `THREATS.md` covering all 12 specified threat vectors (T-1 to T-12) detailing the specific attack vector, implemented defensive measures across code and database layers, covering automated test files, and residual risks. Also documented knowingly accepted architectural trade-offs.
+Problem: Documenting theoretical security guarantees without anchoring them to specific tests and database constraints creates an unverified paper security model that drifts from actual code behavior.
+Fix: Mapped every individual threat vector to concrete implementations (`transferService.ts`, PostgreSQL triggers, composite indexes, CHECK constraints) and linked directly to verifying integration tests (`concurrency.test.ts`, `authz.test.ts`, `idempotency.test.ts`, `conservation.test.ts`).
+---
