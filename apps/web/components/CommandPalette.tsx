@@ -305,3 +305,4 @@ export default function CommandPalette({ isOpen, onClose, onTriggerReconcile }: 
     </div>
   );
 }
+
