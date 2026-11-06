@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-verify:
+    name: Test & Invariant Verification
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: ledgerline
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/ledgerline?schema=public"
+      JWT_SECRET: "ci-test-jwt-access-secret-minimum-32-chars!!"
+      JWT_REFRESH_SECRET: "ci-test-jwt-refresh-secret-minimum-32-chars!!"
+      NODE_ENV: "test"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+
+      - name: Run Database Migrations
+        run: pnpm prisma:deploy
+
+      - name: Seed Database
+        run: pnpm prisma:seed
+
+      - name: Type Check (API & Web)
+        run: |
+          pnpm --filter api exec tsc --noEmit
+          pnpm --filter web exec tsc --noEmit
+
+      - name: Run Full Test Suite
+        run: pnpm test
+
+      - name: Run Concurrency Invariant Suite
+        run: pnpm test:concurrency
+
+      - name: Run Chaos & Fault-Injection Suite
+        run: pnpm test:chaos
+
+      - name: Build Application Packages
+        run: pnpm build

@@ -2,7 +2,7 @@
 
 > Enterprise-grade double-entry ledger engine and financial dashboard built with Node.js, Express, PostgreSQL, Prisma, Next.js 14 App Router, and Tailwind CSS.
 
-[![Build & Test Status](https://img.shields.io/badge/tests-21%20passed%20(100%25)-brightgreen.svg)](#test-suite-and-verification)
+[![CI Pipeline](https://github.com/premnaren/LedgerLine/actions/workflows/ci.yml/badge.svg)](https://github.com/premnaren/LedgerLine/actions/workflows/ci.yml)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.14-2D3748.svg)](https://www.prisma.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-14%20App%20Router-black.svg)](https://nextjs.org/)

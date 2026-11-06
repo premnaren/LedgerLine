@@ -7,7 +7,9 @@ export interface AccountReconciliationResult {
   storedBalance: string;
   computedBalance: string;
   matches: boolean;
+  isBalanced?: boolean;
   discrepancyPence: string;
+  discrepancy?: string;
   totalCreditsPence: string;
   totalDebitsPence: string;
 }
