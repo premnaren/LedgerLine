@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import prisma from './config/db';
 import authRouter from './routes/auth';
 import accountsRouter from './routes/accounts';
 import transfersRouter from './routes/transfers';
@@ -26,8 +27,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+  } catch (error: any) {
+    res.status(503).json({ status: 'error', db: 'disconnected', error: error?.message });
+  }
 });
 
 // Routes
