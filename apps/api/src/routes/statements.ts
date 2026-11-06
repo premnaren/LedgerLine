@@ -7,6 +7,65 @@ const router = Router({ mergeParams: true });
 
 router.use(authenticate);
 
+// GET /accounts/audit/entries - ADMIN and AUDITOR only
+router.get('/audit/entries', async (req: Request, res: Response) => {
+  try {
+    const user = req.user!;
+    if (user.role !== Role.ADMIN && user.role !== Role.AUDITOR) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
+    }
+
+    const { accountId, startDate, endDate, limit = '100' } = req.query;
+
+    const where: any = {};
+    if (accountId && typeof accountId === 'string') {
+      where.OR = [{ debitAccountId: accountId }, { creditAccountId: accountId }];
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate && typeof startDate === 'string') {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate && typeof endDate === 'string') {
+        where.createdAt.lte = new Date(endDate);
+      }
+    }
+
+    const entries = await prisma.ledgerEntry.findMany({
+      where,
+      take: Math.min(Number(limit) || 100, 500),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        initiatedBy: { select: { email: true } },
+        debitAccount: { select: { id: true, name: true } },
+        creditAccount: { select: { id: true, name: true } },
+      },
+    });
+
+    const formatted = entries.map((e) => ({
+      id: e.id,
+      createdAt: e.createdAt.toISOString(),
+      type: e.type,
+      status: e.status,
+      amountPence: e.amountPence.toString(),
+      amountRupees: (Number(e.amountPence) / 100).toFixed(2),
+      runningBalance: e.runningBalance.toString(),
+      debitAccountId: e.debitAccountId,
+      debitAccountName: e.debitAccount?.name || 'N/A',
+      creditAccountId: e.creditAccountId,
+      creditAccountName: e.creditAccount?.name || 'N/A',
+      initiatedByEmail: e.initiatedBy.email,
+      note: e.note,
+    }));
+
+    return res.status(200).json(formatted);
+  } catch (error) {
+    console.error('Audit query error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /accounts/:id/statement
 router.get('/:id/statement', async (req: Request, res: Response) => {
   try {

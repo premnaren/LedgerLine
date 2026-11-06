@@ -47,3 +47,11 @@ Output: Implemented accounts CRUD routes with role filtering (`GET /accounts`, `
 Problem: Excluding REFUSED entries from statements obscures critical failed or unauthorized attempts from auditors. In addition, offset-based pagination on high-frequency ledger tables suffers from drift and scan degradation under concurrent insertions.
 Fix: Implemented keyset/cursor-based pagination (`take: limit + 1`, `cursor: { id }`) ordered by `[createdAt DESC, id DESC]` leveraging composite indexes. Ensured statement queries query both debit and credit associations and explicitly include REFUSED entries for AUDITOR and authorized account holders.
 ---
+
+---
+Date: 2026-11-06
+Prompt: Sub-prompt 7 — Frontend: dashboard, transfer form, statement
+Output: Built complete Next.js 14 frontend using App Router and Tailwind CSS: (1) `/login` storing access tokens strictly in memory with automatic refresh fallback via httpOnly cookie proxy and one-click seed credentials, (2) `/dashboard` with account balances in INR (₹), refresh-on-focus, and role badges, (3) `/accounts/[id]` statement view with cursor pagination, green POSTED and red REFUSED transaction rows, (4) `/accounts/[id]/transfer` money movement form with auto-generated client-side UUID idempotency keys and in-flight double-click prevention, and (5) `/admin/audit` global ledger compliance table with date/account filters and CSV export.
+Problem: Persisting JWT access tokens in browser `localStorage` or `sessionStorage` exposes users to cross-site scripting (XSS) credential theft. Furthermore, client-side only double-click prevention on transfer buttons is vulnerable to network latency and bypass.
+Fix: Designed `lib/auth.ts` to store access tokens strictly in JavaScript module memory with silent httpOnly cookie refresh recovery. Configured client-side UUID generation for `Idempotency-Key` headers paired with disabled submit state in-flight, relying on the backend's PostgreSQL atomic `ON CONFLICT DO NOTHING` idempotency store as the authoritative guard against duplicate processing.
+---
