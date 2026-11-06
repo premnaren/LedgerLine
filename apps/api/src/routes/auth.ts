@@ -122,6 +122,11 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
     return res.status(200).json({
       accessToken: newAccessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error('Refresh error:', error);

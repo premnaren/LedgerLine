@@ -53,6 +53,9 @@ export async function refreshAccessToken(): Promise<string | null> {
     const data = await res.json();
     if (data.accessToken) {
       setAccessToken(data.accessToken);
+      if (data.user) {
+        setUser(data.user);
+      }
       return data.accessToken;
     }
     return null;

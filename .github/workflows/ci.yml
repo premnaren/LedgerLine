@@ -75,3 +75,4 @@ jobs:
 
       - name: Build Application Packages
         run: pnpm build
+

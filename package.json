@@ -13,6 +13,7 @@
     "prisma:seed": "pnpm --filter api prisma:seed"
   },
   "devDependencies": {
+    "puppeteer-core": "^25.16.0",
     "typescript": "^5.4.5"
   }
 }
