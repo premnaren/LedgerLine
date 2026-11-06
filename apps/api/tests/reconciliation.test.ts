@@ -128,3 +128,4 @@ describe('Double-Entry Reconciliation Invariant Suite', () => {
     expect(cleanedRes.body.discrepancyPence).toBe('0');
   });
 });
+

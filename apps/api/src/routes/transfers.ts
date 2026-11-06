@@ -5,53 +5,47 @@ import { idempotencyMiddleware } from '../middleware/idempotency';
 import { finalizeIdempotencyKey } from '../services/idempotencyService';
 import { executeTransfer } from '../services/transferService';
 import { LedgerError } from '../services/errors';
+import { validateBody, transferSchema } from '../validation/schemas';
 
 const router = Router();
 
 router.use(authenticate);
 
-// POST /transfers (protected with idempotency middleware)
-router.post('/', idempotencyMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { type, fromAccountId, toAccountId, amount, note } = req.body;
+// POST /transfers (protected with idempotency middleware and zod input validation)
+router.post(
+  '/',
+  idempotencyMiddleware,
+  validateBody(transferSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { type, fromAccountId, toAccountId, amount, note } = req.body;
+      const amountBigInt = BigInt(amount);
 
-    if (!type || !toAccountId || amount === undefined || amount === null) {
-      return res.status(400).json({ error: 'type, toAccountId, and amount are required' });
-    }
+      // Reject if amount > 10,000,000 (10 M paise) without admin role
+      if (amountBigInt > 10000000n && req.user?.role !== 'ADMIN') {
+        return res.status(403).json({
+          error: 'Transfers exceeding 10,000,000 paise (₹100,000) require ADMIN privileges',
+        });
+      }
 
-    // Validate integer amount (paise/pence)
-    const parsedAmount = Number(amount);
-    if (isNaN(parsedAmount) || !Number.isInteger(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ error: 'amount must be a positive integer in smallest units (paise/pence)' });
-    }
+      // Guard test delay hook: disabled in production, capped at 2000ms in non-production
+      if (process.env.NODE_ENV !== 'production' && req.headers['x-test-delay']) {
+        await new Promise((r) =>
+          setTimeout(r, Math.min(Number(req.headers['x-test-delay']) || 0, 2000))
+        );
+      }
 
-    const amountBigInt = BigInt(amount);
-
-    // Reject if amount > 10,000,000 (10 M paise) without admin role
-    if (amountBigInt > 10000000n && req.user?.role !== 'ADMIN') {
-      return res.status(403).json({
-        error: 'Transfers exceeding 10,000,000 paise (₹100,000) require ADMIN privileges',
+      const result = await executeTransfer({
+        type,
+        fromAccountId,
+        toAccountId,
+        amount: amountBigInt,
+        user: req.user!,
+        note,
+        idempotencyKeyId: req.idempotencyKeyId,
       });
-    }
 
-    // Guard test delay hook: disabled in production, capped at 2000ms in non-production
-    if (process.env.NODE_ENV !== 'production' && req.headers['x-test-delay']) {
-      await new Promise((r) =>
-        setTimeout(r, Math.min(Number(req.headers['x-test-delay']) || 0, 2000))
-      );
-    }
-
-    const result = await executeTransfer({
-      type,
-      fromAccountId,
-      toAccountId,
-      amount: amountBigInt,
-      user: req.user!,
-      note,
-      idempotencyKeyId: req.idempotencyKeyId,
-    });
-
-    return res.status(200).json(result);
+      return res.status(200).json(result);
   } catch (error: any) {
     // Explicitly finalize idempotency key to FAILED on any uncaught throw
     if (req.idempotencyKeyId) {

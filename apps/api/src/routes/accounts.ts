@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/roleGuard';
 import { reconcileAccount } from '../services/reconciliationService';
 import { AccountNotFoundError } from '../services/errors';
+import { validateBody, createAccountSchema } from '../validation/schemas';
 import statementsRouter from './statements';
 
 const router = Router();
@@ -72,20 +73,20 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /accounts - ADMIN only
-router.post('/', requireRole(Role.ADMIN), async (req: Request, res: Response) => {
-  try {
-    const { name, initialBalance = 0, overdraftLimit = 0, holderUserIds = [] } = req.body;
+router.post(
+  '/',
+  requireRole(Role.ADMIN),
+  validateBody(createAccountSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { name, initialBalance = 0, overdraftLimit = 0, holderUserIds = [] } = req.body;
 
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'Account name is required' });
-    }
+      const initBalancePence = BigInt(initialBalance);
+      const overdraftPence = BigInt(overdraftLimit);
 
-    const initBalancePence = BigInt(initialBalance);
-    const overdraftPence = BigInt(overdraftLimit);
-
-    if (initBalancePence < -overdraftPence) {
-      return res.status(400).json({ error: 'Initial balance cannot violate overdraft limit' });
-    }
+      if (initBalancePence < -overdraftPence) {
+        return res.status(400).json({ error: 'Initial balance cannot violate overdraft limit' });
+      }
 
     const account = await prisma.account.create({
       data: {
