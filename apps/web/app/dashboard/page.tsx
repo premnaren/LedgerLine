@@ -9,6 +9,9 @@ import { formatPaiseToRupees, parseRupeesToPaise } from '@/lib/utils';
 import {
   Wallet,
   ArrowRightLeft,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RotateCcw,
   FileText,
   PlusCircle,
   AlertCircle,
@@ -24,7 +27,29 @@ import {
   Coins,
   Download,
   X,
+  Clock,
+  ChevronRight,
 } from 'lucide-react';
+import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
+
+interface StatementEntry {
+  id: string;
+  createdAt: string;
+  type: string;
+  status: 'POSTED' | 'REFUSED';
+  amountPence: string;
+  runningBalance: string;
+  direction?: 'DEBIT' | 'CREDIT';
+  isDebit?: boolean;
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
+  initiatedBy?: {
+    email: string;
+  };
+  note?: string;
+  hash?: string | null;
+  prevHash?: string | null;
+}
 
 interface AccountReconciliationResult {
   accountId: string;
@@ -69,7 +94,11 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserSession | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [recentEntries, setRecentEntries] = useState<StatementEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedHeadHash, setCopiedHeadHash] = useState(false);
@@ -94,6 +123,40 @@ export default function DashboardPage() {
       setError(null);
       const data = await api.get<Account[]>('/accounts');
       setAccounts(data);
+      setLastRefreshedAt(new Date());
+
+      // If user is a HOLDER, fetch recent statements for their registered accounts
+      const currentUser = getUser();
+      if (currentUser?.role === 'HOLDER' && data.length > 0) {
+        setEntriesLoading(true);
+        try {
+          const promises = data.slice(0, 3).map((acc) =>
+            api.get<{ entries: StatementEntry[] }>(`/accounts/${acc.id}/statement?limit=5`)
+          );
+          const results = await Promise.allSettled(promises);
+          const allEntries: StatementEntry[] = [];
+          for (const res of results) {
+            if (res.status === 'fulfilled' && res.value.entries) {
+              allEntries.push(...res.value.entries);
+            }
+          }
+          const seen = new Set<string>();
+          const uniqueSorted = allEntries
+            .filter((e) => {
+              if (seen.has(e.id)) return false;
+              seen.add(e.id);
+              return true;
+            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+
+          setRecentEntries(uniqueSorted);
+        } catch (stmtErr) {
+          console.error('Error fetching recent holder transactions:', stmtErr);
+        } finally {
+          setEntriesLoading(false);
+        }
+      }
     } catch (err: any) {
       if (err instanceof ApiError && err.status === 401) {
         router.push('/login');
@@ -242,14 +305,38 @@ export default function DashboardPage() {
       {/* Top Banner Navigation & Primary Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight-display text-slate-950">
-            Accounts Dashboard
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <div className="flex items-center space-x-2.5 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight-display text-slate-950">
+              Accounts Dashboard
+            </h1>
+            {user?.role && (
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                  user.role === 'HOLDER'
+                    ? 'bg-sky-50 text-sky-700 border-sky-200/80'
+                    : user.role === 'ADMIN'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200/80'
+                    : 'bg-amber-50 text-amber-700 border-amber-200/80'
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
+                    user.role === 'HOLDER'
+                      ? 'bg-sky-500'
+                      : user.role === 'ADMIN'
+                      ? 'bg-purple-500'
+                      : 'bg-amber-500'
+                  }`}
+                />
+                {user.role}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-500">
             {user?.role === 'ADMIN' &&
               'System-wide ledger control: Viewing all accounts with full debit/credit authority.'}
             {user?.role === 'HOLDER' &&
-              'Personal accounts overview: Viewing accounts where you are a registered holder.'}
+              'Personal accounts overview · Your registered accounts'}
             {user?.role === 'AUDITOR' &&
               'Auditor view: Read-only observation across all ledger accounts.'}
           </p>
@@ -259,11 +346,22 @@ export default function DashboardPage() {
           <button
             onClick={() => fetchAccounts()}
             className="p-2 border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-100 transition shadow-2xs pressable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-            title="Refresh accounts on demand"
-            aria-label="Refresh accounts"
+            title="Refresh balances and transactions"
+            aria-label="Refresh balances and transactions"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${loading || entriesLoading ? 'animate-spin' : ''}`} />
           </button>
+
+          {user?.role === 'HOLDER' && accounts.length > 0 && (
+            <Link
+              href={`/accounts/${accounts[0].id}/transfer`}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-2xs text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable"
+              title="Initiate transfer from your account"
+            >
+              <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+              Transfer Money
+            </Link>
+          )}
 
           {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
             <button
@@ -310,7 +408,98 @@ export default function DashboardPage() {
       )}
 
       {/* System Overview: Executive KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {user?.role === 'HOLDER' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Available Balance */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Total Balance
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+              {formatPaiseToRupees(combinedBalancePence.toString())}
+            </div>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Across {accounts.length} registered {accounts.length === 1 ? 'account' : 'accounts'}
+            </p>
+          </div>
+
+          {/* Card 2: Registered Accounts */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Your Accounts
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/60">
+                <Wallet className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+              {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
+            </div>
+            <p className="text-xs text-emerald-700 mt-1 font-medium flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              Active &amp; verified checking
+            </p>
+          </div>
+
+          {/* Card 3: Recent Activity */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Recent Activity
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center border border-purple-200/60">
+                <ArrowRightLeft className="h-4 w-4" />
+              </div>
+            </div>
+            {recentEntries.length > 0 ? (
+              <>
+                <div className="text-2xl sm:text-3xl font-black tracking-tight-display tabular-nums text-slate-950">
+                  {recentEntries[0].isDebit || recentEntries[0].direction === 'DEBIT' || recentEntries[0].type.includes('DEBIT') || recentEntries[0].type === 'WITHDRAWAL' ? '−' : '+'}
+                  {formatPaiseToRupees(recentEntries[0].amountPence)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  {recentEntries[0].status} · {new Date(recentEntries[0].createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-black tracking-tight-display text-slate-400">
+                  —
+                </div>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  No recent activity recorded
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Card 4: Ledger Protection */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Account Protection
+              </span>
+              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 flex items-center gap-2">
+              <span>Protected</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <p className="text-xs text-emerald-700 mt-1 font-medium">
+              Append-only cryptographic seal
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Total Accounts */}
         <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
           <div className="flex items-center justify-between mb-3">
@@ -392,13 +581,14 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+      )}
 
       {/* Account List Header with Search Filter */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-2.5">
             <h2 className="text-lg font-bold tracking-tight-display text-slate-950">
-              All Accounts
+              {user?.role === 'HOLDER' ? 'Your Accounts' : 'All Accounts'}
             </h2>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/60 font-mono">
               {filteredAccounts.length} {filteredAccounts.length === 1 ? 'account' : 'accounts'}
@@ -469,27 +659,36 @@ export default function DashboardPage() {
                         <button
                           type="button"
                           onClick={(e) => handleCopyId(acc.id, e)}
-                          title="Copy full Account UUID"
-                          aria-label="Copy Account UUID"
+                          title="Copy full Account ID"
+                          aria-label="Copy Account ID"
                           className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition pressable"
                         >
                           {copiedId === acc.id ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            <span className="inline-flex items-center text-[10px] font-bold text-emerald-600">
+                              <Check className="h-3.5 w-3.5 mr-0.5" /> Copied!
+                            </span>
                           ) : (
                             <Copy className="h-3.5 w-3.5" />
                           )}
                         </button>
                       </div>
 
-                      <span
-                        className="text-xs font-mono font-medium text-slate-600 px-2 py-0.5 rounded-md bg-slate-100/80 border border-slate-200/60"
-                        title="Optimistic concurrency version (incremented atomically on each ledger entry to prevent stale writes)"
-                      >
-                        v{acc.version}
-                      </span>
+                      {user?.role === 'HOLDER' ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                          Active
+                        </span>
+                      ) : (
+                        <span
+                          className="text-xs font-mono font-medium text-slate-600 px-2 py-0.5 rounded-md bg-slate-100/80 border border-slate-200/60"
+                          title="Optimistic concurrency version (incremented atomically on each ledger entry to prevent stale writes)"
+                        >
+                          v{acc.version}
+                        </span>
+                      )}
                     </div>
 
-                    <h3 className="text-lg font-bold tracking-tight-display text-slate-950 mb-1">
+                    <h3 className="text-xl font-bold tracking-tight-display text-slate-950 mb-1">
                       {acc.name}
                     </h3>
 
@@ -499,7 +698,7 @@ export default function DashboardPage() {
                         Current Balance
                       </span>
                       <span
-                        className={`text-2xl font-black tracking-tight-display tabular-nums ${
+                        className={`text-3xl font-black tracking-tight-display tabular-nums ${
                           isNegative ? 'text-red-600' : 'text-slate-950'
                         }`}
                       >
@@ -513,7 +712,7 @@ export default function DashboardPage() {
                       </p>
                     )}
 
-                    {acc.holders && acc.holders.length > 0 && (
+                    {acc.holders && (user?.role !== 'HOLDER' || acc.holders.length > 1) && (
                       <div className="mt-3.5 pt-3 border-t border-slate-100 text-xs text-slate-600">
                         <span className="font-semibold text-slate-700">Holders:</span>{' '}
                         <span className="font-medium text-slate-800">
@@ -525,25 +724,25 @@ export default function DashboardPage() {
 
                   {/* Card Actions */}
                   <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
-                    <Link
-                      href={`/accounts/${acc.id}`}
-                      title="View historical statement and immutable ledger entries"
-                      className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs"
-                    >
-                      <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
-                      Statement
-                    </Link>
-
                     {user?.role !== 'AUDITOR' && (
                       <Link
                         href={`/accounts/${acc.id}/transfer`}
-                        title="Initiate an atomic transfer from this account"
-                        className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-transparent rounded-xl text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable shadow-2xs"
+                        title={`Initiate a transfer from ${acc.name}`}
+                        className="flex-1 inline-flex justify-center items-center py-2.5 px-3 border border-transparent rounded-xl text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable shadow-2xs"
                       >
                         <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
                         Transfer
                       </Link>
                     )}
+
+                    <Link
+                      href={`/accounts/${acc.id}`}
+                      title="View historical statement and immutable ledger entries"
+                      className="flex-1 inline-flex justify-center items-center py-2.5 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs"
+                    >
+                      <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
+                      Statement
+                    </Link>
                   </div>
                 </div>
               );
@@ -551,6 +750,189 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Screen 12 Addition: Recent Transactions Feed for Account Holder */}
+      {user?.role === 'HOLDER' && (
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <h2 className="text-lg font-bold tracking-tight-display text-slate-950">
+                  Recent Transactions
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/60 font-mono">
+                  Latest {recentEntries.length}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Latest money movements and double-entry transfers on your accounts
+              </p>
+            </div>
+
+            {accounts.length > 0 && (
+              <Link
+                href={`/accounts/${accounts[0].id}`}
+                className="inline-flex items-center text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline transition group"
+              >
+                <span>View Complete Statement</span>
+                <ChevronRight className="ml-1 h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+              </Link>
+            )}
+          </div>
+
+          {entriesLoading && recentEntries.length === 0 ? (
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 bg-slate-100/80 rounded-xl animate-pulse"></div>
+              ))}
+            </div>
+          ) : recentEntries.length === 0 ? (
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center shadow-2xs">
+              <div className="mx-auto h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center mb-3">
+                <ArrowRightLeft className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900">No recent transactions</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                When you send, receive, or deposit funds, your activity and cryptographic ledger seals will appear here.
+              </p>
+              {accounts.length > 0 && (
+                <div className="mt-4">
+                  <Link
+                    href={`/accounts/${accounts[0].id}/transfer`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-2xs text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition"
+                  >
+                    <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
+                    Make Your First Transfer
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {recentEntries.map((entry) => {
+                  const isDebit =
+                    entry.isDebit ||
+                    entry.direction === 'DEBIT' ||
+                    entry.type.includes('DEBIT') ||
+                    entry.type === 'WITHDRAWAL';
+                  const isAdjustment = entry.type === 'ADJUSTMENT';
+
+                  return (
+                    <div
+                      key={entry.id}
+                      onClick={() => {
+                        setInspectedEntry({
+                          id: entry.id,
+                          createdAt: entry.createdAt,
+                          type: entry.type,
+                          status: entry.status,
+                          amountPence: entry.amountPence,
+                          runningBalance: entry.runningBalance,
+                          debitAccountId: entry.debitAccountId || null,
+                          creditAccountId: entry.creditAccountId || null,
+                          initiatedByEmail: entry.initiatedBy?.email || 'N/A',
+                          note: entry.note || null,
+                          hash: entry.hash || null,
+                          prevHash: entry.prevHash || null,
+                        });
+                      }}
+                      className="p-4 sm:px-6 flex items-center justify-between hover:bg-slate-50/80 transition cursor-pointer group"
+                    >
+                      <div className="flex items-center space-x-3.5 min-w-0">
+                        <div
+                          className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                            isAdjustment
+                              ? 'bg-purple-50 text-purple-600 border-purple-200'
+                              : isDebit
+                              ? 'bg-slate-100 text-slate-700 border-slate-200'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                          }`}
+                        >
+                          {isAdjustment ? (
+                            <RotateCcw className="h-4 w-4" />
+                          ) : isDebit ? (
+                            <ArrowUpRight className="h-4 w-4" />
+                          ) : (
+                            <ArrowDownLeft className="h-4 w-4" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-sky-700 transition">
+                              {entry.note || (isDebit ? 'Transfer to Account' : 'Received Funds')}
+                            </p>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                entry.status === 'POSTED'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}
+                            >
+                              {entry.status === 'POSTED' ? (
+                                <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />
+                              ) : (
+                                <AlertCircle className="mr-1 h-3 w-3 text-amber-600" />
+                              )}
+                              {entry.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {new Date(entry.createdAt).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}{' '}
+                            ·{' '}
+                            {new Date(entry.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            {entry.runningBalance && (
+                              <span className="ml-2 text-slate-400 font-mono">
+                                Balance: {formatPaiseToRupees(entry.runningBalance)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 ml-4">
+                        <span
+                          className={`text-base font-black tracking-tight tabular-nums block ${
+                            isDebit ? 'text-slate-900' : 'text-emerald-600'
+                          }`}
+                        >
+                          {isDebit ? '−' : '+'}
+                          {formatPaiseToRupees(entry.amountPence)}
+                        </span>
+                        <span className="text-[11px] font-medium text-slate-400 group-hover:text-sky-600 flex items-center justify-end gap-0.5 transition">
+                          <span>Inspect</span>
+                          <ChevronRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-6">
+                <span>Click any transaction to inspect cryptographic proof</span>
+                {accounts.length > 0 && (
+                  <Link
+                    href={`/accounts/${accounts[0].id}`}
+                    className="font-semibold text-sky-600 hover:text-sky-700 hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>View All Transactions</span>
+                    <ChevronRight className="h-3 w-3" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Create Account Modal (Admin only) */}
       {showCreateModal && (
@@ -896,6 +1278,13 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Transaction Inspection Drawer */}
+      <TransactionDrawer
+        entry={inspectedEntry}
+        onClose={() => setInspectedEntry(null)}
+        isAdmin={user?.role === 'ADMIN'}
+      />
     </div>
   );
 }
