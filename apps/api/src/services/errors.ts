@@ -43,3 +43,10 @@ export class InvalidAmountError extends LedgerError {
     this.name = 'InvalidAmountError';
   }
 }
+
+export class ReversalAlreadyProcessedError extends LedgerError {
+  constructor(message = 'Entry has already been reversed') {
+    super(message, 400);
+    this.name = 'ReversalAlreadyProcessedError';
+  }
+}

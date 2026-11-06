@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { IdempotencyStatus } from '@prisma/client';
+import { IdempotencyStatus, Role } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
+import { requireRole } from '../middleware/roleGuard';
 import { idempotencyMiddleware } from '../middleware/idempotency';
 import { finalizeIdempotencyKey } from '../services/idempotencyService';
-import { executeTransfer } from '../services/transferService';
+import { executeTransfer, reverseLedgerEntry } from '../services/transferService';
 import { LedgerError } from '../services/errors';
 import { validateBody, transferSchema } from '../validation/schemas';
 
@@ -68,5 +69,46 @@ router.post(
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// POST /transfers/:entryId/reverse - ADMIN only compensating adjustment reversal
+router.post(
+  '/:entryId/reverse',
+  requireRole(Role.ADMIN),
+  idempotencyMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { entryId } = req.params;
+      const { reason } = req.body || {};
+
+      const result = await reverseLedgerEntry(
+        entryId,
+        req.user!,
+        reason,
+        req.idempotencyKeyId
+      );
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      if (req.idempotencyKeyId) {
+        try {
+          await finalizeIdempotencyKey(
+            req.idempotencyKeyId,
+            IdempotencyStatus.FAILED,
+            error instanceof LedgerError ? error.statusCode : 500,
+            { error: error?.message || 'Reversal failed' }
+          );
+        } catch (finalizeErr) {
+          console.error('Failed to finalize idempotency key on error:', finalizeErr);
+        }
+      }
+
+      if (error instanceof LedgerError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      console.error('Reversal handler error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
 
 export default router;

@@ -6,6 +6,8 @@ import {
   OptimisticLockError,
   AccountNotFoundError,
   InvalidAmountError,
+  ReversalAlreadyProcessedError,
+  LedgerError,
 } from './errors';
 import { AuthUser } from '../types/express';
 
@@ -615,4 +617,306 @@ async function writeRefusedEntry(
   } catch (err) {
     console.error('Failed to write REFUSED ledger entry:', err);
   }
+}
+
+/**
+ * Reverses a posted ledger entry by appending compensating ADJUSTMENT entries
+ * and restoring account balances inside a Serializable transaction with FOR UPDATE locks.
+ * Guarantees that LedgerEntry remains 100% append-only and immutable.
+ */
+export async function reverseLedgerEntry(
+  entryId: string,
+  user: AuthUser,
+  reason?: string,
+  idempotencyKeyId?: string
+) {
+  // 1. Authorization: ADMIN only
+  if (user.role !== Role.ADMIN) {
+    throw new UnauthorizedAccountAccessError('Only ADMIN can perform ledger reversals');
+  }
+
+  // 2. Fetch original entry
+  const originalEntry = await prisma.ledgerEntry.findUnique({
+    where: { id: entryId },
+  });
+
+  if (!originalEntry) {
+    throw new AccountNotFoundError('Ledger entry to reverse not found');
+  }
+
+  if (originalEntry.status !== EntryStatus.POSTED) {
+    throw new LedgerError('Cannot reverse a non-POSTED entry', 400);
+  }
+
+  if (originalEntry.type === EntryType.ADJUSTMENT && originalEntry.note?.includes('Reversal of entry')) {
+    throw new LedgerError('Cannot reverse a reversal adjustment entry directly', 400);
+  }
+
+  // 3. Double-reversal check: has this entry already been reversed?
+  const existingReversal = await prisma.ledgerEntry.findFirst({
+    where: {
+      type: EntryType.ADJUSTMENT,
+      note: { contains: `Reversal of entry ${entryId}` },
+    },
+  });
+
+  if (existingReversal) {
+    throw new ReversalAlreadyProcessedError(`Entry ${entryId} has already been reversed`);
+  }
+
+  // Also check if this entry was part of a paired transfer and its sibling was reversed
+  let siblingEntryId: string | null = null;
+  if (
+    (originalEntry.type === EntryType.TRANSFER_DEBIT || originalEntry.type === EntryType.TRANSFER_CREDIT) &&
+    originalEntry.debitAccountId &&
+    originalEntry.creditAccountId
+  ) {
+    const siblingType =
+      originalEntry.type === EntryType.TRANSFER_DEBIT
+        ? EntryType.TRANSFER_CREDIT
+        : EntryType.TRANSFER_DEBIT;
+
+    const sibling = await prisma.ledgerEntry.findFirst({
+      where: {
+        type: siblingType,
+        amountPence: originalEntry.amountPence,
+        debitAccountId: originalEntry.debitAccountId,
+        creditAccountId: originalEntry.creditAccountId,
+        idempotencyKeyId: originalEntry.idempotencyKeyId,
+        NOT: { id: originalEntry.id },
+      },
+    });
+
+    if (sibling) {
+      siblingEntryId = sibling.id;
+      const siblingReversal = await prisma.ledgerEntry.findFirst({
+        where: {
+          type: EntryType.ADJUSTMENT,
+          note: { contains: `Reversal of entry ${sibling.id}` },
+        },
+      });
+      if (siblingReversal) {
+        throw new ReversalAlreadyProcessedError(`Transfer for entry ${entryId} has already been reversed`);
+      }
+    }
+  }
+
+  const amount = BigInt(originalEntry.amountPence);
+  const noteReference = `Reversal of entry ${entryId}${reason ? `: ${reason}` : ''}`;
+
+  // 4. Handle based on original entry type
+  if (
+    (originalEntry.type === EntryType.TRANSFER_DEBIT || originalEntry.type === EntryType.TRANSFER_CREDIT) &&
+    originalEntry.debitAccountId &&
+    originalEntry.creditAccountId
+  ) {
+    const originalDebitId = originalEntry.debitAccountId;
+    const originalCreditId = originalEntry.creditAccountId;
+
+    const release = await lockManager.acquire([originalDebitId, originalCreditId]);
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const sortedIds = [originalDebitId, originalCreditId].sort();
+          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+            SELECT id, "balancePence", "overdraftLimit", version
+            FROM "Account"
+            WHERE id IN (${sortedIds[0]}, ${sortedIds[1]})
+            ORDER BY id ASC
+            FOR UPDATE
+          `;
+
+          if (rawAccounts.length !== 2) {
+            throw new AccountNotFoundError('One or both accounts could not be found');
+          }
+
+          const debitAccount = rawAccounts.find((a) => a.id === originalDebitId)!;
+          const creditAccount = rawAccounts.find((a) => a.id === originalCreditId)!;
+
+          // Reversal means:
+          // Debit the account that originally received the credit (creditAccount)
+          // Credit the account that originally was debited (debitAccount)
+          const newCreditAccountBalance = BigInt(creditAccount.balancePence) - amount;
+          const minAllowedBalance = -BigInt(creditAccount.overdraftLimit);
+
+          if (newCreditAccountBalance < minAllowedBalance) {
+            throw new InsufficientFundsError(
+              'Insufficient funds in receiving account to process reversal',
+              BigInt(creditAccount.balancePence)
+            );
+          }
+
+          const newDebitAccountBalance = BigInt(debitAccount.balancePence) + amount;
+
+          // Update balances
+          await tx.account.update({
+            where: { id: originalCreditId },
+            data: {
+              balancePence: { decrement: amount },
+              version: { increment: 1 },
+            },
+          });
+
+          await tx.account.update({
+            where: { id: originalDebitId },
+            data: {
+              balancePence: { increment: amount },
+              version: { increment: 1 },
+            },
+          });
+
+          // Write compensating ADJUSTMENT entries
+          const compensatingDebit = await tx.ledgerEntry.create({
+            data: {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              debitAccountId: originalCreditId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newCreditAccountBalance,
+              note: noteReference,
+            },
+          });
+
+          const compensatingCredit = await tx.ledgerEntry.create({
+            data: {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              creditAccountId: originalDebitId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newDebitAccountBalance,
+              note: noteReference,
+            },
+          });
+
+          return {
+            success: true,
+            reversedEntryId: entryId,
+            siblingEntryId,
+            compensatingDebitEntryId: compensatingDebit.id,
+            compensatingCreditEntryId: compensatingCredit.id,
+            amountPence: amount.toString(),
+            message: 'Transfer reversed via compensating adjustment entries',
+          };
+        },
+        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+      );
+    } finally {
+      release();
+    }
+  } else if (originalEntry.type === EntryType.DEPOSIT && originalEntry.creditAccountId) {
+    // Reversal of DEPOSIT: debit the credit account
+    const accountId = originalEntry.creditAccountId;
+    const release = await lockManager.acquire([accountId]);
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+            SELECT id, "balancePence", "overdraftLimit", version
+            FROM "Account"
+            WHERE id = ${accountId}
+            FOR UPDATE
+          `;
+          if (rawAccounts.length !== 1) {
+            throw new AccountNotFoundError('Account not found');
+          }
+          const account = rawAccounts[0];
+          const newBalance = BigInt(account.balancePence) - amount;
+          if (newBalance < -BigInt(account.overdraftLimit)) {
+            throw new InsufficientFundsError('Insufficient funds to reverse deposit', BigInt(account.balancePence));
+          }
+
+          await tx.account.update({
+            where: { id: accountId },
+            data: {
+              balancePence: { decrement: amount },
+              version: { increment: 1 },
+            },
+          });
+
+          const compensatingEntry = await tx.ledgerEntry.create({
+            data: {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              debitAccountId: accountId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newBalance,
+              note: noteReference,
+            },
+          });
+
+          return {
+            success: true,
+            reversedEntryId: entryId,
+            compensatingEntryId: compensatingEntry.id,
+            amountPence: amount.toString(),
+            message: 'Deposit reversed via compensating adjustment entry',
+          };
+        },
+        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+      );
+    } finally {
+      release();
+    }
+  } else if (originalEntry.type === EntryType.WITHDRAWAL && originalEntry.debitAccountId) {
+    // Reversal of WITHDRAWAL: credit the debit account
+    const accountId = originalEntry.debitAccountId;
+    const release = await lockManager.acquire([accountId]);
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+            SELECT id, "balancePence", "overdraftLimit", version
+            FROM "Account"
+            WHERE id = ${accountId}
+            FOR UPDATE
+          `;
+          if (rawAccounts.length !== 1) {
+            throw new AccountNotFoundError('Account not found');
+          }
+          const account = rawAccounts[0];
+          const newBalance = BigInt(account.balancePence) + amount;
+
+          await tx.account.update({
+            where: { id: accountId },
+            data: {
+              balancePence: { increment: amount },
+              version: { increment: 1 },
+            },
+          });
+
+          const compensatingEntry = await tx.ledgerEntry.create({
+            data: {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              creditAccountId: accountId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newBalance,
+              note: noteReference,
+            },
+          });
+
+          return {
+            success: true,
+            reversedEntryId: entryId,
+            compensatingEntryId: compensatingEntry.id,
+            amountPence: amount.toString(),
+            message: 'Withdrawal reversed via compensating adjustment entry',
+          };
+        },
+        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+      );
+    } finally {
+      release();
+    }
+  }
+
+  throw new LedgerError('Unsupported entry type for reversal', 400);
 }
