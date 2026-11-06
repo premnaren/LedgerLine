@@ -41,6 +41,7 @@ model User {
   createdAt    DateTime @default(now())
   accounts     AccountHolder[]
   initiatedEntries LedgerEntry[] @relation("InitiatedBy")
+  refreshTokens RefreshToken[]
 }
 
 model Account {
@@ -95,3 +96,16 @@ model IdempotencyKey {
   createdAt    DateTime          @default(now())
   entries      LedgerEntry[]
 }
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  active    Boolean  @default(true)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
