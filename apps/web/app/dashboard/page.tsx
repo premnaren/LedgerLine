@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { getUser, UserSession } from '@/lib/auth';
-import { formatPaiseToRupees } from '@/lib/utils';
+import { formatPaiseToRupees, parseRupeesToPaise } from '@/lib/utils';
 import {
   Wallet,
   ArrowRightLeft,
@@ -79,13 +79,13 @@ export default function DashboardPage() {
     e.preventDefault();
     setCreateLoading(true);
     try {
-      const balancePaise = Math.round(Number(newAccountBalance || 0) * 100);
-      const overdraftPaise = Math.round(Number(newAccountOverdraft || 0) * 100);
+      const balancePaise = parseRupeesToPaise(newAccountBalance || '0');
+      const overdraftPaise = parseRupeesToPaise(newAccountOverdraft || '0');
 
       await api.post('/accounts', {
         name: newAccountName,
-        initialBalance: balancePaise,
-        overdraftLimit: overdraftPaise,
+        initialBalance: balancePaise.toString(),
+        overdraftLimit: overdraftPaise.toString(),
       });
 
       setShowCreateModal(false);

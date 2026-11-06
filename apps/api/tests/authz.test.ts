@@ -95,4 +95,27 @@ describe('Authorization & Role Guard Integration Tests', () => {
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/Forbidden|own/i);
   });
+
+  it('blocks SQL injection payload in fromAccountId without executing DDL or returning 500', async () => {
+    const maliciousAccountId = "'; DROP TABLE \"Account\"; --";
+    const res = await request(app)
+      .post('/transfers')
+      .set('Authorization', `Bearer ${holderToken}`)
+      .set('Idempotency-Key', `sqli-test-${Date.now()}`)
+      .send({
+        type: 'transfer',
+        fromAccountId: maliciousAccountId,
+        toAccountId: accountAId,
+        amount: 1000,
+        note: 'SQL injection attack attempt',
+      });
+
+    // Parameterized queries treat input as literal string; must return 400 or 403, never 500
+    expect([400, 403, 404]).toContain(res.status);
+    expect(res.status).not.toBe(500);
+
+    // Verify Account table remains completely intact
+    const accountCount = await prisma.account.count();
+    expect(accountCount).toBeGreaterThan(0);
+  });
 });

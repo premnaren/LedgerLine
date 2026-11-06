@@ -90,6 +90,7 @@ router.post('/', requireRole(Role.ADMIN), async (req: Request, res: Response) =>
         name,
         balancePence: initBalancePence,
         overdraftLimit: overdraftPence,
+        version: initBalancePence > 0n ? 1 : 0,
         holders: {
           create: holderUserIds.map((userId: string) => ({ userId })),
         },

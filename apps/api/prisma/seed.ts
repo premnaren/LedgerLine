@@ -46,72 +46,68 @@ async function main() {
   console.log(`- HOLDER: ${holder.email}`);
   console.log(`- AUDITOR: ${auditor.email}`);
 
-  // 2. Check if accounts already exist
-  let accountA = await prisma.account.findFirst({
-    where: { name: 'Account A' },
-  });
+  // 2. Clean reset of accounts and ledger entries to eliminate test debris
+  // Truncate cascades through AccountHolder, LedgerEntry, IdempotencyKey
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "LedgerEntry", "AccountHolder", "Account", "IdempotencyKey" CASCADE;'
+  );
 
-  if (!accountA) {
-    accountA = await prisma.account.create({
-      data: {
-        name: 'Account A',
-        balancePence: 1000000n, // ₹10,000 = 1,000,000 paise
-        overdraftLimit: 0n,
-        holders: {
-          create: {
-            userId: holder.id,
-          },
+  // 3. Create canonical clean accounts with initial funded deposits (version: 1)
+  const accountA = await prisma.account.create({
+    data: {
+      name: 'Account A',
+      balancePence: 1000000n, // ₹10,000 = 1,000,000 paise
+      overdraftLimit: 0n,
+      version: 1,
+      holders: {
+        create: {
+          userId: holder.id,
         },
       },
-    });
-
-    await prisma.ledgerEntry.create({
-      data: {
-        type: EntryType.DEPOSIT,
-        status: EntryStatus.POSTED,
-        amountPence: 1000000n,
-        creditAccountId: accountA.id,
-        initiatedById: admin.id,
-        runningBalance: 1000000n,
-        note: 'Initial deposit for Account A',
-      },
-    });
-    console.log(`Created Account A: ₹10,000 owned by ${holder.email}`);
-  }
-
-  let accountB = await prisma.account.findFirst({
-    where: { name: 'Account B' },
+    },
   });
 
-  if (!accountB) {
-    accountB = await prisma.account.create({
-      data: {
-        name: 'Account B',
-        balancePence: 500000n, // ₹5,000 = 500,000 paise
-        overdraftLimit: 0n,
-        holders: {
-          create: {
-            userId: admin.id,
-          },
+  await prisma.ledgerEntry.create({
+    data: {
+      type: EntryType.DEPOSIT,
+      status: EntryStatus.POSTED,
+      amountPence: 1000000n,
+      creditAccountId: accountA.id,
+      initiatedById: admin.id,
+      runningBalance: 1000000n,
+      note: 'Initial deposit for Account A',
+    },
+  });
+  console.log(`Created Account A (v1): ₹10,000.00 owned by ${holder.email}`);
+
+  const accountB = await prisma.account.create({
+    data: {
+      name: 'Account B',
+      balancePence: 500000n, // ₹5,000 = 500,000 paise
+      overdraftLimit: 0n,
+      version: 1,
+      holders: {
+        create: {
+          userId: admin.id,
         },
       },
-    });
+    },
+  });
 
-    await prisma.ledgerEntry.create({
-      data: {
-        type: EntryType.DEPOSIT,
-        status: EntryStatus.POSTED,
-        amountPence: 500000n,
-        creditAccountId: accountB.id,
-        initiatedById: admin.id,
-        runningBalance: 500000n,
-        note: 'Initial deposit for Account B',
-      },
-    });
-    console.log(`Created Account B: ₹5,000 owned by ${admin.email}`);
-  }
+  await prisma.ledgerEntry.create({
+    data: {
+      type: EntryType.DEPOSIT,
+      status: EntryStatus.POSTED,
+      amountPence: 500000n,
+      creditAccountId: accountB.id,
+      initiatedById: admin.id,
+      runningBalance: 500000n,
+      note: 'Initial deposit for Account B',
+    },
+  });
+  console.log(`Created Account B (v1): ₹5,000.00 owned by ${admin.email}`);
 
-  console.log('Seeding complete.');
+  console.log('Seeding complete. Initial total system balance: ₹15,000.00 (1,500,000 paise).');
 }
 
 main()

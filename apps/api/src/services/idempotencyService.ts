@@ -11,17 +11,18 @@ export interface IdempotencyCheckResult {
 }
 
 /**
- * Atomically claim or retrieve an idempotency key.
- * Uses INSERT ... ON CONFLICT (key) DO NOTHING to eliminate the TOCTOU race window.
+ * Atomically claim or retrieve an idempotency key scoped to a specific user.
+ * Uses INSERT ... ON CONFLICT ("userId", key) DO NOTHING to eliminate cross-tenant
+ * cache poisoning and TOCTOU race windows.
  */
-export async function claimIdempotencyKey(key: string): Promise<IdempotencyCheckResult> {
+export async function claimIdempotencyKey(key: string, userId: string = 'system'): Promise<IdempotencyCheckResult> {
   const newId = crypto.randomUUID();
 
-  // 1. Atomic INSERT with ON CONFLICT DO NOTHING
+  // 1. Atomic INSERT with compound ON CONFLICT ("userId", key) DO NOTHING
   const affectedRows = await prisma.$executeRaw`
-    INSERT INTO "IdempotencyKey" (id, key, status, "createdAt")
-    VALUES (${newId}, ${key}, 'PROCESSING'::"IdempotencyStatus", NOW())
-    ON CONFLICT (key) DO NOTHING
+    INSERT INTO "IdempotencyKey" (id, "userId", key, status, "createdAt")
+    VALUES (${newId}, ${userId}, ${key}, 'PROCESSING'::"IdempotencyStatus", NOW())
+    ON CONFLICT ("userId", key) DO NOTHING
   `;
 
   if (affectedRows === 1) {
@@ -33,9 +34,14 @@ export async function claimIdempotencyKey(key: string): Promise<IdempotencyCheck
     };
   }
 
-  // 2. Another request claimed or completed this key. Fetch existing row.
+  // 2. Another request claimed or completed this key for this user. Fetch existing row.
   const existing = await prisma.idempotencyKey.findUnique({
-    where: { key },
+    where: {
+      userId_key: {
+        userId,
+        key,
+      },
+    },
   });
 
   if (!existing) {

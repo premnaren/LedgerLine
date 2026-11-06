@@ -2,7 +2,7 @@
 
 > Enterprise-grade double-entry ledger engine and financial dashboard built with Node.js, Express, PostgreSQL, Prisma, Next.js 14 App Router, and Tailwind CSS.
 
-[![Build & Test Status](https://img.shields.io/badge/tests-19%20passed%20(100%25)-brightgreen.svg)](#test-suite-and-verification)
+[![Build & Test Status](https://img.shields.io/badge/tests-21%20passed%20(100%25)-brightgreen.svg)](#test-suite-and-verification)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.14-2D3748.svg)](https://www.prisma.io/)
 [![Next.js](https://img.shields.io/badge/Next.js-14%20App%20Router-black.svg)](https://nextjs.org/)
@@ -219,9 +219,9 @@ The test suite validates all architectural constraints against live PostgreSQL t
 | Test File | Covered Scenarios |
 | :--- | :--- |
 | `tests/concurrency.test.ts` | **20 concurrent overdraw withdrawals** against a ₹100 account (exactly 10 succeed, 10 refused, balance never negative); **50 parallel transfers** between accounts; **double-spend replay** race handling; **cross-user unauthorized debit** denial. |
-| `tests/idempotency.test.ts` | Replay with identical key returning cached HTTP response without second deduction; concurrent in-flight requests returning `HTTP 409 Conflict`; missing header returning `HTTP 400`. |
+| `tests/idempotency.test.ts` | Replay with identical key returning cached HTTP response without second deduction; concurrent in-flight requests returning `HTTP 409 Conflict`; missing header returning `HTTP 400`; **cross-tenant key isolation** via compound `(userId, key)` index. |
 | `tests/conservation.test.ts` | System-wide invariant verification: $\sum \text{Balances} = \sum \text{Deposits} - \sum \text{Withdrawals}$ after hundreds of operations. |
-| `tests/authz.test.ts` | HOLDER account isolation (cannot read other users' accounts); cross-user debit blocked (`HTTP 403`); unauthenticated rejection (`HTTP 401`); ADMIN global access. |
+| `tests/authz.test.ts` | HOLDER account isolation (cannot read other users' accounts); cross-user debit blocked (`HTTP 403`); unauthenticated rejection (`HTTP 401`); ADMIN global access; **SQL injection attempt rejection** without DDL execution. |
 | `tests/accounts_statement.test.ts` | Keyset/cursor-based statement pagination; AUDITOR read-only global inspection; inclusion of `REFUSED` transactions with running balances. |
 
 Run tests anytime with:

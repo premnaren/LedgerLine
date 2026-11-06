@@ -56,7 +56,7 @@ UPDATE accounts SET balance = balance - 50 WHERE id = 'A';
 | :--- | :--- | :--- | :--- |
 | **1** | **Strict Serializable Isolation & Row Locks** | PostgreSQL `SERIALIZABLE` isolation + `SELECT ... FOR UPDATE` ordered by `id ASC` inside `transferService.ts`. | Guarantees absolute transactional consistency. Sorting account IDs prevents cyclic deadlocks when A transfers to B while B transfers to A simultaneously. |
 | **2** | **Append-Only Immutable Ledger** | Database-level PL/pgSQL trigger `prevent_ledger_mutation` firing `BEFORE UPDATE OR DELETE ON "LedgerEntry"`. | No user, admin, ORM, or developer query can alter or erase financial history. Refused transactions are permanently recorded with `status='REFUSED'`. |
-| **3** | **Zero-Race Idempotency** | Atomic `INSERT INTO "IdempotencyKey" ... ON CONFLICT (key) DO NOTHING` via `idempotencyService.ts`. | Eliminates the Time-Of-Check to Time-Of-Use (TOCTOU) race condition. In-flight requests get `HTTP 409 Conflict`; finished requests return cached responses with `Idempotent-Replay: true`. |
+| **3** | **Zero-Race Compound Idempotency** | Atomic `INSERT INTO "IdempotencyKey" ("id", "userId", "key", ...) ON CONFLICT ("userId", key) DO NOTHING` via `idempotencyService.ts`. | Eliminates both TOCTOU race windows and cross-tenant key snooping. In-flight requests get `HTTP 409 Conflict`; finished requests return cached responses with `Idempotent-Replay: true`. |
 | **4** | **Engine-Level Non-Negative Constraint** | PostgreSQL engine constraint: `CHECK ("balancePence" >= -"overdraftLimit")`. | Even if an application bug bypassed the service check, PostgreSQL will abort the transaction before writing a negative balance. |
 | **5** | **Integer Smallest-Unit Currency** | PostgreSQL `BIGINT` and JavaScript `BigInt` (paise/pence). Serialized as strings in JSON. | Completely eliminates IEEE 754 floating-point precision loss. ₹100.00 is stored strictly as `10000` paise. |
 
@@ -310,6 +310,7 @@ When asked about future roadmap or trade-offs, explain these deliberate design b
 | Idempotency     | Atomic INSERT ... ON CONFLICT DO NOTHING (Zero race window) |
 | Balance Guard   | Code check + PostgreSQL CHECK ("balancePence" >= -limit)    |
 | Security & Auth | JWT in-memory store + httpOnly refresh cookie + Role Guards |
-| Test Coverage   | 19/19 tests passing: 20-thread concurrency, conservation    |
+| Test Coverage   | 21/21 tests passing: 20-thread concurrency, conservation    |
 +-------------------------------------------------------------------------------+
 ```
+

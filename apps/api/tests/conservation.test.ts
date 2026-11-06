@@ -49,6 +49,16 @@ describe('Conservation of Money Invariant Suite', () => {
     const finalTotal = BigInt(sumAfterResult[0].sum);
 
     expect(finalTotal).toBe(initialTotal);
+
+    // Assert global conservation: SUM(Account.balancePence) === SUM(DEPOSITS) - SUM(WITHDRAWALS)
+    const depositsResult = await prisma.$queryRaw<[{ sum: bigint }]>`
+      SELECT COALESCE(SUM("amountPence"), 0) as sum FROM "LedgerEntry" WHERE status = 'POSTED' AND type = 'DEPOSIT'
+    `;
+    const withdrawalsResult = await prisma.$queryRaw<[{ sum: bigint }]>`
+      SELECT COALESCE(SUM("amountPence"), 0) as sum FROM "LedgerEntry" WHERE status = 'POSTED' AND type = 'WITHDRAWAL'
+    `;
+    const netFromLedger = BigInt(depositsResult[0].sum) - BigInt(withdrawalsResult[0].sum);
+    expect(finalTotal).toBe(netFromLedger);
   });
 });
 

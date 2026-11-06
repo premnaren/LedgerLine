@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, ApiError } from '@/lib/api';
 import { getUser, UserSession } from '@/lib/auth';
-import { formatPaiseToRupees } from '@/lib/utils';
+import { formatPaiseToRupees, parseRupeesToPaise } from '@/lib/utils';
 import {
   ArrowLeft,
   ArrowRightLeft,
@@ -83,14 +83,14 @@ export default function TransferPage() {
     setLoading(true);
 
     try {
-      const amountPaise = Math.round(Number(amountRupees) * 100);
-      if (isNaN(amountPaise) || amountPaise <= 0) {
+      const amountPaise = parseRupeesToPaise(amountRupees);
+      if (amountPaise <= BigInt(0)) {
         throw new Error('Please enter a valid positive amount');
       }
 
       const body: any = {
         type,
-        amount: amountPaise,
+        amount: amountPaise.toString(),
         note: note.trim() || undefined,
       };
 

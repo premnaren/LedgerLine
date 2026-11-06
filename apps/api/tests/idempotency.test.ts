@@ -132,4 +132,49 @@ describe('Idempotency Middleware Integration Tests', () => {
     const balanceAfter = BigInt(accAfter!.balancePence);
     expect(balanceBefore - balanceAfter).toBe(BigInt(amount));
   });
+
+  it('isolates idempotency keys across different users using compound (userId, key) index', async () => {
+    // Login as ADMIN to get a distinct user token
+    const adminLogin = await request(app)
+      .post('/auth/login')
+      .send({ email: 'admin@ledgerline.dev', password: 'Admin1234!' });
+    expect(adminLogin.status).toBe(200);
+    const adminToken = adminLogin.body.accessToken;
+
+    const sharedKey = `cross-tenant-key-${Date.now()}`;
+
+    // 1. HOLDER performs transfer with sharedKey
+    const holderRes = await request(app)
+      .post('/transfers')
+      .set('Authorization', `Bearer ${holderToken}`)
+      .set('Idempotency-Key', sharedKey)
+      .send({
+        type: 'transfer',
+        fromAccountId: accountAId,
+        toAccountId: accountBId,
+        amount: 1000,
+        note: 'Holder transfer with shared key',
+      });
+    expect(holderRes.status).toBe(200);
+
+    // 2. ADMIN performs transfer from Account B with the IDENTICAL key string
+    const adminRes = await request(app)
+      .post('/transfers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Idempotency-Key', sharedKey)
+      .send({
+        type: 'transfer',
+        fromAccountId: accountBId,
+        toAccountId: accountAId,
+        amount: 2000,
+        note: 'Admin transfer with same key string',
+      });
+
+    // ADMIN must succeed as an independent transaction (not receiving Holder's cached response)
+    expect(adminRes.status).toBe(200);
+    expect(adminRes.body.success).toBe(true);
+    expect(adminRes.body.amountPence).toBe('2000');
+    expect(adminRes.body.debitAccountId).toBe(accountBId);
+    expect(adminRes.body.creditAccountId).toBe(accountAId);
+  });
 });

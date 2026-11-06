@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 import { prisma } from '../src/config/db';
-import { EntryStatus } from '@prisma/client';
+import { EntryStatus, EntryType } from '@prisma/client';
 
 describe('Concurrency and Conservation Invariants', () => {
   let holderToken: string;
@@ -112,6 +112,7 @@ describe('Concurrency and Conservation Invariants', () => {
         data: {
           name: `Conserv-1-${Date.now()}`,
           balancePence: 200000n,
+          version: 1,
           holders: { create: { userId: adminUserId } },
         },
       }),
@@ -119,6 +120,7 @@ describe('Concurrency and Conservation Invariants', () => {
         data: {
           name: `Conserv-2-${Date.now()}`,
           balancePence: 200000n,
+          version: 1,
           holders: { create: { userId: adminUserId } },
         },
       }),
@@ -126,6 +128,7 @@ describe('Concurrency and Conservation Invariants', () => {
         data: {
           name: `Conserv-3-${Date.now()}`,
           balancePence: 200000n,
+          version: 1,
           holders: { create: { userId: adminUserId } },
         },
       }),
@@ -133,10 +136,28 @@ describe('Concurrency and Conservation Invariants', () => {
         data: {
           name: `Conserv-4-${Date.now()}`,
           balancePence: 200000n,
+          version: 1,
           holders: { create: { userId: adminUserId } },
         },
       }),
     ]);
+
+    // Create corresponding DEPOSIT ledger entries so total balance strictly matches deposits
+    await Promise.all(
+      testAccounts.map((acc) =>
+        prisma.ledgerEntry.create({
+          data: {
+            type: EntryType.DEPOSIT,
+            status: EntryStatus.POSTED,
+            amountPence: 200000n,
+            creditAccountId: acc.id,
+            initiatedById: adminUserId,
+            runningBalance: 200000n,
+            note: 'Initial deposit for conservation test',
+          },
+        })
+      )
+    );
 
     // Record total = SUM(balancePence) before the test across all accounts
     const initialSumResult = await prisma.$queryRaw<[{ sum: bigint }]>`
@@ -281,6 +302,56 @@ describe('Concurrency and Conservation Invariants', () => {
       where: { id: accountB!.id },
     });
     expect(accountBAfter!.balancePence).toBe(balanceBefore);
+  });
+
+  afterAll(async () => {
+    // Reset database to pristine state with known canonical accounts (Account A & Account B)
+    await prisma.$executeRawUnsafe(
+      'TRUNCATE TABLE "LedgerEntry", "AccountHolder", "Account", "IdempotencyKey" CASCADE;'
+    );
+    const admin = await prisma.user.findUnique({ where: { email: 'admin@ledgerline.dev' } });
+    const holder = await prisma.user.findUnique({ where: { email: 'holder@ledgerline.dev' } });
+    if (admin && holder) {
+      const accA = await prisma.account.create({
+        data: {
+          name: 'Account A',
+          balancePence: 1000000n,
+          version: 1,
+          holders: { create: { userId: holder.id } },
+        },
+      });
+      await prisma.ledgerEntry.create({
+        data: {
+          type: EntryType.DEPOSIT,
+          status: EntryStatus.POSTED,
+          amountPence: 1000000n,
+          creditAccountId: accA.id,
+          initiatedById: admin.id,
+          runningBalance: 1000000n,
+          note: 'Initial deposit for Account A',
+        },
+      });
+
+      const accB = await prisma.account.create({
+        data: {
+          name: 'Account B',
+          balancePence: 500000n,
+          version: 1,
+          holders: { create: { userId: admin.id } },
+        },
+      });
+      await prisma.ledgerEntry.create({
+        data: {
+          type: EntryType.DEPOSIT,
+          status: EntryStatus.POSTED,
+          amountPence: 500000n,
+          creditAccountId: accB.id,
+          initiatedById: admin.id,
+          runningBalance: 500000n,
+          note: 'Initial deposit for Account B',
+        },
+      });
+    }
   });
 });
 

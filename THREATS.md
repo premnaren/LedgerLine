@@ -20,7 +20,7 @@
 
 ### T-3: Moving money from an account you do not own
 **Attack**: An authenticated HOLDER user modifies the request body to specify another user's `fromAccountId` or attempts to debit a treasury account.  
-**What we did**: Authorization is enforced both in route middleware and deep inside [`transferService.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/transferService.ts). Within the locked transaction, `verifyDebitAuthorization` queries the `AccountHolder` table to verify that `userId` matches the authenticated `req.user.userId`. If not an owner (and not ADMIN), the service throws `UnauthorizedAccountAccessError`, returning HTTP 403 Forbidden.  
+**What we did**: While route middleware performs initial boundary checks, the service-level check inside [`transferService.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/transferService.ts) is the authoritative, standalone gatekeeper. Deep inside the locked `Serializable` transaction, `verifyDebitAuthorization` executes an isolated query against `AccountHolder` (`userId_accountId`) to verify that `user.userId` is registered for `fromAccountId`. Even if an HTTP route guard were accidentally omitted by a future developer or an internal process called `transferService` directly, the service-level check independently halts unauthorized debits with `UnauthorizedAccountAccessError` (`HTTP 403 Forbidden`).  
 **Test that covers it**: `blocks HOLDER from debiting an account they do not own (returns 403)` in [`apps/api/tests/authz.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/authz.test.ts) and `TEST 4` in [`apps/api/tests/concurrency.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/concurrency.test.ts).  
 **Residual risk**: Joint accounts treat all registered holders equally; granular per-holder spending caps and multi-signature authorization are not implemented.
 
@@ -51,10 +51,10 @@
 ---
 
 ### T-7: Idempotency key collision (attacker supplies another user's key)
-**Attack**: An attacker generates or guesses another user's idempotency key and submits it to extract the cached response or cause a collision.  
-**What we did**: In addition to using 128-bit cryptographically secure UUIDs, the API enforces JWT authentication on every request prior to idempotency evaluation. Requests can only manipulate accounts authorized for the authenticated user session.  
-**Test that covers it**: `returns identical response body on replay` in [`apps/api/tests/idempotency.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/idempotency.test.ts).  
-**Residual risk**: In a multi-tenant system with predictable keys, keys should be compound indexed as `(userId, idempotencyKey)`.
+**Attack**: An attacker generates or guesses another user's idempotency key and submits it to extract the cached response body, observe transaction details, or poison the key state.  
+**What we did**: In addition to using 128-bit cryptographically secure UUIDs, idempotency keys are compound-indexed as `("userId", key)` in the database schema (`@@unique([userId, key])`). When a request claims a key via `claimIdempotencyKey(key, userId)`, PostgreSQL evaluates `ON CONFLICT ("userId", key) DO NOTHING`. This mathematically isolates idempotency state across users: even if User B submits the exact key string used by User A, User B can never match, claim, or view User A's cached response.  
+**Test that covers it**: `isolates idempotency keys across different users using compound (userId, key) index` in [`apps/api/tests/idempotency.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/idempotency.test.ts).  
+**Residual risk**: A user sending identical keys concurrently across multiple tabs or browser windows within their own session will have the second request rejected with `HTTP 409 Conflict` (by design).
 
 ---
 
@@ -69,22 +69,22 @@
 ### T-9: SQL injection via raw queries
 **Attack**: Attacker inputs SQL injection fragments (`'; DROP TABLE "Account"; --`) into `fromAccountId`, `toAccountId`, or `note` parameters passed into `$queryRaw`.  
 **What we did**: All raw queries use tagged template literals (`tx.$queryRaw\`SELECT ... WHERE id IN (${debitId}, ${creditId})\``). Prisma and the PostgreSQL client compile tagged template literals into parameterized queries with `$1`, `$2` bind placeholders. No raw string interpolation or concatenation is permitted anywhere in the repository.  
-**Test that covers it**: Parameterized execution verified throughout all transaction queries in [`apps/api/src/services/transferService.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/transferService.ts).  
+**Test that covers it**: `blocks SQL injection payload in fromAccountId without executing DDL or returning 500` in [`apps/api/tests/authz.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/authz.test.ts).  
 **Residual risk**: Developer error in future extensions if `Prisma.raw()` is inadvertently used with unsanitized user input.
 
 ---
 
 ### T-10: AI anomaly suggester moving money autonomously
 **Attack**: An AI anomaly detector or automated agent suffers from prompt injection, model drift, or hallucination and initiates fraudulent balance transfers.  
-**What we did**: Strict architectural decoupling: The AI anomaly detector is strictly read-only. It has zero capability, credentials, or tool bindings to execute money movements or invoke `transferService.ts`. AI recommendations are stored as flags for human auditor review only and can never trigger transactions autonomously.  
-**Test that covers it**: Role guard authorization blocks non-human or unprivileged roles from accessing the transfer engine.  
+**What we did**: Strict architectural decoupling: The AI anomaly detector is strictly an external, read-only analytical query on `ledger_entries`. It has zero database write permissions, no credentials to execute transfers, and no code path or interface to invoke `transferService.ts`. AI suggestions exist purely as analytical flags for human auditor review; they can never trigger money movement or balance mutations autonomously.  
+**Test that covers it**: Code-level separation ensures no write method exists on the AI anomaly analysis interface, and all balance mutations are strictly gated by `transferService.ts` requiring authenticated human user credentials.  
 **Residual risk**: Human operational error if an auditor approves an anomalous transfer suggestion without adequate secondary verification.
 
 ---
 
 ### T-11: Timing attack on idempotency INSERT race (two simultaneous first-calls)
 **Attack**: Two simultaneous requests with the exact same novel idempotency key arrive at the server in parallel; a standard read-then-write find-or-create check allows both to proceed past the check.  
-**What we did**: Implemented atomic insertion using PostgreSQL `INSERT INTO "IdempotencyKey" (id, key, status, "createdAt") VALUES (...) ON CONFLICT (key) DO NOTHING`. The returned affected row count is inspected immediately: exactly one request obtains `affectedRows === 1` and proceeds to `PROCESSING`; the concurrent sibling request obtains `0` affected rows, detects `PROCESSING`, and is immediately halted with HTTP 409 Conflict `{ error: "request_in_flight" }`.  
+**What we did**: Implemented atomic insertion using PostgreSQL `INSERT INTO "IdempotencyKey" (id, "userId", key, status, "createdAt") VALUES (...) ON CONFLICT ("userId", key) DO NOTHING`. The returned affected row count is inspected immediately: exactly one request obtains `affectedRows === 1` and proceeds to `PROCESSING`; the concurrent sibling request obtains `0` affected rows, detects `PROCESSING`, and is immediately halted with HTTP 409 Conflict `{ error: "request_in_flight" }`.  
 **Test that covers it**: `returns 409 request_in_flight on concurrent requests with identical key` in [`apps/api/tests/idempotency.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/idempotency.test.ts).  
 **Residual risk**: If a server process crashes abruptly while a request is in `PROCESSING` state before it can finalize to `COMPLETE` or `FAILED`, the key remains locked until cleaned by a background TTL sweep.
 
@@ -95,6 +95,14 @@
 **What we did**: The `requireRole(Role.ADMIN)` middleware blocks unauthorized roles at the HTTP layer with HTTP 403 Forbidden. Additionally, transfer limits exceeding ₹100,000 (10,000,000 paise) require the `ADMIN` role both in the route handler and within the transfer service.  
 **Test that covers it**: `allows only ADMIN to create new accounts via POST /accounts` in [`apps/api/tests/accounts_statement.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/accounts_statement.test.ts) and large transfer checks in [`apps/api/src/routes/transfers.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/routes/transfers.ts).  
 **Residual risk**: Route-level guard omissions if future developers add administrative endpoints without decorating them with `requireRole`.
+
+---
+
+### T-13: CSRF on state-changing API endpoints
+**Attack**: A malicious website posts a cross-origin form to `POST /transfers` while the victim's session cookie is active in the browser.  
+**What we did**: Refresh tokens use `SameSite=Lax` cookies. All state-changing and money-moving endpoints require `Authorization: Bearer <token>` in the HTTP header — a cross-origin form POST cannot set custom headers, so CSRF is structurally blocked by browser security models.  
+**Test that covers it**: `rejects unauthenticated requests to protected endpoints with 401` in [`apps/api/tests/authz.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/authz.test.ts).  
+**Residual risk**: If the frontend ever switches to cookie-based access tokens rather than in-memory Bearer tokens, CSRF protection must be re-evaluated with anti-CSRF synchronizer tokens.
 
 ---
 

@@ -13,8 +13,9 @@ export async function idempotencyMiddleware(req: Request, res: Response, next: N
   const trimmedKey = idempotencyKey.trim();
 
   try {
-    // Atomic insert with ON CONFLICT DO NOTHING to avoid read-then-write race
-    const result = await claimIdempotencyKey(trimmedKey);
+    const userId = req.user?.userId || 'system';
+    // Atomic insert with ON CONFLICT ("userId", key) DO NOTHING
+    const result = await claimIdempotencyKey(trimmedKey, userId);
 
     if (!result.isNew) {
       // c. If status='COMPLETE': return the stored httpStatus + responseBody immediately
