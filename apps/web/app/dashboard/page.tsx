@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  Zap,
 } from 'lucide-react';
 
 interface AccountReconciliationResult {
@@ -37,6 +38,12 @@ interface SystemReconciliationResult {
   totalStoredBalancePence: string;
   totalComputedBalancePence: string;
   accounts: AccountReconciliationResult[];
+  cryptographicIntegrity?: {
+    verified: boolean;
+    totalEntries: number;
+    headHash: string | null;
+    genesisHash: string;
+  };
 }
 
 interface Account {
@@ -159,7 +166,7 @@ export default function DashboardPage() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => fetchAccounts()}
-            className="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition shadow-sm"
+            className="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition shadow-xs pressable"
             title="Refresh on demand"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -168,7 +175,7 @@ export default function DashboardPage() {
           {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
             <button
               onClick={handleVerifyIntegrity}
-              className="inline-flex items-center px-3.5 py-2 border border-emerald-300 rounded-lg shadow-sm text-sm font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition"
+              className="inline-flex items-center px-3.5 py-2 border border-emerald-300 rounded-lg shadow-xs text-sm font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition pressable"
               title="Verify double-entry reconciliation across all accounts"
             >
               <ShieldCheck className="mr-1.5 h-4 w-4 text-emerald-600" />
@@ -177,9 +184,20 @@ export default function DashboardPage() {
           )}
 
           {user?.role === 'ADMIN' && (
+            <Link
+              href="/admin/stress-lab"
+              className="inline-flex items-center px-3.5 py-2 border border-amber-300 rounded-lg shadow-xs text-sm font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 transition pressable"
+              title="Run real-time concurrent SSI transactions and test ACID row-lock telemetry"
+            >
+              <Zap className="mr-1.5 h-4 w-4 text-amber-600 fill-amber-500" />
+              Stress Lab
+            </Link>
+          )}
+
+          {user?.role === 'ADMIN' && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 transition"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-xs text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               New Account
@@ -219,25 +237,25 @@ export default function DashboardPage() {
             return (
               <div
                 key={acc.id}
-                className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                className="glass-card rounded-2xl p-6 shadow-xs hover:shadow-md transition duration-150 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full font-mono">
                       ID: {acc.id.slice(0, 10)}...
                     </span>
-                    <span className="text-xs text-slate-400">v{acc.version}</span>
+                    <span className="text-xs font-mono text-slate-400">v{acc.version}</span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">{acc.name}</h3>
+                  <h3 className="text-lg font-bold tracking-tight-display text-slate-950 mb-1">{acc.name}</h3>
 
                   <div className="mt-3">
-                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
                       Current Balance
                     </span>
                     <span
-                      className={`text-2xl font-black tracking-tight ${
-                        isNegative ? 'text-red-600' : 'text-slate-900'
+                      className={`text-2xl font-black tracking-tight-display tabular-nums ${
+                        isNegative ? 'text-red-600' : 'text-slate-950'
                       }`}
                     >
                       {formatPaiseToRupees(acc.balancePence)}
@@ -245,23 +263,23 @@ export default function DashboardPage() {
                   </div>
 
                   {acc.overdraftLimit !== '0' && (
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs font-mono text-slate-500 mt-1">
                       Overdraft limit: {formatPaiseToRupees(acc.overdraftLimit)}
                     </p>
                   )}
 
                   {acc.holders && acc.holders.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                      <span className="font-medium text-slate-600">Holders:</span>{' '}
+                      <span className="font-semibold text-slate-600">Holders:</span>{' '}
                       {acc.holders.map((h) => h.user.email).join(', ')}
                     </div>
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
                   <Link
                     href={`/accounts/${acc.id}`}
-                    className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs"
                   >
                     <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
                     Statement
@@ -270,7 +288,7 @@ export default function DashboardPage() {
                   {user?.role !== 'AUDITOR' && (
                     <Link
                       href={`/accounts/${acc.id}/transfer`}
-                      className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-transparent rounded-lg text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition"
+                      className="flex-1 inline-flex justify-center items-center py-2 px-3 border border-transparent rounded-xl text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable shadow-2xs"
                     >
                       <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
                       Transfer
@@ -404,6 +422,26 @@ export default function DashboardPage() {
                 </div>
               ) : reconcileResult ? (
                 <div className="space-y-4">
+                  {/* Cryptographic SHA-256 Proof Badge */}
+                  {reconcileResult.cryptographicIntegrity && (
+                    <div className="p-3 bg-emerald-50/80 border border-emerald-200/90 rounded-xl flex items-center justify-between text-xs shadow-xs">
+                      <div className="flex items-center space-x-2.5">
+                        <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-700">
+                          <ShieldCheck className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-emerald-950 block">Cryptographic SHA-256 Hash Chain Verified</span>
+                          <span className="text-[11px] font-mono text-emerald-700">
+                            Genesis-to-Head sequence verified ({reconcileResult.cryptographicIntegrity.totalEntries} entries sealed)
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-200/70 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
+                        Tamper-Evident
+                      </span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
                       <span className="text-[11px] font-semibold text-slate-500 uppercase block">Total Accounts</span>

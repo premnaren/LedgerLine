@@ -20,6 +20,7 @@ import {
   RotateCcw,
   ShieldAlert,
 } from 'lucide-react';
+import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
 
 interface AccountReconciliationResult {
   accountId: string;
@@ -41,10 +42,14 @@ interface StatementEntry {
   runningBalance: string;
   direction: 'DEBIT' | 'CREDIT';
   isDebit: boolean;
+  debitAccountId?: string | null;
+  creditAccountId?: string | null;
   initiatedBy: {
     email: string;
   };
   note?: string;
+  hash?: string | null;
+  prevHash?: string | null;
 }
 
 interface StatementResponse {
@@ -78,6 +83,9 @@ export default function AccountStatementPage() {
   const [reversalLoading, setReversalLoading] = useState<boolean>(false);
   const [reversalError, setReversalError] = useState<string | null>(null);
   const [reversalSuccess, setReversalSuccess] = useState<string | null>(null);
+
+  // Transaction inspection slide-over drawer
+  const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
 
   useEffect(() => {
     setUser(getUser());
@@ -306,11 +314,13 @@ export default function AccountStatementPage() {
                   return (
                     <tr
                       key={entry.id}
-                      className={
+                      onClick={() => setInspectedEntry(entry as any)}
+                      className={`cursor-pointer transition ${
                         !isPosted
-                          ? 'bg-red-50/60 hover:bg-red-50 transition'
-                          : 'hover:bg-slate-50 transition'
-                      }
+                          ? 'bg-red-50/60 hover:bg-red-100/60'
+                          : 'hover:bg-sky-50/60'
+                      }`}
+                      title="Click row to inspect cryptographic seal & double-entry T-account details"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-slate-700 font-mono text-xs">
                         {dateStr}
@@ -364,7 +374,8 @@ export default function AccountStatementPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                         {user?.role === 'ADMIN' && isPosted && entry.type !== 'ADJUSTMENT' ? (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setReversingEntry(entry);
                               setReversalReason('');
                               setReversalError(null);
@@ -583,6 +594,13 @@ export default function AccountStatementPage() {
           </div>
         </div>
       )}
+      {/* Slide-Over Transaction Inspection Drawer */}
+      <TransactionDrawer
+        entry={inspectedEntry}
+        onClose={() => setInspectedEntry(null)}
+        onReverse={(e) => setReversingEntry(e as any)}
+        isAdmin={user?.role === 'ADMIN'}
+      />
     </div>
   );
 }

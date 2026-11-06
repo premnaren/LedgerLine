@@ -17,6 +17,7 @@ import {
   RotateCcw,
   ShieldAlert,
 } from 'lucide-react';
+import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
 
 interface AuditEntry {
   id: string;
@@ -32,6 +33,8 @@ interface AuditEntry {
   creditAccountName: string;
   initiatedByEmail: string;
   note?: string;
+  hash?: string | null;
+  prevHash?: string | null;
 }
 
 interface AccountItem {
@@ -58,6 +61,9 @@ export default function AuditPage() {
   const [reversalLoading, setReversalLoading] = useState<boolean>(false);
   const [reversalError, setReversalError] = useState<string | null>(null);
   const [reversalSuccess, setReversalSuccess] = useState<string | null>(null);
+
+  // Transaction inspection slide-over drawer
+  const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
 
   const fetchAuditEntries = useCallback(async () => {
     try {
@@ -345,11 +351,13 @@ export default function AuditPage() {
                   return (
                     <tr
                       key={entry.id}
-                      className={
+                      onClick={() => setInspectedEntry(entry)}
+                      className={`cursor-pointer transition ${
                         !isPosted
-                          ? 'bg-red-50/60 hover:bg-red-50 transition'
-                          : 'hover:bg-slate-50 transition'
-                      }
+                          ? 'bg-red-50/60 hover:bg-red-100/60'
+                          : 'hover:bg-sky-50/60'
+                      }`}
+                      title="Click row to inspect cryptographic seal & double-entry T-account details"
                     >
                       <td className="px-5 py-3 whitespace-nowrap text-xs font-mono text-slate-600">
                         {dateStr}
@@ -509,6 +517,13 @@ export default function AuditPage() {
           </div>
         </div>
       )}
+      {/* Slide-Over Transaction Inspection Drawer */}
+      <TransactionDrawer
+        entry={inspectedEntry}
+        onClose={() => setInspectedEntry(null)}
+        onReverse={(e) => setReversingEntry(e as any)}
+        isAdmin={user?.role === 'ADMIN'}
+      />
     </div>
   );
 }
