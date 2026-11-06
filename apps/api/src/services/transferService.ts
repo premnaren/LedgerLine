@@ -102,6 +102,42 @@ async function verifyDebitAuthorization(
 }
 
 /**
+ * Check if user is authorized to credit/deposit into given account.
+ * ADMIN can deposit into any account.
+ * HOLDER can only deposit into accounts where they are a registered holder.
+ * AUDITOR is strictly read-only.
+ */
+async function verifyCreditAuthorization(
+  tx: Prisma.TransactionClient,
+  accountId: string,
+  user: AuthUser
+) {
+  if (user.role === Role.AUDITOR) {
+    throw new UnauthorizedAccountAccessError('Auditors are read-only and cannot move money');
+  }
+
+  if (user.role === Role.ADMIN) {
+    return true;
+  }
+
+  // HOLDER check: query AccountHolder inside the transaction/service
+  const holder = await tx.accountHolder.findUnique({
+    where: {
+      userId_accountId: {
+        userId: user.userId,
+        accountId,
+      },
+    },
+  });
+
+  if (!holder) {
+    throw new UnauthorizedAccountAccessError('Forbidden: You do not own the deposit account');
+  }
+
+  return true;
+}
+
+/**
  * Core money movement function with retries on optimistic lock conflicts.
  */
 export async function executeTransfer(params: TransferParams) {
@@ -485,6 +521,9 @@ async function executeDeposit({
   try {
     return await prisma.$transaction(
     async (tx) => {
+      // 0. Verify deposit authorization
+      await verifyCreditAuthorization(tx, accountId, user);
+
       // 1. Lock account
       const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
         SELECT id, "balancePence", "overdraftLimit", version

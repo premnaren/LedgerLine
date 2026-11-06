@@ -76,7 +76,7 @@ model LedgerEntry {
   creditAccountId   String?
   initiatedById     String
   idempotencyKeyId  String?
-  runningBalance    BigInt       // Balance of debitAccount after this entry
+  runningBalance    BigInt       // Balance of the account that this row is filed against after this entry (debitAccount for debit rows, creditAccount for credit rows)
   note              String?
   debitAccount      Account?     @relation("DebitAccount",  fields: [debitAccountId],  references: [id])
   creditAccount     Account?     @relation("CreditAccount", fields: [creditAccountId], references: [id])

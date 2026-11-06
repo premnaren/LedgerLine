@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 import { prisma } from '../src/config/db';
+import { resetDatabase } from './helpers/resetDb';
 
 describe('Authorization & Role Guard Integration Tests', () => {
   let holderToken: string;
@@ -11,6 +12,9 @@ describe('Authorization & Role Guard Integration Tests', () => {
   let accountBId: string;
 
   beforeAll(async () => {
+    // 0. Reset DB to deterministic seed state
+    await resetDatabase();
+
     // Login as HOLDER
     const holderLogin = await request(app)
       .post('/auth/login')
@@ -90,6 +94,23 @@ describe('Authorization & Role Guard Integration Tests', () => {
         fromAccountId: accountBId, // Account B is owned by admin
         toAccountId: accountAId,
         amount: 1000, // 1000 paise = ₹10
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/Forbidden|own/i);
+  });
+
+  it('blocks HOLDER from depositing into an account they do not own', async () => {
+    // HOLDER tries to deposit into Account B (owned only by admin)
+    const res = await request(app)
+      .post('/transfers')
+      .set('Authorization', `Bearer ${holderToken}`)
+      .set('Idempotency-Key', `holder-deposit-unowned-${Date.now()}`)
+      .send({
+        type: 'deposit',
+        toAccountId: accountBId,
+        amount: 5000,
+        note: 'Unauthorized deposit into admin account',
       });
 
     expect(res.status).toBe(403);

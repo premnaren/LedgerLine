@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 import { prisma } from '../src/config/db';
+import { resetDatabase } from './helpers/resetDb';
+import * as transferService from '../src/services/transferService';
 
 describe('Idempotency Middleware Integration Tests', () => {
   let holderToken: string;
@@ -9,6 +11,9 @@ describe('Idempotency Middleware Integration Tests', () => {
   let accountBId: string;
 
   beforeAll(async () => {
+    // 0. Reset to deterministic seed state
+    await resetDatabase();
+
     // Login as HOLDER
     const holderLogin = await request(app)
       .post('/auth/login')
@@ -176,5 +181,37 @@ describe('Idempotency Middleware Integration Tests', () => {
     expect(adminRes.body.amountPence).toBe('2000');
     expect(adminRes.body.debitAccountId).toBe(accountBId);
     expect(adminRes.body.creditAccountId).toBe(accountAId);
+  });
+
+  it('explicitly finalizes idempotency key to FAILED on unexpected route error rather than staying stuck in PROCESSING', async () => {
+    const errorKey = `fail-key-${Date.now()}`;
+    const spy = vi
+      .spyOn(transferService, 'executeTransfer')
+      .mockRejectedValueOnce(new Error('Simulated internal database crash'));
+
+    try {
+      const res = await request(app)
+        .post('/transfers')
+        .set('Authorization', `Bearer ${holderToken}`)
+        .set('Idempotency-Key', errorKey)
+        .send({
+          type: 'transfer',
+          fromAccountId: accountAId,
+          toAccountId: accountBId,
+          amount: 500,
+        });
+
+      expect(res.status).toBe(500);
+
+      // Verify that in the database, the key is NOT stuck in PROCESSING
+      const keyRow = await prisma.idempotencyKey.findFirst({
+        where: { key: errorKey },
+      });
+      expect(keyRow).not.toBeNull();
+      expect(keyRow!.status).toBe('FAILED');
+      expect(keyRow!.httpStatus).toBe(500);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

@@ -9,3 +9,4 @@ CREATE INDEX "IdempotencyKey_userId_idx" ON "IdempotencyKey"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "IdempotencyKey_userId_key_key" ON "IdempotencyKey"("userId", "key");
+

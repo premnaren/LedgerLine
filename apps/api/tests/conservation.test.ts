@@ -2,12 +2,16 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 import { prisma } from '../src/config/db';
+import { resetDatabase } from './helpers/resetDb';
 
 describe('Conservation of Money Invariant Suite', () => {
   let adminToken: string;
   let adminUserId: string;
 
   beforeAll(async () => {
+    // 0. Reset to deterministic seed state
+    await resetDatabase();
+
     const adminLogin = await request(app)
       .post('/auth/login')
       .send({ email: 'admin@ledgerline.dev', password: 'Admin1234!' });

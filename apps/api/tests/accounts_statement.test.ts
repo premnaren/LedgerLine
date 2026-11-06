@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import app from '../src/index';
 import { prisma } from '../src/config/db';
+import { resetDatabase } from './helpers/resetDb';
 
 describe('Accounts & Paginated Statement API', () => {
   let adminToken: string;
@@ -11,6 +12,9 @@ describe('Accounts & Paginated Statement API', () => {
   let accountBId: string;
 
   beforeAll(async () => {
+    // 0. Reset to deterministic seed state
+    await resetDatabase();
+
     // 1. Login as all three roles
     const adminLogin = await request(app)
       .post('/auth/login')

@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
+import { IdempotencyStatus } from '@prisma/client';
 import { authenticate } from '../middleware/auth';
 import { idempotencyMiddleware } from '../middleware/idempotency';
+import { finalizeIdempotencyKey } from '../services/idempotencyService';
 import { executeTransfer } from '../services/transferService';
 import { LedgerError } from '../services/errors';
 
@@ -32,9 +34,11 @@ router.post('/', idempotencyMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    // Optional test hook for simulated concurrency delay
-    if (req.headers['x-test-delay']) {
-      await new Promise((r) => setTimeout(r, Number(req.headers['x-test-delay'])));
+    // Guard test delay hook: disabled in production, capped at 2000ms in non-production
+    if (process.env.NODE_ENV !== 'production' && req.headers['x-test-delay']) {
+      await new Promise((r) =>
+        setTimeout(r, Math.min(Number(req.headers['x-test-delay']) || 0, 2000))
+      );
     }
 
     const result = await executeTransfer({
@@ -49,6 +53,20 @@ router.post('/', idempotencyMiddleware, async (req: Request, res: Response) => {
 
     return res.status(200).json(result);
   } catch (error: any) {
+    // Explicitly finalize idempotency key to FAILED on any uncaught throw
+    if (req.idempotencyKeyId) {
+      try {
+        await finalizeIdempotencyKey(
+          req.idempotencyKeyId,
+          IdempotencyStatus.FAILED,
+          error instanceof LedgerError ? error.statusCode : 500,
+          { error: error?.message || 'Transfer failed' }
+        );
+      } catch (finalizeErr) {
+        console.error('Failed to finalize idempotency key on error:', finalizeErr);
+      }
+    }
+
     if (error instanceof LedgerError) {
       return res.status(error.statusCode).json({ error: error.message });
     }

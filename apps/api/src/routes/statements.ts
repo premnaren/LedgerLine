@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { Role } from '@prisma/client';
+import { Role, EntryType, EntryStatus } from '@prisma/client';
 import { prisma } from '../config/db';
 import { authenticate } from '../middleware/auth';
 
@@ -92,10 +92,15 @@ router.get('/:id/statement', async (req: Request, res: Response) => {
       }
     }
 
-    // 3. Query ledger entries with cursor pagination including REFUSED entries
+    // 3. Query ledger entries with cursor pagination filed against this account
     const entries = await prisma.ledgerEntry.findMany({
       where: {
-        OR: [{ debitAccountId: accountId }, { creditAccountId: accountId }],
+        OR: [
+          { debitAccountId: accountId, type: { in: [EntryType.TRANSFER_DEBIT, EntryType.WITHDRAWAL] } },
+          { creditAccountId: accountId, type: { in: [EntryType.TRANSFER_CREDIT, EntryType.DEPOSIT] } },
+          { debitAccountId: accountId, status: EntryStatus.REFUSED },
+          { type: EntryType.ADJUSTMENT, OR: [{ debitAccountId: accountId }, { creditAccountId: accountId }] },
+        ],
       },
       take: limit + 1,
       skip: cursor ? 1 : 0,
@@ -118,7 +123,11 @@ router.get('/:id/statement', async (req: Request, res: Response) => {
 
     // 4. Format entries
     const formatted = paginatedEntries.map((entry) => {
-      const isDebit = entry.debitAccountId === accountId;
+      const isDebit =
+        entry.type === EntryType.TRANSFER_DEBIT ||
+        entry.type === EntryType.WITHDRAWAL ||
+        entry.status === EntryStatus.REFUSED ||
+        (entry.type === EntryType.ADJUSTMENT && entry.debitAccountId === accountId);
       return {
         id: entry.id,
         createdAt: entry.createdAt.toISOString(),
