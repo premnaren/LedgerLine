@@ -265,7 +265,7 @@ export default function AccountStatementPage() {
             <thead className="bg-slate-50 text-slate-700 font-semibold text-xs uppercase tracking-wider">
               <tr>
                 <th scope="col" className="px-6 py-3.5 text-left">
-                  Date & Time
+                  Date &amp; Time ↓ Newest first
                 </th>
                 <th scope="col" className="px-6 py-3.5 text-left">
                   Entry Type
@@ -595,12 +595,40 @@ export default function AccountStatementPage() {
         </div>
       )}
       {/* Slide-Over Transaction Inspection Drawer */}
-      <TransactionDrawer
-        entry={inspectedEntry}
-        onClose={() => setInspectedEntry(null)}
-        onReverse={(e) => setReversingEntry(e as any)}
-        isAdmin={user?.role === 'ADMIN'}
-      />
+      {(() => {
+        const currentInspectedIndex = statement?.entries
+          ? statement.entries.findIndex((e) => e.id === inspectedEntry?.id)
+          : -1;
+
+        return (
+          <TransactionDrawer
+            entry={inspectedEntry}
+            onClose={() => setInspectedEntry(null)}
+            onReverse={(e) => setReversingEntry(e as any)}
+            isAdmin={user?.role === 'ADMIN'}
+            onNavigatePrevious={() => {
+              if (currentInspectedIndex > 0 && statement?.entries) {
+                setInspectedEntry(statement.entries[currentInspectedIndex - 1] as any);
+              }
+            }}
+            onNavigateNext={() => {
+              if (
+                currentInspectedIndex >= 0 &&
+                statement?.entries &&
+                currentInspectedIndex < statement.entries.length - 1
+              ) {
+                setInspectedEntry(statement.entries[currentInspectedIndex + 1] as any);
+              }
+            }}
+            hasPrevious={currentInspectedIndex > 0}
+            hasNext={
+              currentInspectedIndex >= 0 &&
+              !!statement?.entries &&
+              currentInspectedIndex < statement.entries.length - 1
+            }
+          />
+        );
+      })()}
     </div>
   );
 }

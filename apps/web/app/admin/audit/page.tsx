@@ -65,6 +65,22 @@ export default function AuditPage() {
   // Transaction inspection slide-over drawer
   const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
 
+  const inspectedIndex = inspectedEntry ? entries.findIndex((e) => e.id === inspectedEntry.id) : -1;
+  const hasPrevious = inspectedIndex > 0;
+  const hasNext = inspectedIndex >= 0 && inspectedIndex < entries.length - 1;
+
+  const handleNavigatePrevious = () => {
+    if (hasPrevious) {
+      setInspectedEntry(entries[inspectedIndex - 1]);
+    }
+  };
+
+  const handleNavigateNext = () => {
+    if (hasNext) {
+      setInspectedEntry(entries[inspectedIndex + 1]);
+    }
+  };
+
   const fetchAuditEntries = useCallback(async () => {
     try {
       setLoading(true);
@@ -299,7 +315,7 @@ export default function AuditPage() {
             <thead className="bg-slate-50 text-slate-700 font-semibold text-xs uppercase tracking-wider">
               <tr>
                 <th scope="col" className="px-5 py-3.5 text-left">
-                  Date
+                  Date & Time <span className="text-slate-400 font-normal">↓ Newest first</span>
                 </th>
                 <th scope="col" className="px-5 py-3.5 text-left">
                   Type
@@ -523,6 +539,10 @@ export default function AuditPage() {
         onClose={() => setInspectedEntry(null)}
         onReverse={(e) => setReversingEntry(e as any)}
         isAdmin={user?.role === 'ADMIN'}
+        onNavigatePrevious={handleNavigatePrevious}
+        onNavigateNext={handleNavigateNext}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
       />
     </div>
   );
