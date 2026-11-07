@@ -614,6 +614,43 @@ async function writeRefusedEntry(
 }
 
 /**
+ * Concurrency-safe check inside a locked serializable transaction to verify
+ * that neither this entry nor its paired transfer sibling has already been reversed.
+ *
+ * T-21: Running this check strictly inside the transaction after account row locks
+ * guarantees that concurrent reversal requests cannot race past the check to produce
+ * duplicate compensating entries.
+ */
+async function verifyNoExistingReversalTx(
+  tx: Prisma.TransactionClient,
+  targetEntryId: string,
+  targetSiblingId: string | null
+) {
+  const existing = await tx.ledgerEntry.findFirst({
+    where: {
+      type: EntryType.ADJUSTMENT,
+      note: { contains: `Reversal of entry ${targetEntryId}` },
+    },
+  });
+
+  if (existing) {
+    throw new ReversalAlreadyProcessedError(`Entry ${targetEntryId} has already been reversed`);
+  }
+
+  if (targetSiblingId) {
+    const siblingReversal = await tx.ledgerEntry.findFirst({
+      where: {
+        type: EntryType.ADJUSTMENT,
+        note: { contains: `Reversal of entry ${targetSiblingId}` },
+      },
+    });
+    if (siblingReversal) {
+      throw new ReversalAlreadyProcessedError(`Transfer for entry ${targetEntryId} has already been reversed`);
+    }
+  }
+}
+
+/**
  * Reverses a posted ledger entry by appending compensating ADJUSTMENT entries
  * and restoring account balances inside a Serializable transaction with FOR UPDATE locks.
  * Guarantees that LedgerEntry remains 100% append-only and immutable.
@@ -646,7 +683,8 @@ export async function reverseLedgerEntry(
     throw new LedgerError('Cannot reverse a reversal adjustment entry directly', 400);
   }
 
-  // 3. Double-reversal check: has this entry already been reversed?
+  // 3. Fast pre-check: has this entry already been reversed?
+  // (Authoritative check is executed inside tx under FOR UPDATE lock to prevent T-21 concurrent races)
   const existingReversal = await prisma.ledgerEntry.findFirst({
     where: {
       type: EntryType.ADJUSTMENT,
@@ -707,203 +745,280 @@ export async function reverseLedgerEntry(
     const originalDebitId = originalEntry.debitAccountId;
     const originalCreditId = originalEntry.creditAccountId;
 
-    const release = await lockManager.acquire([originalDebitId, originalCreditId]);
-    try {
-      return await prisma.$transaction(
-        async (tx) => {
-          const sortedIds = [originalDebitId, originalCreditId].sort();
-          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
-            SELECT id, "balancePence", "overdraftLimit", version
-            FROM "Account"
-            WHERE id IN (${sortedIds[0]}, ${sortedIds[1]})
-            ORDER BY id ASC
-            FOR UPDATE
-          `;
+    let attempt = 0;
+    while (attempt < MAX_RETRIES) {
+      const release = await lockManager.acquire([originalDebitId, originalCreditId]);
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            const sortedIds = [originalDebitId, originalCreditId].sort();
+            const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+              SELECT id, "balancePence", "overdraftLimit", version
+              FROM "Account"
+              WHERE id IN (${sortedIds[0]}, ${sortedIds[1]})
+              ORDER BY id ASC
+              FOR UPDATE
+            `;
 
-          if (rawAccounts.length !== 2) {
-            throw new AccountNotFoundError('One or both accounts could not be found');
-          }
+            if (rawAccounts.length !== 2) {
+              throw new AccountNotFoundError('One or both accounts could not be found');
+            }
 
-          const debitAccount = rawAccounts.find((a) => a.id === originalDebitId)!;
-          const creditAccount = rawAccounts.find((a) => a.id === originalCreditId)!;
+            // CRITICAL T-21 FIX: Verify no existing reversal inside the locked serializable transaction!
+            await verifyNoExistingReversalTx(tx, entryId, siblingEntryId);
 
-          // Reversal means:
-          // Debit the account that originally received the credit (creditAccount)
-          // Credit the account that originally was debited (debitAccount)
-          const newCreditAccountBalance = BigInt(creditAccount.balancePence) - amount;
-          const minAllowedBalance = -BigInt(creditAccount.overdraftLimit);
+            const debitAccount = rawAccounts.find((a) => a.id === originalDebitId)!;
+            const creditAccount = rawAccounts.find((a) => a.id === originalCreditId)!;
 
-          if (newCreditAccountBalance < minAllowedBalance) {
-            throw new InsufficientFundsError(
-              'Insufficient funds in receiving account to process reversal',
-              BigInt(creditAccount.balancePence)
-            );
-          }
+            // Reversal means:
+            // Debit the account that originally received the credit (creditAccount)
+            // Credit the account that originally was debited (debitAccount)
+            const newCreditAccountBalance = BigInt(creditAccount.balancePence) - amount;
+            const minAllowedBalance = -BigInt(creditAccount.overdraftLimit);
 
-          const newDebitAccountBalance = BigInt(debitAccount.balancePence) + amount;
+            if (newCreditAccountBalance < minAllowedBalance) {
+              throw new InsufficientFundsError(
+                'Insufficient funds in receiving account to process reversal',
+                BigInt(creditAccount.balancePence)
+              );
+            }
 
-          // Update balances
-          await tx.account.update({
-            where: { id: originalCreditId },
-            data: {
-              balancePence: { decrement: amount },
-              version: { increment: 1 },
-            },
-          });
+            const newDebitAccountBalance = BigInt(debitAccount.balancePence) + amount;
 
-          await tx.account.update({
-            where: { id: originalDebitId },
-            data: {
-              balancePence: { increment: amount },
-              version: { increment: 1 },
-            },
-          });
+            // Update balances
+            await tx.account.update({
+              where: { id: originalCreditId },
+              data: {
+                balancePence: { decrement: amount },
+                version: { increment: 1 },
+              },
+            });
 
-          // Write compensating ADJUSTMENT entries (cryptographically sealed)
-          const now = new Date();
-          const compensatingDebit = await createSealedLedgerEntry(tx, {
-            createdAt: now,
-            type: EntryType.ADJUSTMENT,
-            status: EntryStatus.POSTED,
-            amountPence: amount,
-            debitAccountId: originalCreditId,
-            initiatedById: user.userId,
-            idempotencyKeyId: idempotencyKeyId || null,
-            runningBalance: newCreditAccountBalance,
-            note: noteReference,
-          });
+            await tx.account.update({
+              where: { id: originalDebitId },
+              data: {
+                balancePence: { increment: amount },
+                version: { increment: 1 },
+              },
+            });
 
-          const compensatingCredit = await createSealedLedgerEntry(tx, {
-            createdAt: new Date(now.getTime() + 1),
-            type: EntryType.ADJUSTMENT,
-            status: EntryStatus.POSTED,
-            amountPence: amount,
-            creditAccountId: originalDebitId,
-            initiatedById: user.userId,
-            idempotencyKeyId: idempotencyKeyId || null,
-            runningBalance: newDebitAccountBalance,
-            note: noteReference,
-          });
+            // Write compensating ADJUSTMENT entries (cryptographically sealed)
+            const now = new Date();
+            const compensatingDebit = await createSealedLedgerEntry(tx, {
+              createdAt: now,
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              debitAccountId: originalCreditId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newCreditAccountBalance,
+              note: noteReference,
+            });
 
-          return {
-            success: true,
-            reversedEntryId: entryId,
-            siblingEntryId,
-            compensatingDebitEntryId: compensatingDebit.id,
-            compensatingCreditEntryId: compensatingCredit.id,
-            amountPence: amount.toString(),
-            message: 'Transfer reversed via compensating adjustment entries',
-          };
-        },
-        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
-      );
-    } finally {
-      release();
+            const compensatingCredit = await createSealedLedgerEntry(tx, {
+              createdAt: new Date(now.getTime() + 1),
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              creditAccountId: originalDebitId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newDebitAccountBalance,
+              note: noteReference,
+            });
+
+            return {
+              success: true,
+              reversedEntryId: entryId,
+              siblingEntryId,
+              compensatingDebitEntryId: compensatingDebit.id,
+              compensatingCreditEntryId: compensatingCredit.id,
+              amountPence: amount.toString(),
+              message: 'Transfer reversed via compensating adjustment entries',
+            };
+          },
+          { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+        );
+      } catch (err: any) {
+        const isConflict =
+          err instanceof OptimisticLockError ||
+          err?.code === 'P2034' ||
+          err?.code === 'P2010' ||
+          err?.code === 'P2028' ||
+          err?.message?.includes('could not serialize') ||
+          err?.message?.includes('write conflict') ||
+          err?.message?.includes('expired transaction') ||
+          err?.message?.includes('Transaction already closed');
+
+        if (isConflict && attempt < MAX_RETRIES - 1) {
+          attempt++;
+          const baseDelay = Math.min(20 * Math.pow(1.4, attempt), 200);
+          const jitter = Math.floor(Math.random() * 50);
+          await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+          continue;
+        }
+        throw err;
+      } finally {
+        release();
+      }
     }
   } else if (originalEntry.type === EntryType.DEPOSIT && originalEntry.creditAccountId) {
     // Reversal of DEPOSIT: debit the credit account
     const accountId = originalEntry.creditAccountId;
-    const release = await lockManager.acquire([accountId]);
-    try {
-      return await prisma.$transaction(
-        async (tx) => {
-          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
-            SELECT id, "balancePence", "overdraftLimit", version
-            FROM "Account"
-            WHERE id = ${accountId}
-            FOR UPDATE
-          `;
-          if (rawAccounts.length !== 1) {
-            throw new AccountNotFoundError('Account not found');
-          }
-          const account = rawAccounts[0];
-          const newBalance = BigInt(account.balancePence) - amount;
-          if (newBalance < -BigInt(account.overdraftLimit)) {
-            throw new InsufficientFundsError('Insufficient funds to reverse deposit', BigInt(account.balancePence));
-          }
+    let attempt = 0;
+    while (attempt < MAX_RETRIES) {
+      const release = await lockManager.acquire([accountId]);
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+              SELECT id, "balancePence", "overdraftLimit", version
+              FROM "Account"
+              WHERE id = ${accountId}
+              FOR UPDATE
+            `;
+            if (rawAccounts.length !== 1) {
+              throw new AccountNotFoundError('Account not found');
+            }
 
-          await tx.account.update({
-            where: { id: accountId },
-            data: {
-              balancePence: { decrement: amount },
-              version: { increment: 1 },
-            },
-          });
+            // CRITICAL T-21 FIX: Verify no existing reversal inside the locked serializable transaction!
+            await verifyNoExistingReversalTx(tx, entryId, null);
 
-          const compensatingEntry = await createSealedLedgerEntry(tx, {
-            type: EntryType.ADJUSTMENT,
-            status: EntryStatus.POSTED,
-            amountPence: amount,
-            debitAccountId: accountId,
-            initiatedById: user.userId,
-            idempotencyKeyId: idempotencyKeyId || null,
-            runningBalance: newBalance,
-            note: noteReference,
-          });
+            const account = rawAccounts[0];
+            const newBalance = BigInt(account.balancePence) - amount;
+            if (newBalance < -BigInt(account.overdraftLimit)) {
+              throw new InsufficientFundsError('Insufficient funds to reverse deposit', BigInt(account.balancePence));
+            }
 
-          return {
-            success: true,
-            reversedEntryId: entryId,
-            compensatingEntryId: compensatingEntry.id,
-            amountPence: amount.toString(),
-            message: 'Deposit reversed via compensating adjustment entry',
-          };
-        },
-        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
-      );
-    } finally {
-      release();
+            await tx.account.update({
+              where: { id: accountId },
+              data: {
+                balancePence: { decrement: amount },
+                version: { increment: 1 },
+              },
+            });
+
+            const compensatingEntry = await createSealedLedgerEntry(tx, {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              debitAccountId: accountId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newBalance,
+              note: noteReference,
+            });
+
+            return {
+              success: true,
+              reversedEntryId: entryId,
+              compensatingEntryId: compensatingEntry.id,
+              amountPence: amount.toString(),
+              message: 'Deposit reversed via compensating adjustment entry',
+            };
+          },
+          { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+        );
+      } catch (err: any) {
+        const isConflict =
+          err instanceof OptimisticLockError ||
+          err?.code === 'P2034' ||
+          err?.code === 'P2010' ||
+          err?.code === 'P2028' ||
+          err?.message?.includes('could not serialize') ||
+          err?.message?.includes('write conflict') ||
+          err?.message?.includes('expired transaction') ||
+          err?.message?.includes('Transaction already closed');
+
+        if (isConflict && attempt < MAX_RETRIES - 1) {
+          attempt++;
+          const baseDelay = Math.min(20 * Math.pow(1.4, attempt), 200);
+          const jitter = Math.floor(Math.random() * 50);
+          await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+          continue;
+        }
+        throw err;
+      } finally {
+        release();
+      }
     }
   } else if (originalEntry.type === EntryType.WITHDRAWAL && originalEntry.debitAccountId) {
     // Reversal of WITHDRAWAL: credit the debit account
     const accountId = originalEntry.debitAccountId;
-    const release = await lockManager.acquire([accountId]);
-    try {
-      return await prisma.$transaction(
-        async (tx) => {
-          const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
-            SELECT id, "balancePence", "overdraftLimit", version
-            FROM "Account"
-            WHERE id = ${accountId}
-            FOR UPDATE
-          `;
-          if (rawAccounts.length !== 1) {
-            throw new AccountNotFoundError('Account not found');
-          }
-          const account = rawAccounts[0];
-          const newBalance = BigInt(account.balancePence) + amount;
+    let attempt = 0;
+    while (attempt < MAX_RETRIES) {
+      const release = await lockManager.acquire([accountId]);
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            const rawAccounts = await tx.$queryRaw<LockedAccount[]>`
+              SELECT id, "balancePence", "overdraftLimit", version
+              FROM "Account"
+              WHERE id = ${accountId}
+              FOR UPDATE
+            `;
+            if (rawAccounts.length !== 1) {
+              throw new AccountNotFoundError('Account not found');
+            }
 
-          await tx.account.update({
-            where: { id: accountId },
-            data: {
-              balancePence: { increment: amount },
-              version: { increment: 1 },
-            },
-          });
+            // CRITICAL T-21 FIX: Verify no existing reversal inside the locked serializable transaction!
+            await verifyNoExistingReversalTx(tx, entryId, null);
 
-          const compensatingEntry = await createSealedLedgerEntry(tx, {
-            type: EntryType.ADJUSTMENT,
-            status: EntryStatus.POSTED,
-            amountPence: amount,
-            creditAccountId: accountId,
-            initiatedById: user.userId,
-            idempotencyKeyId: idempotencyKeyId || null,
-            runningBalance: newBalance,
-            note: noteReference,
-          });
+            const account = rawAccounts[0];
+            const newBalance = BigInt(account.balancePence) + amount;
 
-          return {
-            success: true,
-            reversedEntryId: entryId,
-            compensatingEntryId: compensatingEntry.id,
-            amountPence: amount.toString(),
-            message: 'Withdrawal reversed via compensating adjustment entry',
-          };
-        },
-        { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
-      );
-    } finally {
-      release();
+            await tx.account.update({
+              where: { id: accountId },
+              data: {
+                balancePence: { increment: amount },
+                version: { increment: 1 },
+              },
+            });
+
+            const compensatingEntry = await createSealedLedgerEntry(tx, {
+              type: EntryType.ADJUSTMENT,
+              status: EntryStatus.POSTED,
+              amountPence: amount,
+              creditAccountId: accountId,
+              initiatedById: user.userId,
+              idempotencyKeyId: idempotencyKeyId || null,
+              runningBalance: newBalance,
+              note: noteReference,
+            });
+
+            return {
+              success: true,
+              reversedEntryId: entryId,
+              compensatingEntryId: compensatingEntry.id,
+              amountPence: amount.toString(),
+              message: 'Withdrawal reversed via compensating adjustment entry',
+            };
+          },
+          { isolationLevel: 'Serializable', maxWait: 15000, timeout: 25000 }
+        );
+      } catch (err: any) {
+        const isConflict =
+          err instanceof OptimisticLockError ||
+          err?.code === 'P2034' ||
+          err?.code === 'P2010' ||
+          err?.code === 'P2028' ||
+          err?.message?.includes('could not serialize') ||
+          err?.message?.includes('write conflict') ||
+          err?.message?.includes('expired transaction') ||
+          err?.message?.includes('Transaction already closed');
+
+        if (isConflict && attempt < MAX_RETRIES - 1) {
+          attempt++;
+          const baseDelay = Math.min(20 * Math.pow(1.4, attempt), 200);
+          const jitter = Math.floor(Math.random() * 50);
+          await new Promise((resolve) => setTimeout(resolve, baseDelay + jitter));
+          continue;
+        }
+        throw err;
+      } finally {
+        release();
+      }
     }
   }
 

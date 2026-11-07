@@ -111,7 +111,7 @@ if (openApiFilePath) {
 
   app.use(
     '/api-docs',
-    (req: any, _res, next) => {
+    (req: any, _res: any, next: any) => {
       req.swaggerDoc = getSwaggerDocument();
       next();
     },
@@ -121,7 +121,7 @@ if (openApiFilePath) {
     }
   );
 
-  app.get('/openapi.json', (_req, res) => {
+  app.get('/openapi.json', (_req: any, res: any) => {
     const doc = getSwaggerDocument();
     if (!doc) return res.status(500).json({ error: 'OpenAPI specification unavailable' });
     res.json(doc);

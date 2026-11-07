@@ -165,10 +165,21 @@
 
 ---
 
+### T-21: Concurrent double-reversal race condition (different idempotency keys)
+**Attack**: An administrator or automated webhook client fires two simultaneous reversal requests targeting the exact same `entryId` with distinct `Idempotency-Key` headers. Because the idempotency layer deduplicates requests by key (not by entry ID), two non-identical requests bypass the idempotency filter. If the existing-reversal check runs on an unlocked database connection before acquiring locks or outside the serializable transaction, both concurrent threads observe zero existing reversals, proceed into execution, and commit duplicate compensating entries, reversing the original transaction twice and breaking system balance conservation ($\Delta \Sigma = 0$).  
+**What we did**: Moved the double-reversal verification strictly *inside* the `Serializable` `$transaction` block using `tx.ledgerEntry.findFirst` after `SELECT ... FOR UPDATE` row locks are established on the participating accounts. Under PostgreSQL Serializable Snapshot Isolation (SSI), the second concurrent transaction either blocks on the row lock and immediately detects the newly committed reversal entry, or suffers a serialization conflict (SQLSTATE 40001) and retries, discovering the committed compensating entry on retry and aborting with `ReversalAlreadyProcessedError` (`HTTP 400 Bad Request`).  
+**Test that covers it**: `prevents race condition in simultaneous reversal requests with different idempotency keys (T-21)` in [`apps/api/tests/reversal.test.ts`](file:///c:/Users/premn/LedgerLine/apps/api/tests/reversal.test.ts).  
+**Residual risk**: Currently, reversal detection matches the free-text substring `note: { contains: 'Reversal of entry ...' }`. In a production release, this would be replaced with a dedicated append-only `ReversalLog` table with a unique database constraint on `originalEntryId`, eliminating free-text substring search.
+
+---
+
 ## Knowingly accepted risks
 
 1. **Single-Currency Engine**: The ledger records all transactions in a single integer denomination (paise/pence, INR base). Multi-currency conversions, exchange rate fluctuations, and fractional FX spreads are deliberately out of scope for this release to maintain uncompromising ACID correctness and balance conservation invariants.
 2. **In-Flight Key Timeout (Stuck Processing) — [CLOSED via T-18]**: Previously, a server crash during `PROCESSING` could leave keys stuck. This is now fully resolved and closed by the automated background `idempotencyReaper` service, which recovers stale keys older than 5 minutes to `FAILED`.
 3. **Multi-Region Latency on Serializable Isolation**: PostgreSQL Serializable Snapshot Isolation (SSI) with `SELECT ... FOR UPDATE` operates within a single primary database cluster. Cross-datacenter multi-master replication with active-active write distribution is not supported without external consensus coordinators (e.g. Spanner/CockroachDB).
 4. **Shared Database Testing**: In local test environments without containerization, integration tests run against a local PostgreSQL instance. Sequential execution (`--no-file-parallelism`) is enforced to prevent concurrent test suites from cross-contaminating account balances.
+5. **Global Write Serialization via Single Ledger Hash Chain**: `createSealedLedgerEntry()` queries the single global most recent hash across the entire `LedgerEntry` table to cryptographically seal the chain (Genesis → Head). Under PostgreSQL Serializable isolation, this introduces a shared read/write dependency on the "latest entry" row across the entire ledger, effectively serializing all money movements system-wide rather than strictly by account-level contention.
+   - *Why we chose this*: Uncompromising audit integrity and total linear ordering (tamper-evident immutable chain, identical to a blockchain or Raft commit-log) were prioritized for this core banking scope over horizontally distributed write throughput.
+   - *Scale mitigation*: At higher institutional volume, the ledger would be architected with per-account or per-shard independent hash chains combined with periodic cross-account Merkle tree roots / checkpoint seals committed to a global chain.
 

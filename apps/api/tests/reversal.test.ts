@@ -154,4 +154,72 @@ describe('Admin Compensating Reversal Workflow Suite', () => {
     expect(secondRev.status).toBe(400);
     expect(secondRev.body.error).toMatch(/already been reversed/i);
   });
+
+  it('prevents race condition in simultaneous reversal requests with different idempotency keys (T-21)', async () => {
+    // 1. Perform a transfer from Account A to Account B
+    const transferAmount = 15000; // ₹150.00
+    const transferRes = await request(app)
+      .post('/transfers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Idempotency-Key', `transfer-race-${Date.now()}`)
+      .send({
+        type: 'transfer',
+        fromAccountId: accountAId,
+        toAccountId: accountBId,
+        amount: transferAmount,
+        note: 'Transfer for concurrent reversal race test',
+      });
+
+    expect(transferRes.status).toBe(200);
+    const debitEntryId = transferRes.body.debitEntryId;
+    expect(debitEntryId).toBeDefined();
+
+    // Capture balances immediately before concurrent reversal race
+    const accABefore = await prisma.account.findUnique({ where: { id: accountAId } });
+    const accBBefore = await prisma.account.findUnique({ where: { id: accountBId } });
+    const balanceABefore = BigInt(accABefore!.balancePence);
+    const balanceBBefore = BigInt(accBBefore!.balancePence);
+
+    // 2. Fire TWO simultaneous reversal requests for the EXACT SAME debitEntryId
+    // with DIFFERENT Idempotency-Key headers (so idempotency middleware does not deduplicate)
+    const [res1, res2] = await Promise.all([
+      request(app)
+        .post(`/transfers/${debitEntryId}/reverse`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Idempotency-Key', `race-key-1-${Date.now()}`)
+        .send({ reason: 'Simultaneous reversal attempt 1' }),
+      request(app)
+        .post(`/transfers/${debitEntryId}/reverse`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Idempotency-Key', `race-key-2-${Date.now()}`)
+        .send({ reason: 'Simultaneous reversal attempt 2' }),
+    ]);
+
+    const statuses = [res1.status, res2.status].sort();
+    // Exactly ONE request must succeed (200), and exactly ONE request must be rejected (400)
+    expect(statuses).toEqual([200, 400]);
+
+    const failedRes = res1.status === 400 ? res1 : res2;
+    const successRes = res1.status === 200 ? res1 : res2;
+
+    expect(successRes.body.success).toBe(true);
+    expect(failedRes.body.error).toMatch(/already been reversed/i);
+
+    // 3. Balance Invariant Assertion: Balances must be restored EXACTLY ONCE (by transferAmount)
+    const accAAfter = await prisma.account.findUnique({ where: { id: accountAId } });
+    const accBAfter = await prisma.account.findUnique({ where: { id: accountBId } });
+
+    expect(BigInt(accAAfter!.balancePence)).toBe(balanceABefore + BigInt(transferAmount));
+    expect(BigInt(accBAfter!.balancePence)).toBe(balanceBBefore - BigInt(transferAmount));
+
+    // 4. Ledger Count Assertion: Exactly ONE pair of compensating ADJUSTMENT entries must exist for this entry
+    const compensatingEntries = await prisma.ledgerEntry.findMany({
+      where: {
+        type: 'ADJUSTMENT',
+        note: { contains: `Reversal of entry ${debitEntryId}` },
+      },
+    });
+
+    expect(compensatingEntries.length).toBe(2); // 1 debit adjustment + 1 credit adjustment (NOT 4!)
+  });
 });
