@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAccessToken, setUser } from '@/lib/auth';
+import { Skiper56Input, Skiper56InputHandle } from '@/components/ui/skiper56';
 import {
   Layers,
   Lock,
@@ -25,9 +26,10 @@ export default function LoginPage() {
   const [showForgotNotice, setShowForgotNotice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const skiperInputRef = useRef<Skiper56InputHandle>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError(null);
     setLoading(true);
 
@@ -48,18 +50,29 @@ export default function LoginPage() {
       setAccessToken(data.accessToken);
       setUser(data.user);
 
-      router.push('/dashboard');
+      // Play Skiper56 particle vanish effect on authentication success
+      skiperInputRef.current?.triggerVanish(() => {
+        router.push('/dashboard');
+      });
+
+      // Fallback navigation timeout in case canvas loop finished earlier
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 700);
     } catch (err: any) {
       setError(err.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };
 
   const handleQuickLogin = (quickEmail: string, quickPass: string) => {
-    setEmail(quickEmail);
-    setPassword(quickPass);
     setError(null);
+    setPassword(quickPass);
+    if (skiperInputRef.current) {
+      skiperInputRef.current.typeText(quickEmail);
+    } else {
+      setEmail(quickEmail);
+    }
   };
 
   return (
@@ -116,7 +129,7 @@ export default function LoginPage() {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-            {/* Email Field */}
+            {/* Email Field with Skiper56 Typewriter & Vanish Particle Animation */}
             <div>
               <label
                 htmlFor="email"
@@ -124,22 +137,21 @@ export default function LoginPage() {
               >
                 Email Address
               </label>
-              <div className="relative rounded-xl shadow-2xs">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 w-full pl-10 pr-3.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-sky-500 transition"
-                  placeholder="admin@ledgerline.dev"
-                />
-              </div>
+              <Skiper56Input
+                ref={skiperInputRef}
+                id="email"
+                name="email"
+                value={email}
+                onChange={setEmail}
+                onSubmit={() => handleSubmit()}
+                required
+                autoComplete="email"
+                placeholders={[
+                  'admin@ledgerline.dev',
+                  'holder@ledgerline.dev',
+                  'auditor@ledgerline.dev',
+                ]}
+              />
             </div>
 
             {/* Password Field */}

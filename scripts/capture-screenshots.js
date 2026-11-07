@@ -24,7 +24,7 @@ async function loginAsRole(page, roleName) {
   let clicked = false;
   for (const b of seedBtns) {
     const text = await page.evaluate((el) => el.innerText, b);
-    if (text.trim().toUpperCase() === roleName.toUpperCase()) {
+    if (text.trim().toUpperCase().includes(roleName.toUpperCase())) {
       await b.click();
       clicked = true;
       break;
@@ -35,7 +35,7 @@ async function loginAsRole(page, roleName) {
     throw new Error(`Could not find seed button for role ${roleName}`);
   }
 
-  await sleep(300);
+  await sleep(600);
   await page.click('button[type="submit"]');
   await page.waitForFunction(() => window.location.pathname === '/dashboard', { timeout: 10000 });
   await page.waitForSelector('a[href^="/accounts/"]', { timeout: 10000 });
