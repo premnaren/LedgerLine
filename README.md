@@ -12,11 +12,12 @@
 
 ## Live Deployment & Interactive Documentation
 
-- **Interactive API Documentation (Swagger UI)**: [http://localhost:4000/api-docs](http://localhost:4000/api-docs) / [https://ledgerline-api.up.railway.app/api-docs](https://ledgerline-api.up.railway.app/api-docs)
-- **Raw OpenAPI 3.0 Specification**: [`apps/api/openapi.yaml`](file:///c:/Users/premn/LedgerLine/apps/api/openapi.yaml) / [/openapi.json](http://localhost:4000/openapi.json)
-- **Web Frontend (Vercel)**: [https://ledgerline-web.vercel.app](https://ledgerline-web.vercel.app) *(or your deployed Vercel URL)*
-- **API Backend (Railway / Render)**: [https://ledgerline-api.up.railway.app](https://ledgerline-api.up.railway.app) / [https://ledgerline-api.onrender.com](https://ledgerline-api.onrender.com)
-- **API Healthcheck**: [https://ledgerline-api.up.railway.app/health](https://ledgerline-api.up.railway.app/health)
+- **Web Frontend (Vercel Edge)**: [https://ledgerline-tan-beta.vercel.app](https://ledgerline-tan-beta.vercel.app)
+- **API Backend (Render Web Service)**: [https://ledgerline-api-6moj.onrender.com](https://ledgerline-api-6moj.onrender.com)
+- **Interactive API Documentation (Swagger UI)**: [https://ledgerline-api-6moj.onrender.com/api-docs/](https://ledgerline-api-6moj.onrender.com/api-docs/)
+- **Live Database Healthcheck**: [https://ledgerline-api-6moj.onrender.com/health](https://ledgerline-api-6moj.onrender.com/health)
+- **Raw OpenAPI 3.0 Specification**: [`apps/api/openapi.yaml`](file:///c:/Users/premn/LedgerLine/apps/api/openapi.yaml) / [/openapi.json](https://ledgerline-api-6moj.onrender.com/openapi.json)
+- **Database Engine**: Neon Serverless PostgreSQL 16 (AWS US East 2 - Ohio)
 
 ---
 

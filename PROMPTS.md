@@ -97,3 +97,19 @@ Deliverables:
 Problem: High concurrency during serialization storms causes PostgreSQL SSI to throw 40001 serialization errors. Naive retries without backoff lead to lock starvation and connection pool exhaustion. Furthermore, double-entry reconciliation queries initially double-counted internal transfers because both debit and credit ledger rows recorded both account IDs.
 Fix: Refined `reconciliationService.ts` SQL queries to strictly filter by `EntryType` (`type IN ('DEPOSIT', 'TRANSFER_CREDIT', 'ADJUSTMENT')` for credits; `type IN ('WITHDRAWAL', 'TRANSFER_DEBIT', 'ADJUSTMENT')` for debits), ensuring mathematical self-consistency across all operations. Combined `AccountLockManager` queue with exponential retry backoff.
 ---
+
+---
+Date: 2026-11-07
+Prompt: Sub-prompt 11 — Elimination of Reversal Race Condition (T-21)
+Output: Audit and harden the transaction reversal workflow against concurrent requests targeting the same `entryId` with distinct `Idempotency-Key` headers.
+Problem: The initial reversal check `existingReversal = await prisma.ledgerEntry.findFirst(...)` was executed outside the `$transaction` callback and before acquiring row locks. While identical idempotency keys were deduped by the middleware, two simultaneous reversal requests with different idempotency keys both found zero existing reversals, proceeded to execute, and committed duplicate compensating entries for the same original transfer. This constituted a critical double-reversal race condition breaking system balance conservation ($\Delta\Sigma = 0$).
+Fix: Moved the existing reversal verification strictly inside the `Serializable` `$transaction` callback using `tx.ledgerEntry.findFirst` after acquiring `SELECT ... FOR UPDATE` row locks on the accounts. Added integration test `tests/reversal.test.ts` firing simultaneous reversal requests with different idempotency keys and asserting that exactly one succeeds while the second throws `ReversalAlreadyProcessedError` (HTTP 400). Documented in `THREATS.md` as T-21. Commit: 684ae0c
+---
+
+---
+Date: 2026-11-08
+Prompt: Sub-prompt 12 — Production Multi-Cloud Deployment & Monorepo Wiring
+Output: Deploy the full LedgerLine stack to production: Frontend on Vercel Edge (`https://ledgerline-tan-beta.vercel.app`), Backend on Render Web Service (`https://ledgerline-api-6moj.onrender.com`), and Database on Neon Serverless PostgreSQL 16 (AWS US East 2).
+Problem: Two CI/CD deployment hurdles arose: (1) Render failed during build with `sh: 1: prisma: not found` because `NODE_ENV=production` caused `pnpm install` to skip `devDependencies` where `prisma` and `typescript` resided. (2) Vercel failed with `Error: [NEXT_NO_VERSION]` because in a monorepo, Vercel's root scanner inspected the workspace root `package.json` rather than `apps/web/package.json`.
+Fix: Moved `prisma` and `typescript` directly into `dependencies` in `apps/api/package.json`, set `production=false` in `.npmrc`, and passed `--prod=false` to `pnpm install`. Configured Vercel Root Directory to `apps/web` and synchronized `pnpm-lock.yaml`. Implemented automated initial database seeding (`autoSeedIfEmpty`) in `apps/api/src/services/seedService.ts` so production databases initialize demo users on first boot. Verified live healthcheck and authentication. Commits: 0d25923, b1112e7, f8d492a
+---
