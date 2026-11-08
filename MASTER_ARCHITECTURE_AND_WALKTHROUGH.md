@@ -355,3 +355,4 @@ open https://ledgerline-api-6moj.onrender.com/api-docs/
 | **Race Conditions** | Concurrent requests overdrawing | Tier 1 Mutex + PostgreSQL `SELECT ... FOR UPDATE` row locks. |
 | **Credential Theft** | XSS attacks stealing tokens | In-memory token storage + `HttpOnly` `SameSite=Lax` cookies. |
 | **Zero Downtime Hosting** | Single-point server crashes | Vercel Edge CDN + Render Cloud Node Container + Neon Serverless DB. |
+
