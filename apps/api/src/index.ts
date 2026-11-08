@@ -17,6 +17,7 @@ import transfersRouter from './routes/transfers';
 import statementsRouter from './routes/statements';
 import adminRouter from './routes/admin';
 import { startIdempotencyReaper } from './services/idempotencyReaper';
+import { autoSeedIfEmpty } from './services/seedService';
 
 dotenv.config();
 
@@ -168,10 +169,12 @@ const PORT = process.env.PORT || 4000;
 let server: any = null;
 
 if (process.env.NODE_ENV !== 'test') {
-  server = app.listen(PORT, () => {
+  server = app.listen(PORT, async () => {
     logger.info(`LedgerLine API running on port ${PORT}`);
     // Start background idempotency key reaper daemon
     startIdempotencyReaper();
+    // Auto-seed database if fresh deployment with 0 users
+    await autoSeedIfEmpty();
   });
 
   // Graceful shutdown handling for SIGTERM / SIGINT
