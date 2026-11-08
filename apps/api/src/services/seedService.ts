@@ -104,3 +104,4 @@ export async function autoSeedIfEmpty(): Promise<void> {
     logger.error({ err: error }, 'Error during database auto-seed');
   }
 }
+

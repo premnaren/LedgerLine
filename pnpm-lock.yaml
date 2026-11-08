@@ -47,9 +47,15 @@ importers:
       pino:
         specifier: ^10.4.0
         version: 10.4.0
+      prisma:
+        specifier: ^5.14.0
+        version: 5.22.0
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@4.22.3)
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
       yamljs:
         specifier: ^0.3.0
         version: 0.3.0
@@ -84,18 +90,12 @@ importers:
       '@types/yamljs':
         specifier: ^0.2.34
         version: 0.2.34
-      prisma:
-        specifier: ^5.14.0
-        version: 5.22.0
       supertest:
         specifier: ^7.0.0
         version: 7.3.1
       tsx:
         specifier: ^4.11.0
         version: 4.23.15
-      typescript:
-        specifier: ^5.4.5
-        version: 5.9.3
       vitest:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.43)

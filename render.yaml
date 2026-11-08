@@ -4,7 +4,7 @@ services:
     env: node
     plan: standard
     region: oregon
-    buildCommand: pnpm install && pnpm --filter api prisma:generate && pnpm --filter api build
+    buildCommand: pnpm install --prod=false && pnpm --filter api prisma:generate && pnpm --filter api build
     startCommand: pnpm --filter api prisma:deploy && pnpm --filter api start
     healthCheckPath: /health
     autoDeploy: true
