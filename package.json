@@ -12,6 +12,7 @@
     "prisma:migrate": "pnpm --filter api prisma:migrate",
     "prisma:seed": "pnpm --filter api prisma:seed"
   },
+  "packageManager": "pnpm@9.1.0",
   "devDependencies": {
     "puppeteer-core": "^25.16.0",
     "typescript": "^5.4.5"
