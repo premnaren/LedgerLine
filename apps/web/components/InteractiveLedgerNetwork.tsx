@@ -165,14 +165,14 @@ function projectPresetCoordinates(
   const spanX = Math.max(0.12, maxX - minX);
   const spanY = Math.max(0.12, maxY - minY);
 
-  // Desktop: Anchor in left celestial field (x ~ 0.28) framing the central card
+  // Desktop: Anchor in right celestial field (x ~ 0.68) so the login box is on the left
   // Tablet/Mobile: Center across available viewport with comfortable margins
   const isDesktop = width >= 1024;
-  const centerX = isDesktop ? width * 0.28 : width * 0.50;
+  const centerX = isDesktop ? width * 0.68 : width * 0.50;
   const centerY = isDesktop ? height * 0.50 : height * 0.44;
 
-  const targetW = isDesktop ? Math.min(width * 0.40, 560) : Math.min(width * 0.76, 440);
-  const targetH = isDesktop ? Math.min(height * 0.65, 600) : Math.min(height * 0.52, 460);
+  const targetW = isDesktop ? Math.min(width * 0.44, 620) : Math.min(width * 0.76, 440);
+  const targetH = isDesktop ? Math.min(height * 0.68, 620) : Math.min(height * 0.52, 460);
   const scale = Math.min(targetW / spanX, targetH / spanY);
 
   const starPositions = new Map<string, { x: number; y: number }>();
@@ -512,9 +512,9 @@ const InteractiveLedgerNetwork = forwardRef<
     ref,
     () => ({
       addStar: () => {
-        // Create an ethereal supporting star near mouse or left field
+        // Create an ethereal supporting star near mouse or right field
         const state = stateRef.current;
-        const x = state.mouseX ?? state.width * 0.28;
+        const x = state.mouseX ?? state.width * 0.68;
         const y = state.mouseY ?? state.height * 0.45;
         state.ripples.push({
           x,

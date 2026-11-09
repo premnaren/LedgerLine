@@ -18,21 +18,21 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
             className="object-cover object-center absolute inset-0 w-full h-full transition-opacity duration-700"
           />
 
-          {/* Deep space radial vignette to ensure maximum authentication card legibility and depth */}
+          {/* Deep space radial vignette for overall contrast and depth */}
           <div
             className="absolute inset-0 w-full h-full pointer-events-none"
             style={{
               background:
-                'radial-gradient(circle at 50% 50%, rgba(8, 7, 18, 0.40) 0%, rgba(8, 7, 18, 0.10) 60%, rgba(8, 7, 18, 0.55) 100%)',
+                'radial-gradient(circle at 30% 50%, rgba(8, 7, 18, 0.45) 0%, rgba(8, 7, 18, 0.15) 55%, rgba(8, 7, 18, 0.55) 100%)',
             }}
           />
 
-          {/* Local atmospheric contrast shield behind the central headline area */}
+          {/* Local atmospheric shadow behind the left authentication card */}
           <div
-            className="absolute top-[16%] left-1/2 -translate-x-1/2 w-[840px] max-w-[94vw] h-[240px] rounded-full blur-[70px] pointer-events-none opacity-85"
+            className="absolute top-[20%] left-[4%] w-[620px] max-w-[92vw] h-[600px] rounded-full blur-[85px] pointer-events-none opacity-80"
             style={{
               background:
-                'radial-gradient(ellipse at 50% 50%, rgba(8, 7, 18, 0.90) 0%, rgba(8, 7, 18, 0.60) 55%, transparent 85%)',
+                'radial-gradient(ellipse at 50% 50%, rgba(8, 7, 18, 0.90) 0%, rgba(8, 7, 18, 0.50) 60%, transparent 85%)',
             }}
           />
 
@@ -65,12 +65,12 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
             }}
           />
 
-          {/* Local atmospheric contrast shield behind the central headline area in light mode */}
+          {/* Local atmospheric shadow behind the left authentication card in light mode */}
           <div
-            className="absolute top-[16%] left-1/2 -translate-x-1/2 w-[840px] max-w-[94vw] h-[240px] rounded-full blur-[70px] pointer-events-none opacity-80"
+            className="absolute top-[20%] left-[4%] w-[620px] max-w-[92vw] h-[600px] rounded-full blur-[85px] pointer-events-none opacity-75"
             style={{
               background:
-                'radial-gradient(ellipse at 50% 50%, rgba(244, 241, 250, 0.95) 0%, rgba(244, 241, 250, 0.65) 55%, transparent 85%)',
+                'radial-gradient(ellipse at 50% 50%, rgba(244, 241, 250, 0.95) 0%, rgba(244, 241, 250, 0.60) 60%, transparent 85%)',
             }}
           />
 

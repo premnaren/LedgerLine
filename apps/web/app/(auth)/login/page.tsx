@@ -183,31 +183,9 @@ export default function LoginPage() {
       </header>
 
       {/* ============================================================ */}
-      {/* LAYER 5: Centered Headline & Compact Authentication Card     */}
+      {/* LAYER 5: Left-Aligned Compact Authentication Card            */}
       {/* ============================================================ */}
-      <main className="flex z-20 flex-col justify-center items-center px-4 py-6 sm:py-8 my-auto w-full max-w-xl pointer-events-auto flex-1">
-        {/* Brand Headline Lockup with Local Atmospheric Contrast Shield */}
-        <div className="relative mb-5 sm:mb-6 space-y-1.5 text-center pointer-events-none">
-          <div
-            className="absolute -inset-y-5 -inset-x-8 rounded-full blur-2xl pointer-events-none opacity-85 -z-10"
-            style={{
-              background: isDark
-                ? 'radial-gradient(ellipse at 50% 50%, rgba(8, 7, 18, 0.90) 0%, rgba(8, 7, 18, 0.45) 60%, transparent 85%)'
-                : 'radial-gradient(ellipse at 50% 50%, rgba(244, 241, 250, 0.95) 0%, rgba(244, 241, 250, 0.55) 60%, transparent 85%)',
-            }}
-          />
-
-          <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold tracking-tight leading-tight">
-            <span className="text-[#17142B] dark:text-[#F7F4FF]">Every transaction, </span>
-            <span className="text-[#648EFF] dark:text-[#BD75E9] block sm:inline">
-              accounted for.
-            </span>
-          </h1>
-          <p className="text-xs sm:text-sm font-medium text-[#55516D] dark:text-[#C0BAD5] max-w-sm mx-auto leading-relaxed">
-            An interconnected financial universe.
-          </p>
-        </div>
-
+      <main className="flex z-20 items-center justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-6 sm:py-10 my-auto pointer-events-auto flex-1">
         {/* Compact Authentication Card */}
         <div
           className={`w-full max-w-[380px] sm:max-w-[395px] rounded-2xl p-5 sm:p-6 space-y-4 sm:space-y-4.5 transition-all duration-300 ${
@@ -714,13 +692,9 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 6: Balanced Footer                                     */}
       {/* ============================================================ */}
-      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-10 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#55516D] dark:text-[#C0BAD5] gap-2 z-30 pointer-events-auto">
+      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#55516D] dark:text-[#C0BAD5] z-30 pointer-events-auto">
         <div className="font-medium">
           LedgerLine &copy; 2026 &middot; Double-entry core engine
-        </div>
-
-        <div className="text-xs text-[#77718C] dark:text-[#9189AA]">
-          Scroll to explore the cosmic environment
         </div>
       </footer>
     </div>
