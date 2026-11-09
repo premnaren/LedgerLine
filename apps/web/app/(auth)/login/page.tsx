@@ -141,12 +141,12 @@ export default function LoginPage() {
               <span className="text-base font-bold tracking-tight text-ink">
                 Ledger<span className="text-accent">Line</span>
               </span>
-              <span className="block text-[11px] text-ink-muted leading-tight">
+              <span className="block text-xs text-ink-muted leading-tight">
                 Double-entry core ledger
               </span>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5 text-[10px] text-ledger-green bg-paper px-2 py-0.5 rounded border border-rule">
+          <div className="flex items-center space-x-1.5 text-xs text-ledger-green bg-paper px-2.5 py-1 rounded border border-rule">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
             <span className="font-medium">Active</span>
           </div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
               <p className="font-semibold">
                 {mode === 'signin' ? 'Sign in failed' : 'Registration failed'}
               </p>
-              <p className="mt-0.5 text-[11px] leading-relaxed">{error}</p>
+              <p className="mt-0.5 text-xs leading-relaxed">{error}</p>
             </div>
           </div>
         )}
@@ -207,17 +207,17 @@ export default function LoginPage() {
             <Info className="h-4 w-4 shrink-0 text-accent mt-0.5" />
             <div className="flex-1">
               <p className="font-semibold text-xs">Password recovery</p>
-              <p className="text-ink-muted text-[11px] mt-0.5">
-                Managed by security operations. Use a demo role or contact your administrator.
+              <p className="text-ink-muted text-xs mt-0.5 leading-relaxed">
+                Managed by security operations. For evaluation, use pre-configured demo credentials or contact admin@ledgerline.dev.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowForgotNotice(false)}
-              className="text-ink-faint hover:text-ink p-0.5"
+              className="text-ink-muted hover:text-ink p-0.5"
               aria-label="Dismiss notice"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -235,7 +235,7 @@ export default function LoginPage() {
                   Email address
                 </label>
                 <div className="relative">
-                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                     <Mail className="w-4 h-4" />
                   </div>
                   <input
@@ -249,7 +249,7 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       setActiveRole(null);
                     }}
-                    className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border mono-num border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                    className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border mono-num border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -267,13 +267,13 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowForgotNotice(true)}
-                    className="text-xs text-accent hover:underline"
+                    className="text-xs text-accent hover:underline font-medium"
                   >
                     Forgot?
                   </button>
                 </div>
                 <div className="relative">
-                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -284,14 +284,14 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                    className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-faint hover:text-ink"
+                    className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-muted hover:text-ink"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -328,11 +328,16 @@ export default function LoginPage() {
                 <div className="w-full border-t border-rule" />
               </div>
               <div className="flex relative justify-center text-xs">
-                <span className="bg-white px-2 text-[10px] text-ink-faint">
-                  Or select demo account
+                <span className="bg-white px-2.5 text-xs text-ink-muted font-medium">
+                  Pre-configured demo accounts for evaluation
                 </span>
               </div>
             </div>
+
+            {/* Demo Role Clarification Subtext */}
+            <p className="text-xs text-ink-muted mb-2 text-center leading-relaxed">
+              Selecting an account loads test credentials. Permissions are authenticated and enforced server-side upon sign-in.
+            </p>
 
             {/* Demo Buttons */}
             <div className="grid grid-cols-3 gap-2">
@@ -344,13 +349,13 @@ export default function LoginPage() {
                     ? 'border-accent bg-paper font-semibold text-ink ring-1 ring-accent'
                     : 'border-rule hover:bg-paper text-ink'
                 }`}
-                aria-label="Sign in as Admin demo account"
+                aria-label="Load Admin demo credentials"
               >
                 <div className="flex items-center justify-center space-x-1 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-admin)' }} />
-                  <span className="font-medium text-ink text-xs">Admin</span>
+                  <span className="font-semibold text-ink text-xs">Admin</span>
                 </div>
-                <span className="text-[10px] text-ink-faint block">Superuser</span>
+                <span className="text-xs text-ink-muted block truncate">Superuser</span>
               </button>
 
               <button
@@ -361,13 +366,13 @@ export default function LoginPage() {
                     ? 'border-accent bg-paper font-semibold text-ink ring-1 ring-accent'
                     : 'border-rule hover:bg-paper text-ink'
                 }`}
-                aria-label="Sign in as Holder demo account"
+                aria-label="Load Holder demo credentials"
               >
                 <div className="flex items-center justify-center space-x-1 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-holder)' }} />
-                  <span className="font-medium text-ink text-xs">Holder</span>
+                  <span className="font-semibold text-ink text-xs">Holder</span>
                 </div>
-                <span className="text-[10px] text-ink-faint block">Account owner</span>
+                <span className="text-xs text-ink-muted block truncate">Account owner</span>
               </button>
 
               <button
@@ -378,19 +383,19 @@ export default function LoginPage() {
                     ? 'border-accent bg-paper font-semibold text-ink ring-1 ring-accent'
                     : 'border-rule hover:bg-paper text-ink'
                 }`}
-                aria-label="Sign in as Auditor demo account"
+                aria-label="Load Auditor demo credentials"
               >
                 <div className="flex items-center justify-center space-x-1 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-auditor)' }} />
-                  <span className="font-medium text-ink text-xs">Auditor</span>
+                  <span className="font-semibold text-ink text-xs">Auditor</span>
                 </div>
-                <span className="text-[10px] text-ink-faint block">Read-only</span>
+                <span className="text-xs text-ink-muted block truncate">Read-only</span>
               </button>
             </div>
           </div>
         ) : (
           /* CREATE ACCOUNT FORM */
-          <form className="space-y-3" onSubmit={handleSignUp} noValidate>
+          <form className="space-y-3.5" onSubmit={handleSignUp} noValidate>
             {/* Email Address */}
             <div>
               <label
@@ -400,7 +405,7 @@ export default function LoginPage() {
                 Email address
               </label>
               <div className="relative">
-                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -411,7 +416,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
-                  className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border mono-num border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                  className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border mono-num border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                   placeholder="name@company.com"
                 />
               </div>
@@ -423,10 +428,10 @@ export default function LoginPage() {
                 htmlFor="account-name"
                 className="block mb-1 text-xs font-medium text-ink-muted"
               >
-                Account label <span className="text-ink-faint">(Optional)</span>
+                Account label <span className="text-ink-muted font-normal">(Optional)</span>
               </label>
               <div className="relative">
-                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                   <Building className="w-4 h-4" />
                 </div>
                 <input
@@ -435,7 +440,7 @@ export default function LoginPage() {
                   type="text"
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
-                  className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                  className="pr-3 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                   placeholder="e.g. Acme Operations"
                 />
               </div>
@@ -447,10 +452,10 @@ export default function LoginPage() {
                 htmlFor="signup-password"
                 className="block mb-1 text-xs font-medium text-ink-muted"
               >
-                Password <span className="text-ink-faint">(min 6 characters)</span>
+                Password <span className="text-ink-muted font-normal">(min 6 characters)</span>
               </label>
               <div className="relative">
-                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -461,14 +466,14 @@ export default function LoginPage() {
                   autoComplete="new-password"
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
-                  className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                  className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                   placeholder="••••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-faint hover:text-ink"
+                  className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-muted hover:text-ink"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -488,7 +493,7 @@ export default function LoginPage() {
                 Confirm password
               </label>
               <div className="relative">
-                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -499,14 +504,14 @@ export default function LoginPage() {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                  className="pr-9 pl-9 w-full h-9 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-accent"
                   placeholder="••••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-faint hover:text-ink"
+                  className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-muted hover:text-ink"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -517,12 +522,49 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Privilege Note */}
-            <div className="p-2.5 bg-paper rounded border border-rule text-[11px] text-ink-muted flex items-start space-x-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-ledger-green shrink-0 mt-0.5" />
-              <span>
-                New registrations are granted <strong className="text-ink">HOLDER</strong> role with an active zero-balance operating account.
-              </span>
+            {/* Real-time Password Requirements Checklist */}
+            <div className="p-2.5 bg-paper rounded border border-rule text-xs space-y-1">
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    signupPassword.length >= 6 ? 'bg-ledger-green' : 'bg-rule-strong'
+                  }`}
+                />
+                <span className={signupPassword.length >= 6 ? 'text-ink font-medium' : 'text-ink-muted'}>
+                  At least 6 characters
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    confirmPassword && signupPassword === confirmPassword
+                      ? 'bg-ledger-green'
+                      : 'bg-rule-strong'
+                  }`}
+                />
+                <span
+                  className={
+                    confirmPassword && signupPassword === confirmPassword
+                      ? 'text-ink font-medium'
+                      : 'text-ink-muted'
+                  }
+                >
+                  Passwords match
+                </span>
+              </div>
+            </div>
+
+            {/* Privilege & Permission Scope Explanation */}
+            <div className="p-3 bg-paper rounded border border-rule text-xs text-ink-muted flex items-start space-x-2.5">
+              <CheckCircle2 className="w-4 h-4 text-ledger-green shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span>
+                  New accounts are registered with the <strong className="text-ink">Holder</strong> role. This provisions your own operating account, personal statement generation, and internal double-entry transfers.
+                </span>
+                <span className="block mt-1 text-ink-muted">
+                  Administrative and Auditor privileges require organization credential elevation.
+                </span>
+              </div>
             </div>
 
             {/* Primary Sign Up Button */}
@@ -547,14 +589,14 @@ export default function LoginPage() {
         )}
 
         {/* Card Footer Security Seal */}
-        <div className="mt-5 pt-3 border-t border-rule flex items-center justify-center space-x-1.5 text-[11px] text-ink-faint">
-          <ShieldCheck className="h-3.5 w-3.5 text-ledger-green" />
+        <div className="mt-5 pt-3 border-t border-rule flex items-center justify-center space-x-1.5 text-xs text-ink-muted">
+          <ShieldCheck className="h-4 w-4 text-ledger-green" />
           <span>Serializable ACID · SHA-256 seal</span>
         </div>
       </div>
 
       {/* Page Footer */}
-      <footer className="mt-5 text-center text-[11px] text-ink-faint">
+      <footer className="mt-5 text-center text-xs text-ink-muted">
         LedgerLine &copy; 2026 · Double-entry core banking engine
       </footer>
     </div>

@@ -21,6 +21,7 @@ import {
   RotateCcw,
   X,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface AccountOption {
@@ -303,57 +304,71 @@ export default function TransferPage() {
         </div>
       )}
 
-      {/* Result Panel (Success Confirmation): Transient panel with border-l-2 var(--ledger-green) ONLY */}
+      {/* Result Panel (Success Confirmation): Comprehensive proof with direct statement linkage */}
       {result && (
-        <div className="p-5 bg-white border border-rule border-l-2 border-l-ledger-green rounded space-y-3">
-          <div className="flex items-center space-x-2 text-ink text-xs font-semibold">
-            <CheckCircle2 className="h-4 w-4 text-ledger-green" />
-            <span>Transaction successfully posted</span>
+        <div className="p-5 bg-white border border-rule border-l-4 border-l-ledger-green rounded space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-2 text-ink text-sm font-semibold">
+              <CheckCircle2 className="h-5 w-5 text-ledger-green shrink-0" />
+              <span>Transaction successfully posted to immutable ledger</span>
+            </div>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-paper text-ledger-green border border-rule font-medium">
+              SHA-256 SEALED
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-paper p-3 border border-rule rounded">
+          <p className="text-xs text-ink-muted">
+            The journal entry has been verified with PostgreSQL Serializable isolation and appended to the cryptographic hash chain. Balance conservation is guaranteed (ΔΣ = 0).
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-paper p-3.5 border border-rule rounded">
             <div>
-              <span className="text-ink-muted block text-[11px]">Operation</span>
-              <span className="mono-num font-medium text-ink uppercase">{result.type}</span>
+              <span className="text-ink-muted block text-xs">Operation</span>
+              <span className="mono-num font-semibold text-ink uppercase">{result.type}</span>
             </div>
             <div>
-              <span className="text-ink-muted block text-[11px]">Amount posted</span>
-              <span className="mono-num font-medium text-ink">
+              <span className="text-ink-muted block text-xs">Amount posted</span>
+              <span className="mono-num font-semibold text-ink">
                 {formatPaiseToRupees(result.amountPence)}
               </span>
             </div>
             <div>
-              <span className="text-ink-muted block text-[11px]">New balance</span>
-              <span className="mono-num font-medium text-ink">
+              <span className="text-ink-muted block text-xs">Updated balance</span>
+              <span className="mono-num font-semibold text-ink">
                 {formatPaiseToRupees(result.runningBalance || result.debitRunningBalance)}
               </span>
             </div>
             <div>
-              <span className="text-ink-muted block text-[11px]">Ledger entry</span>
-              <span className="mono-num font-medium text-ink truncate block">
-                {(result.entryId || result.debitEntryId || '').slice(0, 10)}...
+              <span className="text-ink-muted block text-xs">Entry UUID</span>
+              <span className="mono-num font-medium text-ink truncate block" title={result.entryId || result.debitEntryId}>
+                {(result.entryId || result.debitEntryId || '').slice(0, 12)}...
               </span>
             </div>
           </div>
 
-          <div className="pt-2 flex justify-end space-x-2.5 text-xs">
-            <button
-              type="button"
-              onClick={() => {
-                setResult(null);
-                setAmountRupees('');
-                setNote('');
-              }}
-              className="px-3 py-1.5 border border-rule rounded text-ink-muted hover:text-ink"
-            >
-              Make another transfer
-            </button>
-            <Link
-              href={`/accounts/${fromAccountId}`}
-              className="px-3 py-1.5 bg-accent text-white rounded font-medium hover:opacity-90"
-            >
-              View updated statement
-            </Link>
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-t border-rule">
+            <span className="text-xs text-ink-muted">
+              Find this entry recorded on your statement or audit trail.
+            </span>
+            <div className="flex items-center space-x-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setResult(null);
+                  setAmountRupees('');
+                  setNote('');
+                }}
+                className="px-3.5 py-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-paper transition font-medium"
+              >
+                Make another transfer
+              </button>
+              <Link
+                href={`/accounts/${fromAccountId}`}
+                className="px-4 py-2 bg-accent text-white rounded font-medium hover:opacity-90 transition pressable"
+              >
+                View updated statement →
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -410,7 +425,7 @@ export default function TransferPage() {
             </button>
           </div>
 
-          <p className="text-[11px] text-ink-faint">
+          <p className="text-xs text-ink-muted">
             {pageSubtitle}
           </p>
         </div>
@@ -425,13 +440,13 @@ export default function TransferPage() {
               </label>
               {type === 'deposit' ? (
                 <div className="h-10 px-3 bg-paper border border-rule rounded flex items-center text-xs text-ink-muted">
-                  <Building className="h-3.5 w-3.5 mr-2 text-ink-faint" />
+                  <Building className="h-3.5 w-3.5 mr-2 text-ink-muted" />
                   <span>External settlement</span>
                 </div>
               ) : (
                 <div className="h-10 px-3 bg-paper border border-rule rounded flex items-center justify-between text-xs text-ink">
                   <span className="font-medium truncate">{currentAccount?.name}</span>
-                  <span className="mono-num text-ink-muted shrink-0">
+                  <span className="mono-num text-ink-muted shrink-0 font-medium">
                     {formatPaiseToRupees(currentAccount?.balancePence || '0')}
                   </span>
                 </div>
@@ -459,13 +474,13 @@ export default function TransferPage() {
                 </select>
               ) : type === 'withdrawal' ? (
                 <div className="h-10 px-3 bg-paper border border-rule rounded flex items-center text-xs text-ink-muted">
-                  <Building className="h-3.5 w-3.5 mr-2 text-ink-faint" />
+                  <Building className="h-3.5 w-3.5 mr-2 text-ink-muted" />
                   <span>External vault payout</span>
                 </div>
               ) : (
                 <div className="h-10 px-3 bg-paper border border-rule rounded flex items-center justify-between text-xs text-ink">
                   <span className="font-medium truncate">{currentAccount?.name}</span>
-                  <span className="mono-num text-ink-muted shrink-0">
+                  <span className="mono-num text-ink-muted shrink-0 font-medium">
                     {formatPaiseToRupees(currentAccount?.balancePence || '0')}
                   </span>
                 </div>
@@ -479,13 +494,13 @@ export default function TransferPage() {
               <label className="block text-xs text-ink-muted font-medium">
                 Amount (₹ INR)
               </label>
-              <span className="text-[11px] mono-num text-ink-faint">
+              <span className="text-xs mono-num text-ink-muted">
                 Exact paise precision
               </span>
             </div>
 
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-faint text-xs">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-muted text-xs font-medium">
                 ₹
               </div>
               <input
@@ -504,7 +519,7 @@ export default function TransferPage() {
 
             {amountValidationError && (
               <div className="mt-1 flex items-center space-x-1.5 text-xs text-ledger-red">
-                <AlertTriangle className="h-3 w-3 shrink-0" />
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                 <span>{amountValidationError}</span>
               </div>
             )}
@@ -529,7 +544,7 @@ export default function TransferPage() {
         <div className="space-y-3 pt-2 border-t border-rule text-xs">
           <div className="flex items-center justify-between">
             <span className="text-ink-muted font-medium">Balance preview</span>
-            <span className="mono-num text-[11px] text-ink-muted">
+            <span className="mono-num text-xs text-ink-muted">
               Zero-sum invariant Δ=0
             </span>
           </div>
@@ -555,9 +570,9 @@ export default function TransferPage() {
               </div>
             )}
 
-            <div className="flex justify-between pt-1 border-t border-rule text-[11px] text-ink-faint">
+            <div className="flex justify-between pt-1 border-t border-rule text-xs text-ink-muted">
               <span>Total system circulation:</span>
-              <span className="mono-num">{formatPaiseToRupees(totalSystemBalancePaise.toString())}</span>
+              <span className="mono-num font-medium">{formatPaiseToRupees(totalSystemBalancePaise.toString())}</span>
             </div>
           </div>
         </div>
@@ -583,37 +598,37 @@ export default function TransferPage() {
                   <button
                     type="button"
                     onClick={handleCopyKey}
-                    className="text-xs text-accent hover:underline"
+                    className="text-xs text-accent hover:underline font-medium"
                   >
                     {copiedKey ? 'Copied' : 'Copy'}
                   </button>
-                  <span className="text-ink-faint">·</span>
+                  <span className="text-ink-muted">·</span>
                   <button
                     type="button"
                     onClick={() => setIdempotencyKey(crypto.randomUUID())}
-                    className="text-xs text-accent hover:underline"
+                    className="text-xs text-accent hover:underline font-medium"
                   >
                     Regenerate
                   </button>
                 </div>
               </div>
-              <div className="mono-num text-[11px] text-ink-muted bg-white p-2 border border-rule rounded truncate">
+              <div className="mono-num text-xs text-ink-muted bg-white p-2 border border-rule rounded truncate">
                 {idempotencyKey}
               </div>
-              <p className="text-[11px] text-ink-faint">
-                Guarantees at-most-once execution; duplicate submits will replay the original result.
+              <p className="text-xs text-ink-muted">
+                Guarantees at-most-once execution; duplicate submits will safely replay the original result without double-posting.
               </p>
             </div>
           )}
         </div>
 
-        {/* Primary Action Button: The single prominent filled CTA */}
+        {/* Primary Action Button: Clear review step before money moves */}
         <button
           type="submit"
           disabled={!isFormValid || loading}
           className="h-10 w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition pressable"
         >
-          <span>Confirm &amp; post entry</span>
+          <span>Review {type}</span>
           <ArrowRight className="ml-2 h-3.5 w-3.5" />
         </button>
       </form>
@@ -623,79 +638,118 @@ export default function TransferPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 animate-in fade-in duration-100"
         >
-          <div className="bg-white rounded border border-rule max-w-md w-full p-5 space-y-4">
-            <div className="flex items-start justify-between pb-2 border-b border-rule">
+          <div className="bg-white rounded border border-rule max-w-lg w-full p-6 space-y-5 shadow-lg animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between pb-3 border-b border-rule">
               <div>
-                <h3 className="text-sm font-semibold text-ink">
-                  Confirm transaction
+                <h3 className="text-base font-bold text-ink">
+                  Review &amp; confirm {type}
                 </h3>
-                <p className="text-xs text-ink-muted">
-                  Review transaction before committing to the immutable ledger
+                <p className="text-xs text-ink-muted mt-0.5">
+                  Verify transaction details before committing to the immutable double-entry ledger.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="text-ink-faint hover:text-ink p-1"
+                className="text-ink-muted hover:text-ink p-1 rounded hover:bg-paper transition"
+                aria-label="Close review dialog"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-3 bg-paper border border-rule rounded text-center">
-              <span className="text-xs text-ink-muted block">Transaction amount</span>
-              <div className="mono-num text-2xl font-medium text-ink mt-0.5">
+            {/* Amount & Fee Summary Card */}
+            <div className="p-4 bg-paper border border-rule rounded text-center space-y-1">
+              <span className="text-xs text-ink-muted font-medium block">
+                Total {type} amount
+              </span>
+              <div className="mono-num text-2xl font-bold text-ink">
                 {formatPaiseToRupees(parsedAmountPaise.toString())}
+              </div>
+              <div className="text-xs text-ink-muted flex items-center justify-center gap-1.5 pt-1">
+                <span>Fee:</span>
+                <span className="font-semibold text-ledger-green">₹0.00 (Zero fee · Core engine)</span>
               </div>
             </div>
 
-            <div className="space-y-1.5 text-xs bg-paper p-3 border border-rule rounded">
-              <div className="flex justify-between">
-                <span className="text-ink-muted">Operation:</span>
-                <span className="mono-num font-medium text-ink uppercase">{type}</span>
+            {/* High-Value Notice for transactions >= ₹10,000 */}
+            {parsedAmountPaise >= 1000000n && (
+              <div className="p-3 bg-amber-50 border border-amber-300 rounded text-xs text-amber-950 flex items-start space-x-2">
+                <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-semibold block">High-value money movement notice</span>
+                  <p className="text-amber-900 leading-relaxed">
+                    This transfer equals or exceeds ₹10,000.00. Transactions are cryptographically signed and permanent upon posting. Ensure both accounts are accurate.
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">From:</span>
-                <span className="font-medium text-ink truncate max-w-[200px]">
-                  {type === 'deposit' ? 'External Settlement' : currentAccount?.name}
+            )}
+
+            {/* Detailed Transfer Summary */}
+            <div className="space-y-2 text-xs bg-paper p-3.5 border border-rule rounded">
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">Operation:</span>
+                <span className="mono-num font-semibold text-ink uppercase">{type}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">From (debit):</span>
+                <span className="font-medium text-ink truncate max-w-[260px]">
+                  {type === 'deposit' ? 'External Settlement' : `${currentAccount?.name} (${formatPaiseToRupees(currentAccount?.balancePence || '0')})`}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-ink-muted">To:</span>
-                <span className="font-medium text-ink truncate max-w-[200px]">
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">To (credit):</span>
+                <span className="font-medium text-ink truncate max-w-[260px]">
                   {type === 'transfer'
-                    ? targetAccount?.name || 'Destination'
+                    ? `${targetAccount?.name || 'Destination'} (${formatPaiseToRupees(targetAccount?.balancePence || '0')})`
                     : type === 'withdrawal'
                     ? 'External Vault Payout'
                     : currentAccount?.name}
                 </span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-rule">
-                <span className="text-ink-muted">Remaining balance:</span>
-                <span className="mono-num font-medium text-ink">
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">Description:</span>
+                <span className="font-medium text-ink truncate max-w-[260px]">
+                  {note.trim() ? note.trim() : 'None specified'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-rule">
+                <span className="text-ink-muted font-medium">Projected sender balance:</span>
+                <span className="mono-num font-bold text-ink">
                   {formatPaiseToRupees(projectedCurrentBalancePaise.toString())}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-2">
+            {/* Protection Guarantee Notice */}
+            <div className="flex items-center space-x-1.5 text-xs text-ink-muted">
+              <ShieldCheck className="h-4 w-4 text-ledger-green shrink-0" />
+              <span>Idempotent submission protected. No duplicate charges on retry.</span>
+            </div>
+
+            {/* Explicit Actions with Dynamic Labeling */}
+            <div className="flex items-center space-x-3 pt-2">
               <button
                 type="button"
                 disabled={loading}
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-2 px-3 text-xs font-medium text-ink-muted hover:text-ink border border-rule rounded"
+                className="flex-1 py-2.5 px-4 text-xs font-medium text-ink-muted hover:text-ink border border-rule rounded hover:bg-paper transition"
               >
-                Cancel
+                Back to edit
               </button>
               <button
                 type="button"
                 disabled={loading}
                 onClick={handleExecuteTransfer}
-                className="flex-1 py-2 px-3 text-xs font-semibold text-white bg-accent rounded hover:opacity-95 disabled:opacity-50"
+                className="flex-1 py-2.5 px-4 text-xs font-bold text-white bg-accent rounded hover:opacity-95 disabled:opacity-50 transition pressable flex items-center justify-center space-x-1.5"
               >
-                {loading ? 'Posting...' : 'Confirm & post entry'}
+                {loading ? (
+                  <span>Posting {formatPaiseToRupees(parsedAmountPaise.toString())}...</span>
+                ) : (
+                  <span>Post {formatPaiseToRupees(parsedAmountPaise.toString())} {type}</span>
+                )}
               </button>
             </div>
           </div>

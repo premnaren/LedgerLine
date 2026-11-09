@@ -4,17 +4,17 @@
 
 :root {
   --ink: #14181F;
-  --ink-muted: #6B6D72;
-  --ink-faint: #9A9C9F;
+  --ink-muted: #484B52;
+  --ink-faint: #62666D;
   --paper: #FAFAF8;
-  --rule: #E2E0DB;
-  --rule-strong: #C9C6BF;
-  --ledger-green: #1A6B4F;
-  --ledger-red: #A23B2E;
+  --rule: #DDD9D2;
+  --rule-strong: #B5B1A8;
+  --ledger-green: #146B46;
+  --ledger-red: #A3281E;
   --accent: #2C4A7C;
   --role-admin: #6B47A8;
   --role-holder: #2C4A7C;
-  --role-auditor: #B8863B;
+  --role-auditor: #9A6E24;
 
   --background: 48 20% 98%;
   --foreground: 220 22% 10%;
@@ -28,6 +28,11 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .mono-num {

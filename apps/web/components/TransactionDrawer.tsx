@@ -132,17 +132,17 @@ export default function TransactionDrawer({
         <div className="shrink-0 p-5 border-b border-rule flex items-start justify-between bg-paper">
           <div>
             <div className="flex items-center space-x-3 mb-1">
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: statusColor }}>
+              <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: statusColor }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
                 {entry.status}
               </span>
 
-              <span className="flex items-center gap-1 text-[11px] text-ink-muted mono-num">
+              <span className="flex items-center gap-1 text-xs text-ink-muted mono-num">
                 <ShieldCheck className="h-3 w-3 text-accent" />
                 <span>{entry.hash ? 'SHA-256' : 'Genesis'}</span>
               </span>
 
-              <span className="text-[11px] text-ink-faint mono-num">
+              <span className="text-xs text-ink-muted mono-num">
                 · {formattedDate}
               </span>
             </div>
@@ -152,13 +152,13 @@ export default function TransactionDrawer({
             </h2>
 
             <div className="flex items-center space-x-2 mt-0.5">
-              <span className="text-xs font-mono text-ink-faint">
+              <span className="text-xs font-mono text-ink-muted">
                 ID: {entry.id.slice(0, 10)}...
               </span>
               <button
                 type="button"
                 onClick={() => handleCopy(entry.id, setCopiedId)}
-                className="text-xs text-accent hover:underline"
+                className="text-xs text-accent hover:underline font-medium"
                 title="Copy entry UUID"
               >
                 {copiedId ? 'Copied' : 'Copy ID'}
@@ -173,7 +173,7 @@ export default function TransactionDrawer({
                   type="button"
                   onClick={onNavigatePrevious}
                   disabled={!hasPrevious}
-                  className="p-1 text-ink-muted hover:text-ink disabled:opacity-30"
+                  className="p-1.5 text-ink-muted hover:text-ink disabled:opacity-30"
                   aria-label="Previous transaction"
                 >
                   <ChevronUp className="h-4 w-4" />
@@ -182,7 +182,7 @@ export default function TransactionDrawer({
                   type="button"
                   onClick={onNavigateNext}
                   disabled={!hasNext}
-                  className="p-1 text-ink-muted hover:text-ink disabled:opacity-30"
+                  className="p-1.5 text-ink-muted hover:text-ink disabled:opacity-30"
                   aria-label="Next transaction"
                 >
                   <ChevronDown className="h-4 w-4" />
@@ -192,7 +192,7 @@ export default function TransactionDrawer({
 
             <button
               onClick={onClose}
-              className="p-1 text-ink-faint hover:text-ink"
+              className="p-1.5 border border-rule rounded text-ink-muted hover:text-ink hover:bg-paper transition"
               title="Close drawer"
               aria-label="Close dialog"
             >
@@ -205,11 +205,11 @@ export default function TransactionDrawer({
         <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-4 text-xs">
           {/* Amount Card */}
           <div className="p-4 rounded border border-rule bg-paper space-y-3">
-            <span className="text-[11px] text-ink-muted font-medium block">
+            <span className="text-xs text-ink-muted font-medium block">
               Account impact ({isDebit ? 'Outflow' : 'Inflow'})
             </span>
             <div
-              className="mono-num text-2xl font-medium tracking-tight"
+              className="mono-num text-2xl font-bold tracking-tight"
               style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
             >
               {isDebit ? `−${amountStr}` : `+${amountStr}`}
@@ -217,13 +217,13 @@ export default function TransactionDrawer({
 
             <div className="pt-2 border-t border-rule grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-ink-muted block text-[11px]">Exact volume:</span>
-                <span className="mono-num font-medium text-ink">{amountStr}</span>
-                <span className="text-[10px] mono-num text-ink-faint block">{entry.amountPence} paise</span>
+                <span className="text-ink-muted block text-xs">Exact volume:</span>
+                <span className="mono-num font-semibold text-ink">{amountStr}</span>
+                <span className="text-xs mono-num text-ink-muted block">{entry.amountPence} paise</span>
               </div>
               <div>
-                <span className="text-ink-muted block text-[11px]">Entry type:</span>
-                <span className="mono-num font-medium text-ink">{entry.type}</span>
+                <span className="text-ink-muted block text-xs">Entry type:</span>
+                <span className="mono-num font-semibold text-ink">{entry.type}</span>
               </div>
             </div>
           </div>
@@ -235,32 +235,32 @@ export default function TransactionDrawer({
                 <ArrowRightLeft className="h-3.5 w-3.5 text-accent" />
                 <span>Double-entry movement</span>
               </span>
-              <span className="mono-num text-[10px] text-ledger-green font-medium">
+              <span className="mono-num text-xs text-ledger-green font-medium">
                 Zero-sum Δ=0
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="p-2.5 bg-paper border border-rule rounded">
-                <span className="text-[10px] text-ink-muted block font-medium">Debit source</span>
+                <span className="text-xs text-ink-muted block font-medium">Debit source</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.debitAccountName || (entry.debitAccountId ? `Acc: ${entry.debitAccountId.slice(0, 8)}...` : 'Source')}
                 </span>
-                <span className="mono-num font-medium text-ledger-red block mt-0.5">−{amountStr}</span>
+                <span className="mono-num font-semibold text-ledger-red block mt-0.5">−{amountStr}</span>
               </div>
 
               <div className="p-2.5 bg-paper border border-rule rounded">
-                <span className="text-[10px] text-ink-muted block font-medium">Credit dest</span>
+                <span className="text-xs text-ink-muted block font-medium">Credit dest</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.creditAccountName || (entry.creditAccountId ? `Acc: ${entry.creditAccountId.slice(0, 8)}...` : 'Destination')}
                 </span>
-                <span className="mono-num font-medium text-ledger-green block mt-0.5">+{amountStr}</span>
+                <span className="mono-num font-semibold text-ledger-green block mt-0.5">+{amountStr}</span>
               </div>
             </div>
 
             <div className="pt-2 border-t border-rule flex justify-between">
               <span className="text-ink-muted">Running balance ({activeAccountName}):</span>
-              <span className="mono-num font-medium text-ink">{formatPaiseToRupees(entry.runningBalance)}</span>
+              <span className="mono-num font-bold text-ink">{formatPaiseToRupees(entry.runningBalance)}</span>
             </div>
           </div>
 
@@ -271,16 +271,16 @@ export default function TransactionDrawer({
                 <ShieldCheck className="h-3.5 w-3.5 text-accent" />
                 <span>Cryptographic seal</span>
               </span>
-              <span className="mono-num text-[10px] text-ink-muted">SHA-256</span>
+              <span className="mono-num text-xs text-ink-muted">SHA-256</span>
             </div>
 
             {/* Visual Hash-Chain Continuity Block Diagram */}
             <div className="bg-paper border border-rule rounded p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider">
+                <span className="text-xs text-ink-muted font-semibold uppercase tracking-wider">
                   Block pointer continuity
                 </span>
-                <span className="flex items-center gap-1 text-[10px] text-ledger-green font-medium">
+                <span className="flex items-center gap-1 text-xs text-ledger-green font-medium">
                   <CheckCircle2 className="h-3 w-3 text-ledger-green" />
                   Verified link
                 </span>
@@ -289,11 +289,11 @@ export default function TransactionDrawer({
               <div className="grid grid-cols-11 items-center gap-1.5 text-xs">
                 {/* Parent Block */}
                 <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
-                  <div className="flex items-center space-x-1 text-[10px] text-ink-muted mb-0.5">
+                  <div className="flex items-center space-x-1 text-xs text-ink-muted mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
                     <span className="font-medium truncate">Parent seal</span>
                   </div>
-                  <div className="mono-num text-[11px] text-ink font-semibold truncate select-all">
+                  <div className="mono-num text-xs text-ink font-semibold truncate select-all">
                     {entry.prevHash ? `${entry.prevHash.slice(0, 8)}...` : 'Genesis'}
                   </div>
                 </div>
@@ -305,17 +305,17 @@ export default function TransactionDrawer({
 
                 {/* Current Block */}
                 <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
-                  <div className="flex items-center space-x-1 text-[10px] text-accent mb-0.5">
+                  <div className="flex items-center space-x-1 text-xs text-accent mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                     <span className="font-semibold truncate">Current seal</span>
                   </div>
-                  <div className="mono-num text-[11px] text-accent font-semibold truncate select-all">
+                  <div className="mono-num text-xs text-accent font-semibold truncate select-all">
                     {entry.hash ? `${entry.hash.slice(0, 8)}...` : 'Unsealed'}
                   </div>
                 </div>
               </div>
 
-              <div className="text-[10px] mono-num text-ink-faint flex items-center justify-between pt-1 border-t border-rule">
+              <div className="text-xs mono-num text-ink-muted flex items-center justify-between pt-1 border-t border-rule">
                 <span>Tamper-evident link</span>
                 <span>SHA256(prev || id || date || Δ)</span>
               </div>
@@ -328,13 +328,13 @@ export default function TransactionDrawer({
                   <button
                     type="button"
                     onClick={() => handleCopy(entry.hash!, setCopiedHash)}
-                    className="text-accent hover:underline text-[11px]"
+                    className="text-accent hover:underline text-xs font-medium"
                   >
                     {copiedHash ? 'Copied' : 'Copy'}
                   </button>
                 )}
               </div>
-              <div className="mono-num text-[11px] text-ink bg-paper p-2 border border-rule rounded truncate select-all">
+              <div className="mono-num text-xs text-ink bg-paper p-2 border border-rule rounded truncate select-all">
                 {entry.hash || 'Genesis Block'}
               </div>
             </div>
@@ -346,13 +346,13 @@ export default function TransactionDrawer({
                   <button
                     type="button"
                     onClick={() => handleCopy(entry.prevHash!, setCopiedPrevHash)}
-                    className="text-accent hover:underline text-[11px]"
+                    className="text-accent hover:underline text-xs font-medium"
                   >
                     {copiedPrevHash ? 'Copied' : 'Copy'}
                   </button>
                 )}
               </div>
-              <div className="mono-num text-[11px] text-ink bg-paper p-2 border border-rule rounded truncate select-all">
+              <div className="mono-num text-xs text-ink bg-paper p-2 border border-rule rounded truncate select-all">
                 {entry.prevHash || '0'.repeat(64)}
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function TransactionDrawer({
               {entry.note && (
                 <div className="pt-1">
                   <span className="text-ink-muted block mb-0.5">Note:</span>
-                  <p className="bg-paper p-2 rounded border border-rule mono-num text-[11px] text-ink">
+                  <p className="bg-paper p-2 rounded border border-rule mono-num text-xs text-ink">
                     {entry.note}
                   </p>
                 </div>
@@ -399,7 +399,7 @@ export default function TransactionDrawer({
                 <button
                   type="button"
                   onClick={handleDownloadJson}
-                  className="text-accent hover:underline text-[11px] flex items-center space-x-1"
+                  className="text-accent hover:underline text-xs font-medium flex items-center space-x-1"
                 >
                   <Download className="h-3 w-3 mr-0.5" />
                   <span>Download</span>
@@ -408,7 +408,7 @@ export default function TransactionDrawer({
             </div>
 
             {showRawJson && (
-              <pre className="mt-2.5 p-3 bg-paper border border-rule rounded text-[11px] mono-num overflow-x-auto max-h-48 text-ink">
+              <pre className="mt-2.5 p-3 bg-paper border border-rule rounded text-xs mono-num overflow-x-auto max-h-48 text-ink">
                 {JSON.stringify(entry, null, 2)}
               </pre>
             )}

@@ -59,6 +59,7 @@ export default function AuditPage() {
   const [reversalLoading, setReversalLoading] = useState<boolean>(false);
   const [reversalError, setReversalError] = useState<string | null>(null);
   const [reversalSuccess, setReversalSuccess] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   // Transaction inspection slide-over drawer
   const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
@@ -179,6 +180,16 @@ export default function AuditPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    setExportNotice(`Successfully exported ${entries.length} audit records to CSV.`);
+    setTimeout(() => setExportNotice(null), 4000);
+  };
+
+  const hasActiveFilters = Boolean(selectedAccount || startDate || endDate);
+  const handleClearFilters = () => {
+    setSelectedAccount('');
+    setStartDate('');
+    setEndDate('');
   };
 
   return (
@@ -241,94 +252,127 @@ export default function AuditPage() {
         </div>
       )}
 
-      {/* Filter Bar: border border-rule rounded, "Apply Filters" is the single primary filled button */}
-      <div className="bg-white border border-rule rounded p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-        <div>
-          <label className="block text-xs text-ink-muted font-medium mb-1">
-            Account filter
-          </label>
-          <select
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
-          >
-            <option value="">All accounts</option>
-            {accounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-ink-muted font-medium mb-1">
-            Start date
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-ink-muted font-medium mb-1">
-            End date
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
-          />
-        </div>
-
-        <div>
+      {exportNotice && (
+        <div className="p-3.5 bg-paper border border-ledger-green rounded flex items-center justify-between text-ledger-green text-xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <p>{exportNotice}</p>
+          </div>
           <button
-            onClick={() => fetchAuditEntries()}
-            className="w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition"
+            onClick={() => setExportNotice(null)}
+            className="hover:underline text-xs"
           >
-            <Search className="mr-1.5 h-3.5 w-3.5" />
-            <span>Apply filters</span>
+            Dismiss
           </button>
         </div>
+      )}
+
+      {/* Filter Bar: border border-rule rounded, "Apply Filters" is the single primary filled button */}
+      <div className="bg-white border border-rule rounded p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div>
+            <label className="block text-xs text-ink-muted font-medium mb-1">
+              Account filter
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+            >
+              <option value="">All accounts</option>
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-ink-muted font-medium mb-1">
+              Start date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+            >
+            </input>
+          </div>
+
+          <div>
+            <label className="block text-xs text-ink-muted font-medium mb-1">
+              End date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+            />
+          </div>
+
+          <div>
+            <button
+              onClick={() => fetchAuditEntries()}
+              className="w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition"
+            >
+              <Search className="mr-1.5 h-3.5 w-3.5" />
+              <span>Apply filters</span>
+            </button>
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <div className="pt-2 border-t border-rule flex items-center justify-between text-xs">
+            <span className="text-ink-muted">
+              Active filters applied. Showing filtered audit subset.
+            </span>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-xs text-accent hover:underline font-semibold"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Metric Cards Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white border border-rule rounded p-4">
           <span className="text-xs text-ink-muted font-medium block">Total entries</span>
-          <div className="mono-num text-xl font-medium text-ink mt-0.5">
+          <div className="mono-num text-xl font-bold text-ink mt-0.5">
             {loading ? '—' : entries.length}
           </div>
-          <span className="text-[11px] text-ink-faint mt-0.5 block">Audit log count</span>
+          <span className="text-xs text-ink-muted mt-0.5 block">Audit log count</span>
         </div>
 
         <div className="bg-white border border-rule rounded p-4">
           <span className="text-xs text-ink-muted font-medium block">Posted records</span>
-          <div className="mono-num text-xl font-medium text-ledger-green mt-0.5">
+          <div className="mono-num text-xl font-bold text-ledger-green mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'POSTED').length}
           </div>
-          <span className="text-[11px] text-ink-faint mt-0.5 block">Committed</span>
+          <span className="text-xs text-ink-muted mt-0.5 block">Committed</span>
         </div>
 
         <div className="bg-white border border-rule rounded p-4">
           <span className="text-xs text-ink-muted font-medium block">Refused attempts</span>
-          <div className="mono-num text-xl font-medium text-ledger-red mt-0.5">
+          <div className="mono-num text-xl font-bold text-ledger-red mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'REFUSED').length}
           </div>
-          <span className="text-[11px] text-ink-faint mt-0.5 block">Refused</span>
+          <span className="text-xs text-ink-muted mt-0.5 block">Refused</span>
         </div>
 
         <div className="bg-white border border-rule rounded p-4">
           <span className="text-xs text-ink-muted font-medium block">Cryptographic seal</span>
-          <div className="mono-num text-xl font-medium text-ink mt-0.5 flex items-center space-x-1.5">
+          <div className="mono-num text-xl font-bold text-ink mt-0.5 flex items-center space-x-1.5">
             <span>100%</span>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
           </div>
-          <span className="text-[11px] text-ink-faint mt-0.5 block">Genesis-to-Head SHA-256</span>
+          <span className="text-xs text-ink-muted mt-0.5 block">Genesis-to-Head SHA-256</span>
         </div>
       </div>
 
@@ -336,33 +380,33 @@ export default function AuditPage() {
       <div className="bg-white border border-rule rounded overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-rule text-xs">
-            <thead className="bg-paper text-ink-muted font-medium border-b border-rule-strong">
+            <thead className="sticky top-0 bg-paper text-ink font-semibold border-b border-rule-strong z-10">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Date &amp; time
                 </th>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Type
                 </th>
-                <th scope="col" className="px-4 py-3 text-center">
+                <th scope="col" className="px-4 py-3 text-center font-semibold">
                   Status
                 </th>
-                <th scope="col" className="px-4 py-3 text-right">
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
                   Amount
                 </th>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Debit account
                 </th>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Credit account
                 </th>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Initiated by
                 </th>
-                <th scope="col" className="px-4 py-3 text-left">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
                   Note
                 </th>
-                <th scope="col" className="px-4 py-3 text-right">
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
                   Actions
                 </th>
               </tr>
@@ -391,6 +435,7 @@ export default function AuditPage() {
               ) : (
                 entries.map((entry) => {
                   const isPosted = entry.status === 'POSTED';
+                  const isInspected = inspectedEntry?.id === entry.id;
                   const dateStr = new Date(entry.createdAt).toLocaleString('en-IN', {
                     dateStyle: 'short',
                     timeStyle: 'short',
@@ -400,21 +445,25 @@ export default function AuditPage() {
                     <tr
                       key={entry.id}
                       onClick={() => setInspectedEntry(entry)}
-                      className="cursor-pointer transition hover:bg-[#F3F2EE]"
+                      className={`cursor-pointer transition ${
+                        isInspected
+                          ? 'bg-rule/40 ring-1 ring-accent/30 font-medium'
+                          : 'hover:bg-[#F3F2EE]'
+                      }`}
                       title="Click row to inspect cryptographic seal & double-entry details"
                     >
                       <td className="px-4 py-3 whitespace-nowrap mono-num text-ink-muted">
                         {dateStr}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink font-medium">
+                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink font-semibold">
                         {entry.type}
                       </td>
 
                       {/* Status Column: 6px colored dot + plain text */}
                       <td className="px-4 py-3 whitespace-nowrap text-center">
                         <span
-                          className="inline-flex items-center gap-1.5 font-medium"
+                          className="inline-flex items-center gap-1.5 font-semibold"
                           style={{
                             color: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
                           }}
@@ -430,8 +479,8 @@ export default function AuditPage() {
                       </td>
 
                       <td
-                        className={`px-4 py-3 whitespace-nowrap text-right mono-num font-medium ${
-                          !isPosted ? 'text-ink-faint line-through' : 'text-ink'
+                        className={`px-4 py-3 whitespace-nowrap text-right mono-num font-semibold ${
+                          !isPosted ? 'text-ink-muted line-through' : 'text-ink'
                         }`}
                       >
                         {formatPaiseToRupees(entry.amountPence)}
@@ -469,9 +518,9 @@ export default function AuditPage() {
                             Reverse
                           </button>
                         ) : entry.type === 'ADJUSTMENT' ? (
-                          <span className="text-ink-faint mono-num text-[11px]">Compensating leg</span>
+                          <span className="text-ink-muted mono-num text-xs">Compensating leg</span>
                         ) : (
-                          <span className="text-ink-faint">—</span>
+                          <span className="text-ink-muted">—</span>
                         )}
                       </td>
                     </tr>

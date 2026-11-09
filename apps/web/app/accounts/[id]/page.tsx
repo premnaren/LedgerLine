@@ -146,12 +146,12 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
         <div className="flex items-center space-x-2">
           <span className="text-xs text-ink-muted font-medium">Balance over time</span>
           {activePt && (
-            <span className="text-[11px] mono-num text-accent bg-paper px-2 py-0.5 rounded border border-rule animate-in fade-in duration-100">
+            <span className="text-xs mono-num text-accent bg-paper px-2 py-0.5 rounded border border-rule animate-in fade-in duration-100">
               Point #{hoveredIdx! + 1} of {coords.length}
             </span>
           )}
         </div>
-        <span className="text-xs mono-num text-ink-faint">
+        <span className="text-xs mono-num text-ink-muted">
           {coords.length} {coords.length === 1 ? 'datapoint' : 'datapoints'}
         </span>
       </div>
@@ -174,8 +174,8 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             <span className="font-semibold text-ink truncate max-w-[280px]">
               {activePt.entry.note || activePt.entry.type}
             </span>
-            <span className="text-ink-faint">·</span>
-            <span className="mono-num text-[11px] text-ink-muted whitespace-nowrap">
+            <span className="text-ink-muted">·</span>
+            <span className="mono-num text-xs text-ink-muted whitespace-nowrap">
               {new Date(activePt.entry.createdAt).toLocaleString('en-IN', {
                 month: 'short',
                 day: 'numeric',
@@ -189,7 +189,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             <span
               className={
                 activePt.entry.status === 'REFUSED'
-                  ? 'text-ink-faint line-through'
+                  ? 'text-ink-muted line-through'
                   : activePt.entry.direction === 'DEBIT'
                   ? 'text-ledger-red font-medium'
                   : 'text-ledger-green font-medium'
@@ -201,7 +201,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
                     Number(activePt.entry.amountPence) / 100
                   ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
             </span>
-            <span className="text-ink-faint">→</span>
+            <span className="text-ink-muted">→</span>
             <span className="font-semibold text-ink bg-white px-2 py-0.5 rounded border border-rule">
               ₹{activePt.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
@@ -573,30 +573,30 @@ export default function AccountStatementPage() {
       <div className="bg-white border border-rule rounded overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-rule text-xs">
-            <thead className="bg-paper text-ink-muted font-medium border-b border-rule-strong">
+            <thead className="sticky top-0 bg-paper text-ink font-semibold border-b border-rule-strong z-10">
               <tr>
-                <th scope="col" className="px-5 py-3 text-left">
+                <th scope="col" className="px-5 py-3 text-left font-semibold">
                   Date &amp; time
                 </th>
-                <th scope="col" className="px-5 py-3 text-left">
+                <th scope="col" className="px-5 py-3 text-left font-semibold">
                   Entry type
                 </th>
-                <th scope="col" className="px-5 py-3 text-right">
+                <th scope="col" className="px-5 py-3 text-right font-semibold">
                   Amount
                 </th>
-                <th scope="col" className="px-5 py-3 text-center">
+                <th scope="col" className="px-5 py-3 text-center font-semibold">
                   Status
                 </th>
-                <th scope="col" className="px-5 py-3 text-right">
+                <th scope="col" className="px-5 py-3 text-right font-semibold">
                   Running balance
                 </th>
-                <th scope="col" className="px-5 py-3 text-left">
+                <th scope="col" className="px-5 py-3 text-left font-semibold">
                   Initiated by
                 </th>
-                <th scope="col" className="px-5 py-3 text-left">
+                <th scope="col" className="px-5 py-3 text-left font-semibold">
                   Note
                 </th>
-                <th scope="col" className="px-5 py-3 text-right">
+                <th scope="col" className="px-5 py-3 text-right font-semibold">
                   Actions
                 </th>
               </tr>
@@ -624,6 +624,7 @@ export default function AccountStatementPage() {
               ) : (
                 statement?.entries.map((entry) => {
                   const isPosted = entry.status === 'POSTED';
+                  const isInspected = inspectedEntry?.id === entry.id;
                   const dateStr = new Date(entry.createdAt).toLocaleString('en-IN', {
                     dateStyle: 'medium',
                     timeStyle: 'short',
@@ -633,7 +634,11 @@ export default function AccountStatementPage() {
                     <tr
                       key={entry.id}
                       onClick={() => setInspectedEntry(entry as any)}
-                      className="cursor-pointer transition hover:bg-[#F3F2EE]"
+                      className={`cursor-pointer transition ${
+                        isInspected
+                          ? 'bg-rule/40 ring-1 ring-accent/30 font-medium'
+                          : 'hover:bg-[#F3F2EE]'
+                      }`}
                       title="Click row to inspect cryptographic seal & double-entry details"
                     >
                       <td className="px-5 py-3 whitespace-nowrap text-ink-muted mono-num">
@@ -641,15 +646,15 @@ export default function AccountStatementPage() {
                       </td>
 
                       <td className="px-5 py-3 whitespace-nowrap">
-                        <span className="mono-num text-[11px] text-ink font-medium">
+                        <span className="mono-num text-xs text-ink font-semibold">
                           {entry.type}
                         </span>
                       </td>
 
                       <td
-                        className={`px-5 py-3 whitespace-nowrap text-right mono-num font-medium ${
+                        className={`px-5 py-3 whitespace-nowrap text-right mono-num font-semibold ${
                           !isPosted
-                            ? 'text-ink-faint line-through'
+                            ? 'text-ink-muted line-through'
                             : entry.direction === 'DEBIT'
                             ? 'text-ledger-red'
                             : 'text-ledger-green'
@@ -662,7 +667,7 @@ export default function AccountStatementPage() {
                       {/* Status Column: 6px colored dot + plain text */}
                       <td className="px-5 py-3 whitespace-nowrap text-center">
                         <span
-                          className="inline-flex items-center gap-1.5 font-medium"
+                          className="inline-flex items-center gap-1.5 font-semibold"
                           style={{
                             color: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
                           }}
@@ -677,7 +682,7 @@ export default function AccountStatementPage() {
                         </span>
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-right mono-num font-medium text-ink">
+                      <td className="px-5 py-3 whitespace-nowrap text-right mono-num font-semibold text-ink">
                         {formatPaiseToRupees(entry.runningBalance)}
                       </td>
 
@@ -698,16 +703,16 @@ export default function AccountStatementPage() {
                               setReversingEntry(entry);
                               setReversalError(null);
                             }}
-                            className="inline-flex items-center px-2 py-1 border border-rule rounded text-xs text-ink-muted hover:text-ink hover:bg-rule/30 transition"
+                            className="inline-flex items-center px-2.5 py-1 border border-rule rounded text-xs text-ink-muted hover:text-ink hover:bg-rule/30 transition"
                             title="Execute compensating-entry reversal"
                           >
                             <RotateCcw className="mr-1 h-3 w-3" />
                             Reverse
                           </button>
                         ) : entry.type === 'ADJUSTMENT' ? (
-                          <span className="text-ink-faint mono-num text-[11px]">Compensating leg</span>
+                          <span className="text-ink-muted mono-num text-xs">Compensating leg</span>
                         ) : (
-                          <span className="text-ink-faint">—</span>
+                          <span className="text-ink-muted">—</span>
                         )}
                       </td>
                     </tr>
