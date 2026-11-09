@@ -732,6 +732,8 @@ const InteractiveLedgerNetwork = forwardRef<
         particles,
         shootingStar,
         time,
+        isHolding,
+        crumpleCenter,
       } = stateRef.current;
       ctx.clearRect(0, 0, width, height);
 
@@ -996,6 +998,72 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.lineWidth = isSelected ? 1.8 : 1.2;
           ctx.stroke();
         }
+      }
+
+      // Contextual node micro-badge for discoverability without toolbar clutter
+      const activeIdx = hoveredIndex !== null ? hoveredIndex : selectedIndex;
+      if (activeIdx !== null && activeIdx >= 0 && activeIdx < nodes.length && mode === 'IDLE') {
+        const activeNode = nodes[activeIdx];
+        const isSel = selectedIndex === activeIdx;
+        const label = isSel
+          ? `Star #${activeNode.id + 1} · Active ledger node`
+          : `Star #${activeNode.id + 1} · Drag to move`;
+
+        ctx.save();
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const textWidth = ctx.measureText(label).width;
+        const padX = 9;
+        const boxW = textWidth + padX * 2;
+        const boxH = 22;
+        const boxX = Math.min(Math.max(activeNode.x - boxW / 2, 12), width - boxW - 12);
+        const boxY = activeNode.y - activeNode.radius - 30 < 12
+          ? activeNode.y + activeNode.radius + 14
+          : activeNode.y - activeNode.radius - 30;
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(boxX, boxY, boxW, boxH, 11);
+        } else {
+          ctx.rect(boxX, boxY, boxW, boxH);
+        }
+        ctx.fillStyle = isDark ? 'rgba(25, 23, 43, 0.90)' : 'rgba(255, 255, 255, 0.92)';
+        ctx.fill();
+        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.50)' : 'rgba(41, 75, 122, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = isDark ? '#F7F4FF' : '#17142B';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2);
+        ctx.restore();
+      }
+
+      // Subtle contextual hint while holding to crumple
+      if (isHolding && crumpleCenter) {
+        ctx.save();
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const label = 'Holding: Crumpling origami core... release to pour';
+        const textWidth = ctx.measureText(label).width;
+        const padX = 10;
+        const boxW = textWidth + padX * 2;
+        const boxH = 24;
+        const boxX = Math.min(Math.max(crumpleCenter.x - boxW / 2, 12), width - boxW - 12);
+        const boxY = Math.max(crumpleCenter.y - 45, 16);
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+        } else {
+          ctx.rect(boxX, boxY, boxW, boxH);
+        }
+        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.92)' : 'rgba(41, 75, 122, 0.90)';
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2);
+        ctx.restore();
       }
     };
 
@@ -1307,7 +1375,7 @@ const InteractiveLedgerNetwork = forwardRef<
     <div
       ref={containerRef}
       tabIndex={0}
-      className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto z-10 focus:outline-none"
+      className="fixed inset-0 w-full h-full overflow-hidden select-none pointer-events-auto z-10 focus:outline-none"
       aria-label="Interactive LedgerLine constellation graph. Click to create star, drag to reposition, hold to flow, or press A to add and R to regenerate."
     >
       <canvas

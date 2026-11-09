@@ -8,7 +8,7 @@ interface CosmicPlanetarySystemProps {
 
 export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetarySystemProps) {
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
+    <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
       {isDark ? (
         <div className="absolute inset-0 w-full h-full">
           {/* User-supplied High-Fidelity Cosmic Planetary Wallpaper */}
