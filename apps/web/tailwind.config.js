@@ -11,16 +11,37 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Institutional Blue core tokens
+        // Cosmic Design System tokens
+        'deep-space': '#080E1C',
+        'midnight-navy': '#0B1220',
+        'secondary-surface': '#111C30',
+        'elevated-surface': '#17243A',
+        'primary-border': '#263750',
+        'secondary-border': '#1D2A40',
+        'stellar-blue': '#79A9FF',
+        'active-blue': '#91B8FF',
+        'nebula-violet': '#A78BFA',
+        'cosmic-success': '#42D6B0',
+        'cosmic-warning': '#F4B860',
+        'cosmic-error': '#F07886',
+        'primary-text': '#F4F7FF',
+        'secondary-text': '#A5B4CC',
+        'muted-text': '#71819B',
+
+        // Dynamic theme tokens
         bg: 'var(--bg)',
         surface: 'var(--surface)',
         'surface-secondary': 'var(--surface-secondary)',
+        'surface-elevated': 'var(--surface-elevated)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
         border: 'var(--border)',
+        'border-secondary': 'var(--border-secondary)',
         success: 'var(--success)',
         danger: 'var(--danger)',
         warning: 'var(--warning)',
+        nebula: 'var(--nebula)',
 
         // Module accents
         'accent-accounts': 'var(--accent-accounts)',

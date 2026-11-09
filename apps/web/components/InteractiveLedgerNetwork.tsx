@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Plus, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface RuntimeNode {
   id: number;
@@ -16,7 +17,6 @@ interface RuntimeNode {
   isHub: boolean;
   isBalanced: boolean;
   highlight: number;
-  // Relative origami crease parameters when crumpled
   creaseAngle: number;
   creaseDist: number;
 }
@@ -75,9 +75,10 @@ interface NetworkState {
   mouseY: number | null;
   hoveredIndex: number | null;
   draggedIndex: number | null;
+  selectedIndex: number | null;
   mode: InteractionMode;
   crumpleCenter: { x: number; y: number } | null;
-  crumpleProgress: number; // 0 to 1
+  crumpleProgress: number;
   ripples: WaterRipple[];
   isHolding: boolean;
   holdStartTime: number;
@@ -86,6 +87,8 @@ interface NetworkState {
 
 export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [nodeCount, setNodeCount] = useState<number>(22);
 
   const stateRef = useRef<NetworkState>({
     width: 0,
@@ -101,6 +104,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     mouseY: null,
     hoveredIndex: null,
     draggedIndex: null,
+    selectedIndex: null,
     mode: 'IDLE',
     crumpleCenter: null,
     crumpleProgress: 0,
@@ -111,12 +115,13 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
   });
 
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerWakeRef = useRef<(() => void) | null>(null);
 
   // Helper: check if a normalized point is inside protected zones
-  // 1. Top-left logo zone: rx < 0.38 && ry < 0.22
+  // 1. Top-left logo zone: rx < 0.42 && ry < 0.22
   // 2. Bottom-left headline zone: rx < 0.58 && ry > 0.70
   const isProtectedZone = (rx: number, ry: number) => {
-    if (rx < 0.38 && ry < 0.22) return true; // Logo & LedgerLine
+    if (rx < 0.42 && ry < 0.22) return true; // Logo & Brand badge
     if (rx < 0.58 && ry > 0.70) return true; // Headline
     return false;
   };
@@ -151,8 +156,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
       while (!valid && attempts < 100) {
         attempts++;
-        const rx = 0.12 + Math.random() * 0.82;
-        const ry = 0.12 + Math.random() * 0.82;
+        const rx = 0.10 + Math.random() * 0.84;
+        const ry = 0.10 + Math.random() * 0.84;
 
         if (isProtectedZone(rx, ry)) continue;
 
@@ -224,6 +229,163 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     return { nodes: newNodes, edges };
   };
 
+  // Trigger: Add node programmatically from control group or hotkey
+  const handleAddNode = useCallback(() => {
+    const state = stateRef.current;
+    if (state.width === 0 || state.height === 0) return;
+
+    // Find a valid open position
+    let px = state.width * 0.5;
+    let py = state.height * 0.45;
+    let attempts = 0;
+
+    while (attempts < 50) {
+      attempts++;
+      const rx = 0.20 + Math.random() * 0.65;
+      const ry = 0.20 + Math.random() * 0.55;
+      if (!isProtectedZone(rx, ry)) {
+        px = rx * state.width;
+        py = ry * state.height;
+        break;
+      }
+    }
+
+    const newId = state.nodes.length;
+    state.nodes.push({
+      id: newId,
+      x: px,
+      y: py,
+      vx: 0,
+      vy: 0,
+      baseX: px,
+      baseY: py,
+      targetX: px,
+      targetY: py,
+      radius: 6,
+      isHub: false,
+      isBalanced: false,
+      highlight: 1,
+      creaseAngle: Math.random() * Math.PI * 2,
+      creaseDist: 18 + Math.random() * 12,
+    });
+
+    // Expanding ripples
+    state.ripples.push(
+      { x: px, y: py, radius: 10, maxRadius: 260, alpha: 0.85 },
+      { x: px, y: py, radius: 28, maxRadius: 190, alpha: 0.65 }
+    );
+
+    // Stardust burst
+    for (let p = 0; p < 12; p++) {
+      const pAngle = Math.random() * Math.PI * 2;
+      const pSpeed = 4 + Math.random() * 7;
+      state.particles.push({
+        x: px,
+        y: py,
+        vx: Math.cos(pAngle) * pSpeed,
+        vy: Math.sin(pAngle) * pSpeed,
+        radius: 1 + Math.random() * 2,
+        alpha: 0.9,
+        decay: 0.03 + Math.random() * 0.02,
+      });
+    }
+
+    // Connect to 2 closest nodes
+    const sorted = state.nodes
+      .slice(0, -1)
+      .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
+      .sort((a, b) => a.dist - b.dist);
+
+    if (sorted.length > 0) {
+      state.edges.push([sorted[0].idx, newId]);
+      state.nodes[sorted[0].idx].highlight = 0.8;
+    }
+    if (sorted.length > 1) {
+      state.edges.push([sorted[1].idx, newId]);
+      state.nodes[sorted[1].idx].highlight = 0.6;
+    }
+
+    state.selectedIndex = newId;
+    setNodeCount(state.nodes.length);
+    if (triggerWakeRef.current) triggerWakeRef.current();
+  }, []);
+
+  // Trigger: Regenerate network layout
+  const handleRegenerate = useCallback(() => {
+    const state = stateRef.current;
+    if (state.width === 0 || state.height === 0) return;
+    state.selectedIndex = null;
+    const cx = state.width * 0.52;
+    const cy = state.height * 0.48;
+
+    // Start water pour animation with new random constellation
+    const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(state.width, state.height, state.nodes.length);
+    state.edges = newEdges;
+
+    // Fluid splash ripples
+    state.ripples.push(
+      { x: cx, y: cy, radius: 15, maxRadius: 360, alpha: 0.85 },
+      { x: cx, y: cy, radius: 35, maxRadius: 280, alpha: 0.60 }
+    );
+
+    // Stardust burst
+    for (let p = 0; p < 28; p++) {
+      const pAngle = Math.random() * Math.PI * 2;
+      const pSpeed = 7 + Math.random() * 18;
+      state.particles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(pAngle) * pSpeed,
+        vy: Math.sin(pAngle) * pSpeed,
+        radius: 1 + Math.random() * 2.5,
+        alpha: 0.95,
+        decay: 0.02 + Math.random() * 0.02,
+      });
+    }
+
+    state.nodes.forEach((node, i) => {
+      const target = newLayout[i];
+      node.baseX = target.targetX;
+      node.baseY = target.targetY;
+      node.targetX = target.targetX;
+      node.targetY = target.targetY;
+      node.radius = target.radius;
+      node.isHub = target.isHub;
+      node.isBalanced = target.isBalanced;
+
+      const angle = Math.atan2(target.targetY - cy, target.targetX - cx) + (Math.random() - 0.5) * 0.4;
+      const splashSpeed = 16 + Math.random() * 22;
+      node.vx = Math.cos(angle) * splashSpeed;
+      node.vy = Math.sin(angle) * splashSpeed;
+      node.highlight = 1;
+    });
+
+    state.mode = 'POURING';
+    if (triggerWakeRef.current) triggerWakeRef.current();
+  }, []);
+
+  // Trigger: Reset to canonical 22-node layout
+  const handleReset = useCallback(() => {
+    const state = stateRef.current;
+    if (state.width === 0 || state.height === 0) return;
+    state.selectedIndex = null;
+
+    const { nodes: newNodes, edges: newEdges } = generateRandomizedLayout(state.width, state.height, 22);
+    state.nodes = newNodes;
+    state.edges = newEdges;
+    setNodeCount(22);
+
+    state.ripples.push({
+      x: state.width * 0.5,
+      y: state.height * 0.5,
+      radius: 12,
+      maxRadius: 280,
+      alpha: 0.75,
+    });
+
+    if (triggerWakeRef.current) triggerWakeRef.current();
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -267,7 +429,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       state.crumpleProgress = 0;
       canvas.style.cursor = 'grabbing';
 
-      // Pull every node inward with high spring tension and fractal crease jitter
       state.nodes.forEach((node) => {
         const tx = originX + Math.cos(node.creaseAngle) * node.creaseDist;
         const ty = originY + Math.sin(node.creaseAngle) * node.creaseDist;
@@ -288,7 +449,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       state.mode = 'POURING';
       canvas.style.cursor = 'grab';
 
-      // 1. Trigger expanding water ripples
+      // 1. Expanding ripples
       state.ripples.push(
         { x: releaseX, y: releaseY, radius: 10, maxRadius: 320, alpha: 0.75 },
         { x: releaseX, y: releaseY, radius: 25, maxRadius: 240, alpha: 0.55 },
@@ -325,9 +486,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         node.isHub = target.isHub;
         node.isBalanced = target.isBalanced;
 
-        // Outward radial splash vector from pour origin towards target with fluid turbulence
         const angle = Math.atan2(target.targetY - releaseY, target.targetX - releaseX) + (Math.random() - 0.5) * 0.4;
-        const splashSpeed = 16 + Math.random() * 22; // Initial energetic splash
+        const splashSpeed = 16 + Math.random() * 22;
 
         node.vx = Math.cos(angle) * splashSpeed;
         node.vy = Math.sin(angle) * splashSpeed;
@@ -409,18 +569,16 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         isSettled = false;
         state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
 
-        // Entire crumpled paper ball tracks cursor smoothly
         const cx = mouseX !== null ? mouseX : crumpleCenter?.x || width / 2;
         const cy = mouseY !== null ? mouseY : crumpleCenter?.y || height / 2;
 
         nodes.forEach((node) => {
-          // Origami crease folded target
           const tx = cx + Math.cos(node.creaseAngle) * node.creaseDist;
           const ty = cy + Math.sin(node.creaseAngle) * node.creaseDist;
 
           node.vx += (tx - node.x) * 0.28;
           node.vy += (ty - node.y) * 0.28;
-          node.vx *= 0.65; // High paper crease damping
+          node.vx *= 0.65;
           node.vy *= 0.65;
 
           node.x += node.vx;
@@ -432,21 +590,17 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         let maxDist = 0;
 
         nodes.forEach((node) => {
-          // Viscous laminar fluid spreading: decelerate smoothly
           node.x += node.vx;
           node.y += node.vy;
 
-          // Liquid viscosity damping (pours smoothly like water)
           node.vx *= 0.88;
           node.vy *= 0.88;
 
-          // Surface tension pull towards settled target
           const dx = node.targetX - node.x;
           const dy = node.targetY - node.y;
           node.vx += dx * 0.052;
           node.vy += dy * 0.052;
 
-          // Keep within canvas bounds
           node.x = Math.max(20, Math.min(width - 20, node.x));
           node.y = Math.max(20, Math.min(height - 20, node.y));
 
@@ -527,22 +681,35 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     };
 
     const draw = () => {
-      const { width, height, nodes, edges, hoveredIndex, mode, ripples, stars, particles, shootingStar, time } =
-        stateRef.current;
+      const {
+        width,
+        height,
+        nodes,
+        edges,
+        hoveredIndex,
+        draggedIndex,
+        selectedIndex,
+        mode,
+        ripples,
+        stars,
+        particles,
+        shootingStar,
+        time,
+      } = stateRef.current;
       ctx.clearRect(0, 0, width, height);
 
-      // Institutional Blue color tokens
-      const primaryLine = isDark ? 'rgba(120, 166, 246,' : 'rgba(41, 75, 122,';
-      const nodeFill = isDark ? '#78A6F6' : '#294B7A';
-      const nodeBorder = isDark ? '#E8EEF7' : '#FFFFFF';
-      const greenAnchor = isDark ? '#36C995' : '#13835D';
+      // Cosmic Design System color tokens
+      const primaryLine = isDark ? 'rgba(121, 169, 255,' : 'rgba(41, 75, 122,';
+      const nodeFill = isDark ? '#79A9FF' : '#294B7A';
+      const nodeBorder = isDark ? '#F4F7FF' : '#FFFFFF';
+      const greenAnchor = isDark ? '#42D6B0' : '#13835D'; // Verified status
 
       // 1. Draw celestial background micro-star dust (Dark mode only)
       if (isDark) {
         stars.forEach((star) => {
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(232, 238, 247, ${star.alpha.toFixed(3)})`;
+          ctx.fillStyle = `rgba(244, 247, 255, ${star.alpha.toFixed(3)})`;
           ctx.fill();
         });
       }
@@ -552,8 +719,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         const tailX = shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.len;
         const tailY = shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.len;
         const grad = ctx.createLinearGradient(tailX, tailY, shootingStar.x, shootingStar.y);
-        grad.addColorStop(0, 'rgba(120, 166, 246, 0)');
-        grad.addColorStop(1, `rgba(255, 255, 255, ${shootingStar.alpha.toFixed(3)})`);
+        grad.addColorStop(0, 'rgba(121, 169, 255, 0)');
+        grad.addColorStop(1, `rgba(244, 247, 255, ${shootingStar.alpha.toFixed(3)})`);
         ctx.beginPath();
         ctx.moveTo(tailX, tailY);
         ctx.lineTo(shootingStar.x, shootingStar.y);
@@ -567,7 +734,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
         ctx.fillStyle = isDark
-          ? `rgba(145, 183, 255, ${pt.alpha.toFixed(3)})`
+          ? `rgba(145, 184, 255, ${pt.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${pt.alpha.toFixed(3)})`;
         ctx.fill();
       });
@@ -577,7 +744,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         ctx.beginPath();
         ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
         ctx.strokeStyle = isDark
-          ? `rgba(120, 166, 246, ${rip.alpha.toFixed(3)})`
+          ? `rgba(121, 169, 255, ${rip.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${rip.alpha.toFixed(3)})`;
         ctx.lineWidth = Math.max(1, 2.2 * rip.alpha);
         ctx.stroke();
@@ -586,7 +753,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.beginPath();
           ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
           ctx.fillStyle = isDark
-            ? `rgba(120, 166, 246, ${(rip.alpha * 0.05).toFixed(3)})`
+            ? `rgba(121, 169, 255, ${(rip.alpha * 0.05).toFixed(3)})`
             : `rgba(41, 75, 122, ${(rip.alpha * 0.05).toFixed(3)})`;
           ctx.fill();
         }
@@ -601,9 +768,9 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.lineTo(nodes[i + 2].x, nodes[i + 2].y);
           ctx.closePath();
         }
-        ctx.fillStyle = isDark ? 'rgba(120, 166, 246, 0.08)' : 'rgba(41, 75, 122, 0.08)';
+        ctx.fillStyle = isDark ? 'rgba(121, 169, 255, 0.08)' : 'rgba(41, 75, 122, 0.08)';
         ctx.fill();
-        ctx.strokeStyle = isDark ? 'rgba(145, 183, 255, 0.35)' : 'rgba(32, 61, 101, 0.30)';
+        ctx.strokeStyle = isDark ? 'rgba(145, 184, 255, 0.35)' : 'rgba(32, 61, 101, 0.30)';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -616,11 +783,14 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         if (!a || !b) continue;
 
         const isHovered = hoveredIndex === aIdx || hoveredIndex === bIdx;
+        const isSelectedEdge = selectedIndex === aIdx || selectedIndex === bIdx;
         const maxHighlight = Math.max(a.highlight, b.highlight);
 
         const alpha =
           mode === 'CRUMPLED'
             ? 0.55
+            : isSelectedEdge
+            ? 0.90
             : isHovered
             ? 0.85
             : isDark
@@ -628,13 +798,17 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
             : 0.32 + maxHighlight * 0.45;
 
         ctx.beginPath();
-        ctx.strokeStyle = isHovered
+        ctx.strokeStyle = isSelectedEdge
           ? isDark
-            ? 'rgba(145, 183, 255, 0.90)'
+            ? 'rgba(121, 169, 255, 0.95)'
+            : 'rgba(41, 75, 122, 0.90)'
+          : isHovered
+          ? isDark
+            ? 'rgba(145, 184, 255, 0.90)'
             : 'rgba(32, 61, 101, 0.85)'
           : `${primaryLine} ${alpha.toFixed(3)})`;
 
-        ctx.lineWidth = isDashed ? 1 : isHovered ? 2 : 1.35 + maxHighlight * 0.5;
+        ctx.lineWidth = isDashed ? 1 : isSelectedEdge ? 2.2 : isHovered ? 2 : 1.35 + maxHighlight * 0.5;
 
         if (isDashed && mode !== 'CRUMPLED') {
           ctx.setLineDash([4, 4]);
@@ -654,32 +828,60 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         const node = nodes[i];
         const { x, y, radius, isHub, isBalanced, highlight } = node;
         const isHovered = hoveredIndex === i;
+        const isSelected = selectedIndex === i;
+        const isDragged = draggedIndex === i;
 
         // Gentle breathing pulse for celestial hub stars
         const starPulse = Math.sin(time * 0.035 + node.id) * 0.5 + 0.5;
 
+        // Distinctive celestial orbital rings for selected node
+        if (isSelected) {
+          // Inner orbital ring
+          ctx.beginPath();
+          ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
+          ctx.strokeStyle = isDark ? 'rgba(121, 169, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Middle orbital ring (Nebula Violet)
+          ctx.beginPath();
+          ctx.arc(x, y, radius + 13, 0, Math.PI * 2);
+          ctx.strokeStyle = isDark ? 'rgba(167, 139, 250, 0.65)' : 'rgba(124, 58, 237, 0.50)';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          // Outer subtle orbital ring (dashed)
+          ctx.beginPath();
+          ctx.setLineDash([3, 4]);
+          ctx.arc(x, y, radius + 19, 0, Math.PI * 2);
+          ctx.strokeStyle = isDark ? 'rgba(121, 169, 255, 0.40)' : 'rgba(41, 75, 122, 0.35)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
         // Outer concentric halo for hubs or active nodes
-        if (isHub || isHovered || highlight > 0.05 || mode === 'CRUMPLED') {
-          const haloRadius = radius + (isHovered ? 6 : 4 + highlight * 3 + (isHub ? 2.5 * starPulse : 0));
+        if (isHub || isHovered || isDragged || highlight > 0.05 || mode === 'CRUMPLED') {
+          const haloRadius = radius + (isDragged ? 8 : isHovered ? 6 : 4 + highlight * 3 + (isHub ? 2.5 * starPulse : 0));
           ctx.beginPath();
           ctx.arc(x, y, haloRadius, 0, Math.PI * 2);
           ctx.strokeStyle = isBalanced
             ? isDark
-              ? 'rgba(54, 201, 149, 0.45)'
-              : 'rgba(19, 131, 93, 0.35)'
+              ? 'rgba(66, 214, 176, 0.50)'
+              : 'rgba(19, 131, 93, 0.40)'
             : isDark
-            ? `rgba(120, 166, 246, ${(0.25 + 0.2 * starPulse).toFixed(3)})`
-            : `rgba(41, 75, 122, ${(0.2 + 0.15 * starPulse).toFixed(3)})`;
-          ctx.lineWidth = isHovered ? 1.5 : 1;
+            ? `rgba(121, 169, 255, ${(0.30 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
+            : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
+          ctx.lineWidth = isDragged ? 2 : isHovered ? 1.5 : 1;
           ctx.stroke();
         }
 
         // Soft atmospheric star aura for major hubs
-        if (isHub && !isHovered && mode !== 'CRUMPLED') {
+        if (isHub && !isHovered && !isSelected && mode !== 'CRUMPLED') {
           ctx.beginPath();
-          ctx.arc(x, y, radius + 8 + 3 * starPulse, 0, Math.PI * 2);
+          ctx.arc(x, y, radius + 9 + 3 * starPulse, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
-            ? `rgba(120, 166, 246, ${(0.10 + 0.12 * starPulse).toFixed(3)})`
+            ? `rgba(121, 169, 255, ${(0.12 + 0.12 * starPulse).toFixed(3)})`
             : `rgba(41, 75, 122, ${(0.08 + 0.08 * starPulse).toFixed(3)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -687,37 +889,40 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
         // Main node dot
         ctx.beginPath();
-        ctx.arc(x, y, radius + (isHovered ? 2 : highlight * 1.2), 0, Math.PI * 2);
+        const currentRadius = radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight * 1.2);
+        ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
 
         if (isBalanced) {
           ctx.fillStyle = greenAnchor;
           ctx.fill();
-          ctx.strokeStyle = '#ffffff';
+          ctx.strokeStyle = '#FFFFFF';
           ctx.lineWidth = 2;
           ctx.stroke();
         } else if (isHub) {
-          ctx.fillStyle = isDark ? '#111C2E' : '#FFFFFF';
+          ctx.fillStyle = isDark ? '#0B1220' : '#FFFFFF';
           ctx.fill();
-          ctx.strokeStyle = isHovered
-            ? isDark
-              ? '#91B7FF'
-              : '#203D65'
-            : isDark
-            ? '#78A6F6'
-            : '#294B7A';
+          ctx.strokeStyle = isHovered || isSelected ? (isDark ? '#91B8FF' : '#203D65') : isDark ? '#79A9FF' : '#294B7A';
           ctx.lineWidth = 2.2;
           ctx.stroke();
 
           // Inner solid core
           ctx.beginPath();
           ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = isDark ? '#78A6F6' : '#294B7A';
+          ctx.fillStyle = isDark ? '#79A9FF' : '#294B7A';
           ctx.fill();
         } else {
-          ctx.fillStyle = isHovered ? (isDark ? '#FFFFFF' : '#0B1220') : nodeFill;
+          ctx.fillStyle = isSelected
+            ? isDark
+              ? '#91B8FF'
+              : '#203D65'
+            : isHovered
+            ? isDark
+              ? '#FFFFFF'
+              : '#0B1220'
+            : nodeFill;
           ctx.fill();
-          ctx.strokeStyle = nodeBorder;
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = isSelected ? '#FFFFFF' : nodeBorder;
+          ctx.lineWidth = isSelected ? 1.8 : 1.2;
           ctx.stroke();
         }
       }
@@ -745,6 +950,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       }
     };
 
+    triggerWakeRef.current = wakeLoop;
+
     const findNodeIndexAt = (px: number, py: number): number | null => {
       const { nodes } = stateRef.current;
       for (let i = nodes.length - 1; i >= 0; i--) {
@@ -766,12 +973,13 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const hitIdx = findNodeIndexAt(px, py);
 
       if (hitIdx !== null) {
-        // Holding an existing node: drag and place wherever wanted!
+        // Holding an existing node: select & drag wherever wanted
         state.draggedIndex = hitIdx;
+        state.selectedIndex = hitIdx;
         canvas.style.cursor = 'grabbing';
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
       } else {
-        // Pressing on empty space:
+        // Pressing on empty space
         state.draggedIndex = null;
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         holdTimerRef.current = setTimeout(() => {
@@ -827,10 +1035,10 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
       if (state.mode === 'CRUMPLED') {
-        // Released after folding: water pour splash & randomized new shape!
+        // Released after folding: water pour splash & randomized new constellation
         startWaterPour(px, py);
       } else if (state.draggedIndex !== null) {
-        // User was moving a node: place it permanently right where released!
+        // User dragged node: place permanently right where released
         const node = state.nodes[state.draggedIndex];
         if (node) {
           node.x = px;
@@ -847,7 +1055,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
 
-        // One click on empty space: create a node with water effect & sparkle!
+        // Single click on empty space: add a new node
         if (dist < 14 && state.draggedIndex === null) {
           const rx = px / state.width;
           const ry = py / state.height;
@@ -872,7 +1080,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               creaseDist: 16 + Math.random() * 12,
             });
 
-            // Trigger expanding water ripples like water droplet on pond
+            // Water ripples
             state.ripples.push(
               { x: px, y: py, radius: 8, maxRadius: 240, alpha: 0.8 },
               { x: px, y: py, radius: 24, maxRadius: 180, alpha: 0.6 },
@@ -902,7 +1110,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
             if (sorted.length > 0) {
               state.edges.push([sorted[0].idx, newId]);
-              // Gentle water ripple impulse to connected node
               const n1 = state.nodes[sorted[0].idx];
               const angle1 = Math.atan2(n1.y - py, n1.x - px);
               n1.vx += Math.cos(angle1) * 2.8;
@@ -911,13 +1118,17 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
             }
             if (sorted.length > 1) {
               state.edges.push([sorted[1].idx, newId]);
-              // Gentle water ripple impulse to second connected node
               const n2 = state.nodes[sorted[1].idx];
               const angle2 = Math.atan2(n2.y - py, n2.x - px);
               n2.vx += Math.cos(angle2) * 2.2;
               n2.vy += Math.sin(angle2) * 2.2;
               n2.highlight = 0.6;
             }
+
+            state.selectedIndex = newId;
+            setNodeCount(state.nodes.length);
+          } else {
+            state.selectedIndex = null;
           }
         }
       }
@@ -957,6 +1168,28 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       wakeLoop();
     };
 
+    // Keyboard navigation
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target !== canvas && e.target !== containerRef.current) return;
+      if (e.key === 'a' || e.key === 'A') {
+        handleAddNode();
+      } else if (e.key === 'r' || e.key === 'R') {
+        handleRegenerate();
+      } else if (e.key === 'Escape') {
+        stateRef.current.selectedIndex = null;
+        wakeLoop();
+      } else if (e.key === ' ' || e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        const state = stateRef.current;
+        if (state.mode === 'IDLE') {
+          startCrumple(state.width * 0.5, state.height * 0.5);
+          setTimeout(() => {
+            startWaterPour(state.width * 0.5, state.height * 0.5);
+          }, 450);
+        }
+      }
+    };
+
     // Touch support
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
@@ -987,6 +1220,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('mouseleave', onMouseLeave);
+    window.addEventListener('keydown', onKeyDown);
 
     canvas.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true });
@@ -1000,20 +1234,67 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       canvas.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('keydown', onKeyDown);
 
       canvas.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isDark]);
+  }, [isDark, handleAddNode, handleRegenerate]);
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto">
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-stellar-blue/50"
+      aria-label="Interactive double-entry constellation playground. Press A to add a star, R to regenerate, Space to fold, or drag stars to reposition."
+    >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-        aria-label="Playful interactive double-entry constellation network. Click and hold to crumple the paper pattern, drag it around, and release to pour like water on the floor."
       />
+
+      {/* Sleek, minimal floating network controls (Linear / Vercel style) */}
+      <div className="absolute top-8 right-8 z-20 flex items-center gap-1.5 pointer-events-auto select-none">
+        <button
+          type="button"
+          onClick={handleAddNode}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
+          aria-label="Add new star node to constellation (Hotkey: A)"
+          title="Add Star (A)"
+        >
+          <Plus className="w-3.5 h-3.5 text-stellar-blue" />
+          <span className="hidden xl:inline">Add star</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleRegenerate}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
+          aria-label="Regenerate random constellation layout (Hotkey: R)"
+          title="Regenerate Constellation (R)"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-stellar-blue" />
+          <span className="hidden xl:inline">Regenerate</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
+          aria-label="Reset constellation to canonical layout (Hotkey: Esc)"
+          title="Reset Layout"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-stellar-blue" />
+          <span className="hidden xl:inline">Reset</span>
+        </button>
+      </div>
+
+      {/* Subtle interaction guidance note */}
+      <div className="absolute bottom-6 right-8 z-20 pointer-events-none hidden xl:flex items-center gap-2 text-[11px] text-text-muted">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-stellar-blue animate-pulse" />
+        <span>Click to add star · Drag to place · Hold to crumple & flow</span>
+      </div>
     </div>
   );
 }

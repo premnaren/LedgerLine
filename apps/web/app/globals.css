@@ -7,14 +7,18 @@
   --bg: #F5F7FA;
   --surface: #FFFFFF;
   --surface-secondary: #F0F3F7;
+  --surface-elevated: #FFFFFF;
   --primary: #294B7A;
   --primary-hover: #203D65;
-  --text-primary: #17212F;
-  --text-secondary: #657386;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
   --border: #DCE2E9;
+  --border-secondary: #E2E8F0;
   --success: #13835D;
   --danger: #D14949;
   --warning: #B7791F;
+  --nebula: #7C3AED;
 
   /* Module accents */
   --accent-accounts: #294B7A;
@@ -33,7 +37,7 @@
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #6B47A8;
+  --role-admin: #7C3AED;
   --role-holder: #294B7A;
   --role-auditor: #B7791F;
 
@@ -44,42 +48,47 @@
 
 [data-theme="dark"], .dark {
   color-scheme: dark;
-  --bg: #0B1220;
-  --surface: #111C2E;
-  --surface-secondary: #19263A;
-  --primary: #78A6F6;
-  --primary-hover: #91B7FF;
-  --text-primary: #E8EEF7;
-  --text-secondary: #9AA9BD;
-  --border: #29384D;
-  --success: #36C995;
-  --danger: #F07878;
-  --warning: #E9B45C;
+  /* Cosmic Design System Palette */
+  --bg: #080E1C; /* Deep Space */
+  --surface: #0B1220; /* Midnight Navy */
+  --surface-secondary: #111C30; /* Secondary Surface */
+  --surface-elevated: #17243A; /* Elevated Surface */
+  --primary: #79A9FF; /* Stellar Blue */
+  --primary-hover: #91B8FF; /* Active Blue */
+  --text-primary: #F4F7FF; /* Primary Text */
+  --text-secondary: #A5B4CC; /* Secondary Text */
+  --text-muted: #71819B; /* Muted Text */
+  --border: #263750; /* Primary Border */
+  --border-secondary: #1D2A40; /* Secondary Border */
+  --success: #42D6B0; /* Success / Verified */
+  --danger: #F07886; /* Error / Destructive */
+  --warning: #F4B860; /* Warning / Pending */
+  --nebula: #A78BFA; /* Nebula Violet */
 
   /* Module accents for dark mode */
-  --accent-accounts: #78A6F6;
-  --accent-audit: #8BA8D1;
-  --accent-stress: #E9B45C;
-  --accent-seal: #36C995;
-  --accent-failed: #F07878;
+  --accent-accounts: #79A9FF;
+  --accent-audit: #91B8FF;
+  --accent-stress: #F4B860;
+  --accent-seal: #42D6B0;
+  --accent-failed: #F07886;
 
   /* Semantic aliases for backwards compatibility */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #6A7A90;
+  --ink-faint: #71819B;
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: #3D506B;
+  --rule-strong: #263750;
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #B197FC;
-  --role-holder: #78A6F6;
-  --role-auditor: #E9B45C;
+  --role-admin: #A78BFA;
+  --role-holder: #79A9FF;
+  --role-auditor: #F4B860;
 
-  --background: 221 48% 8%;
-  --foreground: 217 48% 94%;
-  --border-hsl: 215 31% 23%;
+  --background: 221 56% 7%;
+  --foreground: 217 65% 98%;
+  --border-hsl: 216 35% 23%;
 }
 
 body {
@@ -119,17 +128,30 @@ body {
   border-radius: 8px;
 }
 
+.glass-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px -6px rgba(15, 23, 42, 0.08);
+}
+
 /* ============================================================ */
 /* Dark Mode Surface Overrides (Prevents White-on-White Glitch)  */
 /* ============================================================ */
 .dark .glass-chrome {
-  background: rgba(17, 28, 46, 0.90) !important;
+  background: rgba(11, 18, 32, 0.92) !important;
   border-bottom-color: var(--border) !important;
 }
 
 .dark .glass-card {
   background: var(--surface) !important;
   border-color: var(--border) !important;
+}
+
+.dark .glass-elevated {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(121, 169, 255, 0.08) !important;
 }
 
 /* Ensure any hardcoded card or paper class automatically maps to Dark Navy */
