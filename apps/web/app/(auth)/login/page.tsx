@@ -68,28 +68,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between items-center py-8 px-4 sm:px-6 bg-paper text-ink">
+    <div className="flex flex-col justify-between items-center px-4 py-8 w-full min-h-screen sm:px-6 bg-paper text-ink">
       {/* Top spacer */}
-      <div className="w-full max-w-4xl hidden sm:block" aria-hidden="true" />
+      <div className="hidden w-full max-w-4xl sm:block" aria-hidden="true" />
 
       {/* Main Container: Two-Column Split Architecture */}
-      <div className="w-full max-w-4xl my-auto border border-rule rounded bg-white grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+      <div className="grid overflow-hidden grid-cols-1 my-auto w-full max-w-4xl bg-white rounded border border-rule md:grid-cols-12">
         {/* Left Column: Decorative Ledger & Hash-Chain Evidence */}
-        <div className="hidden md:flex md:col-span-5 bg-paper p-8 flex-col justify-between border-r border-rule">
+        <div className="hidden flex-col justify-between p-8 border-r md:flex md:col-span-5 bg-paper border-rule">
           <div>
             <div className="flex items-center space-x-2.5 mb-6">
-              <div className="h-8 w-8 rounded border border-rule bg-white text-accent flex items-center justify-center">
-                <Layers className="h-4 w-4" />
+              <div className="flex justify-center items-center w-8 h-8 bg-white rounded border border-rule text-accent">
+                <Layers className="w-4 h-4" />
               </div>
-              <span className="font-bold text-lg tracking-tight text-ink">
+              <span className="text-lg font-bold tracking-tight text-ink">
                 Ledger<span className="text-accent">Line</span>
               </span>
             </div>
 
-            <h2 className="text-sm font-semibold text-ink tracking-tight mb-2">
+            <h2 className="mb-2 text-sm font-semibold tracking-tight text-ink">
               Cryptographic core ledger
             </h2>
-            <p className="text-xs text-ink-muted leading-relaxed">
+            <p className="text-xs leading-relaxed text-ink-muted">
               Every deposit, withdrawal, and transfer is permanently verified with SHA-256 block hashing and zero-sum double-entry legs.
             </p>
 
@@ -128,14 +128,14 @@ export default function LoginPage() {
         </div>
 
         {/* Right Column: Authentication Form */}
-        <div className="col-span-1 md:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
+        <div className="flex flex-col col-span-1 justify-between p-6 md:col-span-7 sm:p-8">
           <div>
             {/* Mobile Header */}
             <div className="md:hidden flex items-center space-x-2.5 mb-5">
-              <div className="h-8 w-8 rounded border border-rule bg-white text-accent flex items-center justify-center">
-                <Layers className="h-4 w-4" />
+              <div className="flex justify-center items-center w-8 h-8 bg-white rounded border border-rule text-accent">
+                <Layers className="w-4 h-4" />
               </div>
-              <span className="font-bold text-lg tracking-tight text-ink">
+              <span className="text-lg font-bold tracking-tight text-ink">
                 Ledger<span className="text-accent">Line</span>
               </span>
             </div>
@@ -153,7 +153,7 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="mb-4 p-3 bg-paper border border-ledger-red rounded flex items-start space-x-2 text-xs text-ledger-red"
+                className="flex items-start p-3 mb-4 space-x-2 text-xs rounded border bg-paper border-ledger-red text-ledger-red"
               >
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -165,7 +165,7 @@ export default function LoginPage() {
 
             {/* Forgot Password Banner */}
             {showForgotNotice && (
-              <div className="mb-4 p-3 bg-paper border border-rule rounded text-xs text-ink flex items-start space-x-2">
+              <div className="flex items-start p-3 mb-4 space-x-2 text-xs rounded border bg-paper border-rule text-ink">
                 <Info className="h-4 w-4 shrink-0 text-accent mt-0.5" />
                 <div className="flex-1">
                   <p className="font-semibold">Password recovery</p>
@@ -189,13 +189,13 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-xs font-medium text-ink-muted mb-1"
+                  className="block mb-1 text-xs font-medium text-ink-muted"
                 >
                   Email address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-faint">
-                    <Mail className="h-4 w-4" />
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                    <Mail className="w-4 h-4" />
                   </div>
                   <input
                     id="email"
@@ -208,7 +208,7 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       setActiveRole(null);
                     }}
-                    className="mono-num h-10 w-full pl-9 pr-3 rounded border border-rule bg-white text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                    className="pr-3 pl-9 w-full h-10 text-xs bg-white rounded border mono-num border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -216,7 +216,7 @@ export default function LoginPage() {
 
               {/* Password */}
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex justify-between items-center mb-1">
                   <label
                     htmlFor="password"
                     className="block text-xs font-medium text-ink-muted"
@@ -232,8 +232,8 @@ export default function LoginPage() {
                   </button>
                 </div>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-faint">
-                    <Lock className="h-4 w-4" />
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
+                    <Lock className="w-4 h-4" />
                   </div>
                   <input
                     id="password"
@@ -243,19 +243,19 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-10 w-full pl-9 pr-9 rounded border border-rule bg-white text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
+                    className="pr-9 pl-9 w-full h-10 text-xs bg-white rounded border border-rule text-ink placeholder:text-ink-faint focus:outline-none focus:border-accent"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-faint hover:text-ink"
+                    className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-faint hover:text-ink"
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="w-4 h-4" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="w-4 h-4" />
                     )}
                   </button>
                 </div>
@@ -265,7 +265,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="h-10 w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition pressable mt-2"
+                className="flex justify-center items-center px-4 py-2 mt-2 w-full h-10 text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed pressable"
               >
                 {loading ? (
                   <>
@@ -283,10 +283,10 @@ export default function LoginPage() {
 
             {/* Divider */}
             <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="flex absolute inset-0 items-center" aria-hidden="true">
                 <div className="w-full border-t border-rule" />
               </div>
-              <div className="relative flex justify-center text-xs">
+              <div className="flex relative justify-center text-xs">
                 <span className="bg-white px-2 text-[11px] text-ink-faint">
                   Or select a demo role
                 </span>

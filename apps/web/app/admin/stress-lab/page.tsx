@@ -103,8 +103,13 @@ export default function StressLabPage() {
       .then((data) => {
         setAccounts(data);
         if (data.length >= 2) {
-          setFromAccountId(data[0].id);
-          setToAccountId(data[1].id);
+          const sandboxFrom = data.find((a) => a.name.toLowerCase().includes('sandbox')) || data[0];
+          const sandboxTo =
+            data.find((a) => a.name.toLowerCase().includes('sandbox') && a.id !== sandboxFrom?.id) ||
+            data.find((a) => a.id !== sandboxFrom?.id) ||
+            data[1];
+          setFromAccountId(sandboxFrom.id);
+          setToAccountId(sandboxTo.id);
         }
       })
       .catch((err) => {
