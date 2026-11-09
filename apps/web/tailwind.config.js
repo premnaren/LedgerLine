@@ -11,19 +11,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Dark Cosmic palette tokens (Reference 1)
-        'cosmic-black': '#080712',
+        // Dark Cosmic palette tokens (Cosmic Finance System)
+        'cosmic-black': '#080713',
         'deep-space': '#100D20',
-        'midnight-violet': '#17112D',
-        'nebula-purple': '#542A91',
-        'electric-violet': '#8155D9',
+        'nebula-surface': '#151126',
+        'midnight-violet': '#19132D',
+        'elevated-surface': '#1C1630',
+        'stellar-purple': '#8055E8',
+        'nebula-glow': '#A88AFF',
+        'muted-violet': '#291C49',
         'stellar-blue': '#648EFF',
         'magenta-glow': '#BD75E9',
         'soft-cyan': '#75C8F0',
-        'elevated-surface': '#171629',
-        'card-surface': '#19172B',
-        'card-border': '#34304D',
-        'primary-border': '#34304D',
+        'card-surface': '#151126',
+        'card-border': 'rgba(168, 138, 255, 0.14)',
+        'primary-border': 'rgba(168, 138, 255, 0.14)',
         'secondary-border': '#221F38',
 
         // Light Cosmic palette tokens
@@ -37,9 +39,9 @@ module.exports = {
         'border-light': '#DED9EA',
 
         // Semantic Cosmic tokens
-        'cosmic-success': '#42D6B0',
-        'cosmic-warning': '#F4B860',
-        'cosmic-error': '#F07886',
+        'cosmic-success': '#60C9BC',
+        'cosmic-warning': '#F0B85A',
+        'cosmic-error': '#F07889',
 
         // Dynamic theme tokens
         bg: 'var(--bg)',

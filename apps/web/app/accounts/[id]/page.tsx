@@ -165,25 +165,25 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
   };
 
   return (
-    <div className="bg-surface border border-rule rounded-lg p-5 space-y-4 shadow-xs">
+    <div className="cosmic-card p-6 space-y-4 shadow-xs">
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
-          <span className="text-xs text-ink font-semibold">Balance over time</span>
+          <span className="text-xs text-ink font-semibold">Balance trajectory</span>
           <span className="text-xs text-ink-muted">·</span>
           <span className="text-xs mono-num text-ink-muted">
             {coords.length} {coords.length === 1 ? 'record' : 'records'}
           </span>
         </div>
         {activePt && (
-          <span className="text-xs mono-num text-primary font-semibold">
+          <span className="cosmic-pill text-primary border-primary/25 bg-primary/10">
             Point #{hoveredIdx! + 1} of {coords.length}
           </span>
         )}
       </div>
 
       {/* Fixed-Height Scrubbing Ribbon (Guarantees ZERO layout shift / zero glitching on hover) */}
-      <div className="min-h-[44px] h-[44px] bg-surface-secondary border border-rule rounded-lg px-3.5 flex items-center justify-between text-xs transition">
+      <div className="min-h-[44px] h-[44px] bg-surface-secondary border border-rule rounded-xl px-4 flex items-center justify-between text-xs transition">
         {activePt ? (
           <div className="flex items-center justify-between w-full gap-3">
             <div className="flex items-center space-x-2 min-w-0">
@@ -258,8 +258,14 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
         >
           <defs>
             <linearGradient id="balanceAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.20" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#8055E8" stopOpacity="0.3" />
+              <stop offset="80%" stopColor="#8055E8" stopOpacity="0.06" />
+              <stop offset="100%" stopColor="#8055E8" stopOpacity="0.0" />
+            </linearGradient>
+            <linearGradient id="balanceLineGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#8055E8" />
+              <stop offset="50%" stopColor="#A88AFF" />
+              <stop offset="100%" stopColor="#BD75E9" />
             </linearGradient>
           </defs>
 
@@ -342,8 +348,8 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
           <path
             d={pathD}
             fill="none"
-            stroke="var(--primary)"
-            strokeWidth="2"
+            stroke="url(#balanceLineGrad)"
+            strokeWidth="3"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
@@ -521,63 +527,68 @@ export default function AccountStatementPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
-        <div className="flex items-center space-x-3">
-          <Link
-            href="/dashboard"
-            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable"
-            title="Back to accounts"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-bold tracking-tight text-ink">
-                {statement?.accountName || 'Account statement'}
-              </h1>
-              <span className="mono-num text-xs text-ink-faint border border-rule px-2 py-0.5 rounded">
-                {accountId.slice(0, 10)}...
-              </span>
-            </div>
-            <p className="text-xs text-ink-muted mt-0.5">
-              Append-only audit trail with immutable balance tracking
-            </p>
-          </div>
+      <div className="space-y-1">
+        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+          ACCOUNTS / STATEMENT
         </div>
-
-        {statement && (
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="text-right mr-1">
-              <span className="text-xs text-ink-muted font-medium block">
-                Current balance
-              </span>
-              <span className="mono-num text-2xl font-medium text-ink">
-                {formatPaiseToRupees(statement.balancePence)}
-              </span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
+          <div className="flex items-center space-x-3">
+            <Link
+              href="/dashboard"
+              className="p-2.5 border border-rule rounded-xl text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable bg-surface shadow-xs"
+              title="Back to accounts"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-2xl font-bold tracking-tight text-ink">
+                  {statement?.accountName || 'Account statement'}
+                </h1>
+                <span className="mono-num text-xs text-ink-muted border border-rule px-2.5 py-0.5 rounded-full bg-surface">
+                  {accountId.slice(0, 10)}...
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted mt-1">
+                Append-only audit trail with immutable balance tracking &amp; cryptographic seals.
+              </p>
             </div>
-
-            {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
-              <button
-                onClick={handleReconcileAccount}
-                className="inline-flex items-center px-3 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 transition pressable"
-                title="Verify double-entry reconciliation for this account"
-              >
-                <ShieldCheck className="mr-1.5 h-3.5 w-3.5 text-accent" />
-                <span>Reconcile</span>
-              </button>
-            )}
-
-            {user?.role !== 'AUDITOR' && (
-              <Link
-                href={`/accounts/${accountId}/transfer`}
-                className="inline-flex items-center px-4 py-2 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition pressable"
-              >
-                <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
-                <span>Transfer</span>
-              </Link>
-            )}
           </div>
-        )}
+
+          {statement && (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-right mr-2">
+                <span className="text-xs text-ink-muted font-medium block">
+                  Current balance
+                </span>
+                <span className="mono-num text-2xl sm:text-3xl font-bold text-ink">
+                  {formatPaiseToRupees(statement.balancePence)}
+                </span>
+              </div>
+
+              {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
+                <button
+                  onClick={handleReconcileAccount}
+                  className="inline-flex items-center px-4 py-2.5 border border-rule rounded-xl text-xs font-medium text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
+                  title="Verify double-entry reconciliation for this account"
+                >
+                  <ShieldCheck className="mr-1.5 h-4 w-4 text-primary" />
+                  <span>Reconcile</span>
+                </button>
+              )}
+
+              {user?.role !== 'AUDITOR' && (
+                <Link
+                  href={`/accounts/${accountId}/transfer`}
+                  className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover transition pressable shadow-xs"
+                >
+                  <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+                  <span>Transfer</span>
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -610,33 +621,33 @@ export default function AccountStatementPage() {
       ) : null}
 
       {/* Statement Table */}
-      <div className="bg-surface border border-rule rounded-lg overflow-hidden shadow-xs">
+      <div className="cosmic-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-rule text-xs">
             <thead className="sticky top-0 bg-surface-secondary text-ink font-semibold border-b border-rule z-10">
               <tr>
-                <th scope="col" className="px-5 py-3 text-left font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-left font-semibold">
                   Date &amp; time
                 </th>
-                <th scope="col" className="px-5 py-3 text-left font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-left font-semibold">
                   Entry type
                 </th>
-                <th scope="col" className="px-5 py-3 text-right font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-right font-semibold">
                   Amount
                 </th>
-                <th scope="col" className="px-5 py-3 text-center font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-center font-semibold">
                   Status
                 </th>
-                <th scope="col" className="px-5 py-3 text-right font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-right font-semibold">
                   Running balance
                 </th>
-                <th scope="col" className="px-5 py-3 text-left font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-left font-semibold">
                   Initiated by
                 </th>
-                <th scope="col" className="px-5 py-3 text-left font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-left font-semibold">
                   Note
                 </th>
-                <th scope="col" className="px-5 py-3 text-right font-semibold">
+                <th scope="col" className="px-5 py-3.5 text-right font-semibold">
                   Actions
                 </th>
               </tr>
@@ -676,8 +687,8 @@ export default function AccountStatementPage() {
                       onClick={() => setInspectedEntry(entry as any)}
                       className={`cursor-pointer transition ${
                         isInspected
-                          ? 'bg-rule/40 ring-1 ring-accent/30 font-medium'
-                          : 'hover:bg-[#F3F2EE]'
+                          ? 'bg-primary/10 ring-1 ring-primary/40 font-medium'
+                          : 'hover:bg-surface-secondary'
                       }`}
                       title="Click row to inspect cryptographic seal & double-entry details"
                     >
@@ -704,18 +715,19 @@ export default function AccountStatementPage() {
                         {formatPaiseToRupees(entry.amountPence)}
                       </td>
 
-                      {/* Status Column: 6px colored dot + plain text */}
+                      {/* Status Column */}
                       <td className="px-5 py-3 whitespace-nowrap text-center">
                         <span
-                          className="inline-flex items-center gap-1.5 font-semibold"
-                          style={{
-                            color: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
-                          }}
+                          className={`cosmic-pill ${
+                            isPosted
+                              ? 'text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10'
+                              : 'text-[#F07889] border-[#F07889]/30 bg-[#F07889]/10'
+                          }`}
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full"
                             style={{
-                              background: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
+                              background: isPosted ? '#60C9BC' : '#F07889',
                             }}
                           />
                           {entry.status}

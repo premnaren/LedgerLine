@@ -182,29 +182,29 @@ export default function StressLabPage() {
             <ArrowLeft className="mr-1 h-3.5 w-3.5" />
             Back to dashboard
           </Link>
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <div className="h-8 w-8 rounded bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-300">
-              <Zap className="h-4 w-4 fill-amber-600 text-amber-700" />
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-[#F0B85A] flex items-center justify-center shrink-0 border border-amber-500/20">
+              <Zap className="h-4 w-4" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-ink">
               Engine stress &amp; concurrency workbench
             </h1>
-            <span className="px-2 py-0.5 rounded text-xs font-mono uppercase bg-amber-50 text-amber-950 border border-amber-300 font-bold shrink-0">
+            <span className="cosmic-pill text-[#F0B85A] border-[#F0B85A]/30 bg-[#F0B85A]/10 shrink-0">
               Isolated Sandbox
             </span>
             {running ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-900 border border-amber-300 animate-pulse">
-                <RefreshCw className="h-3 w-3 animate-spin text-amber-700" />
+              <span className="cosmic-pill text-[#F0B85A] border-[#F0B85A]/30 bg-[#F0B85A]/10 animate-pulse">
+                <RefreshCw className="h-3 w-3 animate-spin text-[#F0B85A]" />
                 <span>Running</span>
               </span>
             ) : result ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-paper text-ledger-green border border-rule">
-                <CheckCircle2 className="h-3 w-3 text-ledger-green" />
+              <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10">
+                <CheckCircle2 className="h-3 w-3 text-[#60C9BC]" />
                 <span>Completed</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-paper text-ledger-green border border-rule">
-                <span className="h-1.5 w-1.5 rounded-full bg-ledger-green" />
+              <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#60C9BC]" />
                 <span>Ready</span>
               </span>
             )}
@@ -219,7 +219,7 @@ export default function StressLabPage() {
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePrintCertificate}
-              className="inline-flex items-center px-3.5 py-2 border border-rule rounded-lg text-xs font-semibold text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
+              className="inline-flex items-center px-4 py-2.5 border border-rule rounded-xl text-xs font-semibold text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
             >
               <Printer className="mr-2 h-4 w-4 text-ink-muted" />
               Print compliance certificate
@@ -239,7 +239,7 @@ export default function StressLabPage() {
       )}
 
       {/* Stage 1: Simulation Configuration Panel */}
-      <div className="bg-surface rounded-lg border border-rule p-5 sm:p-6 space-y-5 shadow-xs">
+      <div className="cosmic-card p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-rule">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted block">
@@ -511,14 +511,14 @@ export default function StressLabPage() {
           {/* 4 Explicit Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Balance Conservation */}
-            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
+            <div className="cosmic-card p-5 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Conservation
                 </span>
-                <CheckCircle2 className="h-4 w-4 text-ledger-green" />
+                <CheckCircle2 className="h-4 w-4 text-[#60C9BC]" />
               </div>
-              <div className="text-xl font-bold mono-num text-ledger-green mt-2">
+              <div className="text-2xl font-bold mono-num text-[#60C9BC] mt-2">
                 100% Conserved
               </div>
               <span className="text-xs font-mono text-ink-muted mt-1 block font-medium">
@@ -527,14 +527,14 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 2: Transaction Throughput */}
-            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
+            <div className="cosmic-card p-5 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Throughput
                 </span>
-                <TrendingUp className="h-4 w-4 text-accent" />
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
-              <div className="text-xl font-bold mono-num text-ink mt-2">
+              <div className="text-2xl font-bold mono-num text-ink mt-2">
                 {result.telemetry.transfersPerSecond} tx/s
               </div>
               <span className="text-xs font-mono text-ink-muted mt-1 block font-medium">
@@ -543,14 +543,14 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 3: Successful Transactions */}
-            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
+            <div className="cosmic-card p-5 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Committed
                 </span>
-                <Lock className="h-4 w-4 text-accent" />
+                <Lock className="h-4 w-4 text-primary" />
               </div>
-              <div className="text-xl font-bold mono-num text-ink mt-2">
+              <div className="text-2xl font-bold mono-num text-ink mt-2">
                 {result.telemetry.successful}/{result.telemetry.concurrency}
               </div>
               <span className="text-xs font-mono text-ink-muted mt-1 block font-medium">
@@ -559,14 +559,14 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 4: Hash Chain Integrity */}
-            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
+            <div className="cosmic-card p-5 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Chain integrity
                 </span>
-                <ShieldCheck className="h-4 w-4 text-ledger-green" />
+                <ShieldCheck className="h-4 w-4 text-[#60C9BC]" />
               </div>
-              <div className="text-xl font-bold text-ledger-green mt-2">
+              <div className="text-2xl font-bold text-[#60C9BC] mt-2">
                 Intact
               </div>
               <span className="text-xs font-mono text-ink-muted mt-1 block truncate font-medium">

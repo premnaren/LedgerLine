@@ -195,38 +195,43 @@ export default function AuditPage() {
   return (
     <div className="pb-12 mx-auto space-y-6 max-w-7xl">
       {/* Top Banner */}
-      <div className="flex flex-col gap-4 pb-4 border-b sm:flex-row sm:items-center sm:justify-between border-rule">
-        <div>
-          <div className="flex items-center space-x-2">
-            <BookOpen className="w-5 h-5 text-accent" />
-            <h1 className="text-xl font-bold tracking-tight text-ink">
-              Auditor &amp; compliance ledger
-            </h1>
-          </div>
-          <p className="text-xs text-ink-muted mt-0.5">
-            Global append-only audit view: Showing all ledger postings including refused attempts.
-          </p>
+      <div className="space-y-1">
+        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+          AUDITOR / COMPLIANCE LEDGER
         </div>
+        <div className="flex flex-col gap-4 pb-4 border-b sm:flex-row sm:items-center sm:justify-between border-rule">
+          <div>
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-6 h-6 text-primary" />
+              <h1 className="text-2xl font-bold tracking-tight text-ink">
+                Audit ledger &amp; compliance
+              </h1>
+            </div>
+            <p className="text-xs text-ink-muted mt-1">
+              Global append-only double-entry audit log with real-time SHA-256 cryptographic verification.
+            </p>
+          </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => fetchAuditEntries()}
-            className="p-2 rounded border transition border-rule text-ink-muted hover:text-ink hover:bg-rule/30 pressable"
-            title="Refresh"
-            aria-label="Refresh audit records"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => fetchAuditEntries()}
+              className="p-2.5 rounded-xl border transition border-rule text-ink-muted hover:text-ink hover:bg-surface-secondary pressable bg-surface shadow-xs"
+              title="Refresh audit records"
+              aria-label="Refresh audit records"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
 
-          {/* Ghost button for Export to CSV */}
-          <button
-            onClick={handleExportCSV}
-            disabled={entries.length === 0}
-            className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 disabled:opacity-40 transition"
-          >
-            <Download className="mr-1.5 h-3.5 w-3.5 text-ink-faint" />
-            <span>Export to CSV</span>
-          </button>
+            {/* Export to CSV */}
+            <button
+              onClick={handleExportCSV}
+              disabled={entries.length === 0}
+              className="inline-flex items-center px-4 py-2.5 border border-rule rounded-xl text-xs font-medium text-ink bg-surface hover:bg-surface-secondary disabled:opacity-40 transition shadow-xs pressable"
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5 text-primary" />
+              <span>Export CSV</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -267,8 +272,8 @@ export default function AuditPage() {
         </div>
       )}
 
-      {/* Filter Bar: border border-rule rounded-lg, "Apply Filters" is the single primary filled button */}
-      <div className="p-4 space-y-3 bg-surface rounded-lg border border-rule shadow-xs">
+      {/* Filter Bar */}
+      <div className="p-5 cosmic-card space-y-3">
         <div className="grid grid-cols-1 gap-3 items-end sm:grid-cols-4">
           <div>
             <label className="block mb-1 text-xs font-medium text-ink-muted">
@@ -277,7 +282,7 @@ export default function AuditPage() {
             <select
               value={selectedAccount}
               onChange={(e) => setSelectedAccount(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
+              className="block px-3 py-2.5 w-full text-xs bg-surface rounded-xl border border-rule text-ink focus:outline-none focus:border-primary"
             >
               <option value="">All accounts</option>
               {accounts.map((acc) => (
@@ -296,7 +301,7 @@ export default function AuditPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
+              className="block px-3 py-2.5 w-full text-xs bg-surface rounded-xl border border-rule text-ink focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -308,14 +313,14 @@ export default function AuditPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
+              className="block px-3 py-2.5 w-full text-xs bg-surface rounded-xl border border-rule text-ink focus:outline-none focus:border-primary"
             />
           </div>
 
           <div>
             <button
               onClick={() => fetchAuditEntries()}
-              className="flex justify-center items-center px-4 py-2 w-full text-xs font-semibold text-white rounded-lg transition bg-accent hover:opacity-95"
+              className="flex justify-center items-center px-4 py-2.5 w-full text-xs font-semibold text-white rounded-xl transition bg-primary hover:bg-primary-hover pressable shadow-xs"
             >
               <Search className="mr-1.5 h-3.5 w-3.5" />
               <span>Apply filters</span>
@@ -331,7 +336,7 @@ export default function AuditPage() {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="text-xs font-semibold text-accent hover:underline"
+              className="text-xs font-semibold text-primary hover:underline"
             >
               Clear filters
             </button>
@@ -340,43 +345,43 @@ export default function AuditPage() {
       </div>
 
       {/* Metric Cards Summary Bar */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
+      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+        <div className="p-5 cosmic-card shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Total entries</span>
-          <div className="mono-num text-xl font-bold text-ink mt-0.5">
+          <div className="mono-num text-2xl font-bold text-ink mt-1">
             {loading ? '—' : entries.length}
           </div>
-          <span className="text-xs text-ink-muted mt-0.5 block">Audit log count</span>
+          <span className="text-xs text-ink-muted mt-1 block">Audit log count</span>
         </div>
 
-        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
+        <div className="p-5 cosmic-card shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Posted records</span>
-          <div className="mono-num text-xl font-bold text-ledger-green mt-0.5">
+          <div className="mono-num text-2xl font-bold text-[#60C9BC] mt-1">
             {loading ? '—' : entries.filter((e) => e.status === 'POSTED').length}
           </div>
-          <span className="text-xs text-ink-muted mt-0.5 block">Committed</span>
+          <span className="text-xs text-ink-muted mt-1 block">Committed</span>
         </div>
 
-        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
+        <div className="p-5 cosmic-card shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Refused attempts</span>
-          <div className="mono-num text-xl font-bold text-ledger-red mt-0.5">
+          <div className="mono-num text-2xl font-bold text-[#F07889] mt-1">
             {loading ? '—' : entries.filter((e) => e.status === 'REFUSED').length}
           </div>
-          <span className="text-xs text-ink-muted mt-0.5 block">Refused</span>
+          <span className="text-xs text-ink-muted mt-1 block">Refused</span>
         </div>
 
-        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
+        <div className="p-5 cosmic-card shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Cryptographic seal</span>
-          <div className="mono-num text-xl font-bold text-ink mt-0.5 flex items-center space-x-1.5">
+          <div className="mono-num text-2xl font-bold text-ink mt-1 flex items-center space-x-1.5">
             <span>100%</span>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
+            <span className="w-2 h-2 rounded-full bg-[#60C9BC]" />
           </div>
-          <span className="text-xs text-ink-muted mt-0.5 block">Genesis-to-Head SHA-256</span>
+          <span className="text-xs text-ink-muted mt-1 block">Genesis-to-Head SHA-256</span>
         </div>
       </div>
 
       {/* Audit Table */}
-      <div className="overflow-hidden bg-surface rounded-lg border border-rule shadow-xs">
+      <div className="overflow-hidden cosmic-card shadow-xs">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs divide-y divide-rule">
             <thead className="sticky top-0 z-10 font-semibold border-b bg-surface-secondary text-ink border-rule">
@@ -446,8 +451,8 @@ export default function AuditPage() {
                       onClick={() => setInspectedEntry(entry)}
                       className={`cursor-pointer transition ${
                         isInspected
-                          ? 'bg-rule/40 ring-1 ring-accent/30 font-medium'
-                          : 'hover:bg-[#F3F2EE]'
+                          ? 'bg-primary/10 ring-1 ring-primary/40 font-medium'
+                          : 'hover:bg-surface-secondary'
                       }`}
                       title="Click row to inspect cryptographic seal & double-entry details"
                     >
@@ -459,18 +464,19 @@ export default function AuditPage() {
                         {entry.type}
                       </td>
 
-                      {/* Status Column: 6px colored dot + plain text */}
+                      {/* Status Column */}
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         <span
-                          className="inline-flex items-center gap-1.5 font-semibold"
-                          style={{
-                            color: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
-                          }}
+                          className={`cosmic-pill ${
+                            isPosted
+                              ? 'text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10'
+                              : 'text-[#F07889] border-[#F07889]/30 bg-[#F07889]/10'
+                          }`}
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full"
                             style={{
-                              background: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
+                              background: isPosted ? '#60C9BC' : '#F07889',
                             }}
                           />
                           {entry.status}

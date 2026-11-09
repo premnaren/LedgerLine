@@ -58,9 +58,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.className} antialiased bg-paper text-ink min-h-screen transition-colors duration-200`}>
-        <Navbar />
-        <MainWrapper>{children}</MainWrapper>
+      <body className={`${inter.className} antialiased bg-paper text-ink min-h-screen transition-colors duration-200 relative`}>
+        <div className="cosmic-nebula-bg" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col min-h-screen">
+          <Navbar />
+          <MainWrapper>{children}</MainWrapper>
+        </div>
       </body>
     </html>
   );

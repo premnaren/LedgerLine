@@ -204,18 +204,18 @@ export default function TransactionDrawer({
         {/* Scrollable Body */}
         <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-4 text-xs">
           {/* Amount Card */}
-          <div className="p-4 rounded border border-rule bg-paper space-y-3">
+          <div className="p-5 cosmic-card space-y-3">
             <span className="text-xs text-ink-muted font-medium block">
               Account impact ({isDebit ? 'Outflow' : 'Inflow'})
             </span>
             <div
-              className="mono-num text-2xl font-bold tracking-tight"
+              className="mono-num text-3xl font-bold tracking-tight"
               style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
             >
               {isDebit ? `−${amountStr}` : `+${amountStr}`}
             </div>
 
-            <div className="pt-2 border-t border-rule grid grid-cols-2 gap-2 text-xs">
+            <div className="pt-3 border-t border-rule grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-ink-muted block text-xs">Exact volume:</span>
                 <span className="mono-num font-semibold text-ink">{amountStr}</span>
@@ -229,66 +229,66 @@ export default function TransactionDrawer({
           </div>
 
           {/* Double-entry routing */}
-          <div className="border border-rule rounded-lg p-4 space-y-3 bg-surface shadow-xs">
+          <div className="cosmic-card p-5 space-y-3 shadow-xs">
             <div className="flex items-center justify-between pb-2 border-b border-rule">
               <span className="font-semibold text-ink flex items-center space-x-1.5">
-                <ArrowRightLeft className="h-3.5 w-3.5 text-accent" />
+                <ArrowRightLeft className="h-4 w-4 text-primary" />
                 <span>Double-entry movement</span>
               </span>
-              <span className="mono-num text-xs text-ledger-green font-medium">
+              <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
                 Zero-sum Δ=0
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 bg-surface-secondary border border-rule rounded-xl">
                 <span className="text-xs text-ink-muted block font-medium">Debit source</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.debitAccountName || (entry.debitAccountId ? `Acc: ${entry.debitAccountId.slice(0, 8)}...` : 'Source')}
                 </span>
-                <span className="mono-num font-semibold text-ledger-red block mt-0.5">−{amountStr}</span>
+                <span className="mono-num font-semibold text-ledger-red block mt-1">−{amountStr}</span>
               </div>
 
-              <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg">
+              <div className="p-3 bg-surface-secondary border border-rule rounded-xl">
                 <span className="text-xs text-ink-muted block font-medium">Credit dest</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.creditAccountName || (entry.creditAccountId ? `Acc: ${entry.creditAccountId.slice(0, 8)}...` : 'Destination')}
                 </span>
-                <span className="mono-num font-semibold text-ledger-green block mt-0.5">+{amountStr}</span>
+                <span className="mono-num font-semibold text-ledger-green block mt-1">+{amountStr}</span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-rule flex justify-between">
+            <div className="pt-2 border-t border-rule flex justify-between text-xs">
               <span className="text-ink-muted">Running balance ({activeAccountName}):</span>
               <span className="mono-num font-bold text-ink">{formatPaiseToRupees(entry.runningBalance)}</span>
             </div>
           </div>
 
           {/* SHA-256 Proof & Visual Merkle-Chain Diagram */}
-          <div className="border border-rule rounded-lg p-4 space-y-3 bg-surface shadow-xs">
+          <div className="cosmic-card p-5 space-y-3 shadow-xs">
             <div className="flex items-center justify-between pb-2 border-b border-rule">
               <span className="font-semibold text-ink flex items-center space-x-1.5">
-                <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                <ShieldCheck className="h-4 w-4 text-primary" />
                 <span>Cryptographic seal</span>
               </span>
-              <span className="mono-num text-xs text-ink-muted">SHA-256</span>
+              <span className="cosmic-pill text-primary border-primary/25 bg-primary/10">SHA-256</span>
             </div>
 
             {/* Visual Hash-Chain Continuity Block Diagram */}
-            <div className="bg-surface-secondary border border-rule rounded-lg p-3 space-y-2">
+            <div className="bg-surface-secondary border border-rule rounded-xl p-3.5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-ink-muted font-semibold uppercase tracking-wider">
                   Block pointer continuity
                 </span>
                 <span className="flex items-center gap-1 text-xs text-ledger-green font-medium">
-                  <CheckCircle2 className="h-3 w-3 text-ledger-green" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-ledger-green" />
                   Verified link
                 </span>
               </div>
 
               <div className="grid grid-cols-11 items-center gap-1.5 text-xs">
                 {/* Parent Block */}
-                <div className="col-span-5 p-2 bg-surface rounded-lg border border-rule min-w-0">
+                <div className="col-span-5 p-2.5 bg-surface rounded-lg border border-rule min-w-0">
                   <div className="flex items-center space-x-1 text-xs text-ink-muted mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
                     <span className="font-medium truncate">Parent seal</span>
@@ -300,16 +300,16 @@ export default function TransactionDrawer({
 
                 {/* Vector Flow Connector */}
                 <div className="col-span-1 flex flex-col items-center justify-center">
-                  <ArrowRight className="h-3.5 w-3.5 text-accent" />
+                  <ArrowRight className="h-4 w-4 text-primary" />
                 </div>
 
                 {/* Current Block */}
-                <div className="col-span-5 p-2 bg-surface rounded-lg border border-rule min-w-0">
-                  <div className="flex items-center space-x-1 text-xs text-accent mb-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                <div className="col-span-5 p-2.5 bg-surface rounded-lg border border-rule min-w-0">
+                  <div className="flex items-center space-x-1 text-xs text-primary mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                     <span className="font-semibold truncate">Current seal</span>
                   </div>
-                  <div className="mono-num text-xs text-accent font-semibold truncate select-all">
+                  <div className="mono-num text-xs text-primary font-semibold truncate select-all">
                     {entry.hash ? `${entry.hash.slice(0, 8)}...` : 'Unsealed'}
                   </div>
                 </div>

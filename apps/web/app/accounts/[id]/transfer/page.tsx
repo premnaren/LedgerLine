@@ -256,32 +256,37 @@ export default function TransferPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
       {/* Top Banner Navigation */}
-      <div className="flex items-center justify-between pb-4 border-b border-rule">
-        <div className="flex items-center space-x-3">
-          <Link
-            href={`/accounts/${fromAccountId}`}
-            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable"
-            title="Back to account statement"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-ink">
-              {pageTitle}
-            </h1>
-            <p className="text-xs text-ink-muted mt-0.5">
-              {currentAccount?.name} · Available balance:{' '}
-              <span className="font-medium mono-num text-ink">
-                {formatPaiseToRupees(currentAccount?.balancePence || '0')}
-              </span>
-            </p>
-          </div>
+      <div className="space-y-1">
+        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+          TRANSFER / EXECUTE ATOMIC TRANSACTION
         </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
+          <div className="flex items-center space-x-3">
+            <Link
+              href={`/accounts/${fromAccountId}`}
+              className="p-2.5 border border-rule rounded-xl text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable bg-surface shadow-xs"
+              title="Back to account statement"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-ink">
+                {pageTitle}
+              </h1>
+              <p className="text-xs text-ink-muted mt-1">
+                {currentAccount?.name} · Available balance:{' '}
+                <span className="font-semibold mono-num text-ink">
+                  {formatPaiseToRupees(currentAccount?.balancePence || '0')}
+                </span>
+              </p>
+            </div>
+          </div>
 
-        <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
-          PostgreSQL Serializable
-        </span>
+          <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC]" />
+            PostgreSQL Serializable
+          </span>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -374,7 +379,7 @@ export default function TransferPage() {
       )}
 
       {/* Main Execution Form */}
-      <form onSubmit={handleOpenReview} className="bg-surface border border-rule rounded-lg p-6 space-y-5 shadow-xs">
+      <form onSubmit={handleOpenReview} className="cosmic-card p-6 sm:p-8 space-y-6 shadow-xs">
         {/* Step 1: Operation Type Selector using Tab-Underline Pattern */}
         <div className="space-y-2">
           <label className="block text-xs text-ink-muted font-medium">
@@ -626,10 +631,10 @@ export default function TransferPage() {
         <button
           type="submit"
           disabled={!isFormValid || loading}
-          className="h-10 w-full flex justify-center items-center py-2 px-4 rounded-lg text-xs font-semibold text-white bg-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition pressable"
+          className="h-12 w-full flex justify-center items-center py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition pressable shadow-xs"
         >
           <span>Review {type}</span>
-          <ArrowRight className="ml-2 h-3.5 w-3.5" />
+          <ArrowRight className="ml-2 h-4 w-4" />
         </button>
       </form>
 

@@ -181,51 +181,56 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-rule">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-ink">
-                User Role Administration
-              </h1>
-              <p className="text-xs sm:text-sm text-ink-muted">
-                Server-enforced role assignments, user onboarding, and account ownership
-              </p>
+      <div className="space-y-1">
+        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+          ADMIN / USER ROLES &amp; ACCESS CONTROL
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-rule">
+          <div>
+            <div className="flex items-center space-x-2.5">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-ink">
+                  User Role Administration
+                </h1>
+                <p className="text-xs sm:text-sm text-ink-muted mt-0.5">
+                  Server-enforced role assignments, user onboarding, and cryptographic account ownership.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-2.5">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing || loading}
-            className="px-3 py-2 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-secondary text-ink border border-rule transition shadow-xs flex items-center space-x-1.5"
-            title="Refresh user list"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-primary hover:opacity-95 text-white dark:text-[#0B1220] shadow-xs transition flex items-center space-x-1.5"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Onboard New User</span>
-          </button>
+          <div className="flex items-center space-x-2.5">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-surface hover:bg-surface-secondary text-ink border border-rule transition shadow-xs flex items-center space-x-1.5 pressable"
+              title="Refresh user list"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-xs transition flex items-center space-x-1.5 pressable"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Onboard New User</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Role Architecture Explainer Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        <div className="p-4 bg-surface border border-rule rounded-xl shadow-xs space-y-1">
+        <div className="p-5 cosmic-card shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-primary uppercase tracking-wider">
               ADMIN Role
             </span>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300">
+            <span className="cosmic-pill text-primary border-primary/30 bg-primary/10">
               {counts.admin} active
             </span>
           </div>
@@ -234,12 +239,12 @@ export default function AdminUsersPage() {
           </p>
         </div>
 
-        <div className="p-4 bg-surface border border-rule rounded-xl shadow-xs space-y-1">
+        <div className="p-5 cosmic-card shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">
+            <span className="text-xs font-bold text-[#60C9BC] uppercase tracking-wider">
               HOLDER Role
             </span>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10">
               {counts.holder} active
             </span>
           </div>
@@ -248,12 +253,12 @@ export default function AdminUsersPage() {
           </p>
         </div>
 
-        <div className="p-4 bg-surface border border-rule rounded-xl shadow-xs space-y-1">
+        <div className="p-5 cosmic-card shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-[#F0B85A] uppercase tracking-wider">
               AUDITOR Role
             </span>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+            <span className="cosmic-pill text-[#F0B85A] border-[#F0B85A]/30 bg-[#F0B85A]/10">
               {counts.auditor} active
             </span>
           </div>
@@ -264,7 +269,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-surface border border-rule rounded-xl p-3 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 cosmic-card p-3.5 shadow-xs">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
@@ -294,7 +299,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* User Table */}
-      <div className="bg-surface border border-rule rounded-xl shadow-xs overflow-hidden">
+      <div className="cosmic-card shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-16 text-center space-y-3">
             <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto" />
@@ -362,12 +367,12 @@ export default function AdminUsersPage() {
 
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                          className={`cosmic-pill ${
                             u.role === 'ADMIN'
-                              ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                              ? 'text-primary border-primary/30 bg-primary/10'
                               : u.role === 'AUDITOR'
-                              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                              : 'bg-primary/10 text-primary'
+                              ? 'text-[#F0B85A] border-[#F0B85A]/30 bg-[#F0B85A]/10'
+                              : 'text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10'
                           }`}
                         >
                           <Shield className="w-3 h-3" />

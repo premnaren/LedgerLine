@@ -76,10 +76,14 @@ export default function Navbar() {
               href="/dashboard"
               className="flex items-center space-x-2.5 pressable focus:outline-hidden"
             >
-              <div className="h-8 w-8 rounded-lg border border-rule bg-surface text-primary flex items-center justify-center shadow-xs">
-                <Layers className="h-4 w-4" />
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-surface border border-rule text-primary shadow-xs">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="3.5" fill="currentColor" fillOpacity="0.9" />
+                  <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-30 12 12)" stroke="currentColor" strokeWidth="1.5" strokeDasharray="32 6" />
+                  <circle cx="19" cy="8" r="1.5" fill="#A88AFF" />
+                </svg>
               </div>
-              <span className="font-bold text-lg tracking-tight text-ink">
+              <span className="font-bold text-lg tracking-tight text-ink flex items-center gap-0.5">
                 Ledger<span className="text-primary">Line</span>
               </span>
             </Link>
@@ -102,7 +106,7 @@ export default function Navbar() {
                     href="/admin/audit"
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
                       pathname === '/admin/audit'
-                        ? 'bg-[#5275A5] dark:bg-[#8BA8D1] text-white dark:text-[#0B1220] shadow-xs'
+                        ? 'bg-primary text-white shadow-xs'
                         : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
                     }`}
                   >
@@ -116,12 +120,25 @@ export default function Navbar() {
                     href="/admin/stress-lab"
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
                       pathname === '/admin/stress-lab'
-                        ? 'bg-[#D99524] dark:bg-[#E9B45C] text-white dark:text-[#0B1220] shadow-xs'
-                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary border border-rule'
+                        ? 'bg-[#F0B85A] text-[#080713] font-bold shadow-xs'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
                     }`}
                   >
-                    <Zap className="h-3.5 w-3.5 text-accent" />
+                    <Zap className="h-3.5 w-3.5" />
                     <span>Stress lab</span>
+                  </Link>
+                )}
+
+                {user.role === 'ADMIN' && (
+                  <Link
+                    href="/admin/users"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
+                      pathname === '/admin/users'
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
+                    }`}
+                  >
+                    <span>Users</span>
                   </Link>
                 )}
               </nav>
@@ -153,10 +170,10 @@ export default function Navbar() {
 
             {user && (
               <div className="flex items-center space-x-2 sm:space-x-3">
-                {/* Role Dot + Sentence Case Pattern */}
-                <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium bg-surface-secondary px-2.5 py-1 rounded-full border border-rule">
+                {/* Role Console Badge */}
+                <span className="cosmic-pill hidden sm:inline-flex text-ink-muted">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleColor }} />
-                  {user.role}
+                  {user.role} CONSOLE
                 </span>
 
                 <span className="text-xs text-ink-faint mono-num hidden lg:inline">

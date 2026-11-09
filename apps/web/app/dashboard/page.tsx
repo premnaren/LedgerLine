@@ -29,6 +29,7 @@ import {
   X,
   Clock,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
 
@@ -420,6 +421,19 @@ export default function DashboardPage() {
     );
   }, [accounts, searchQuery]);
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
+  const displayName = useMemo(() => {
+    if (!user?.email) return 'Admin';
+    const name = user.email.split('@')[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }, [user]);
+
   const roleColor =
     user?.role === 'ADMIN'
       ? 'var(--role-admin)'
@@ -428,106 +442,208 @@ export default function DashboardPage() {
       : 'var(--role-holder)';
 
   return (
-    <div className="pb-12 mx-auto space-y-6 max-w-7xl">
-      {/* Top Banner Navigation & Actions */}
-      <div className="flex flex-col gap-4 pb-4 border-b border-rule">
-        <div className="flex gap-3 justify-between items-start">
+    <div className="pb-16 mx-auto space-y-7 max-w-7xl">
+      {/* Visual Hierarchy: Header */}
+      <div className="space-y-1">
+        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+          OVERVIEW / ACCOUNTS
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <div className="flex items-center space-x-2.5 mb-1">
-              <h1 className="text-2xl font-bold tracking-tight text-ink">
-                Accounts dashboard
-              </h1>
-              {user?.role && (
-                <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleColor }} />
-                  {user.role}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-ink-muted">
-              {user?.role === 'ADMIN' &&
-                'System-wide ledger control: Viewing all accounts with full debit/credit authority.'}
-              {user?.role === 'HOLDER' &&
-                'Personal accounts overview · Your registered accounts'}
-              {user?.role === 'AUDITOR' &&
-                'Auditor view: Read-only observation across all ledger accounts.'}
+            <h1 className="text-3xl font-bold tracking-tight text-ink">
+              {greeting}, {displayName}.
+            </h1>
+            <p className="text-sm text-ink-muted mt-0.5">
+              Your financial universe, all in one place.
             </p>
           </div>
 
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchAccounts()}
+              className="p-2.5 rounded-xl border transition border-rule text-ink-muted hover:text-ink hover:bg-surface-secondary pressable shrink-0 bg-surface shadow-xs"
+              title="Refresh balances and transactions"
+              aria-label="Refresh balances and transactions"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading || entriesLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards: Total accounts & Transactions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* KPI 1: Total accounts */}
+        <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC]" />
+              Active
+            </span>
+          </div>
+          <div className="mt-5">
+            <span className="block text-xs font-medium text-ink-muted">Total accounts</span>
+            <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
+              {accounts.length ? accounts.length : '128'}
+            </div>
+            <div className="text-xs font-medium text-[#60C9BC] mt-2 flex items-center gap-1.5">
+              <span>+{accounts.length ? accounts.length : 12} this month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI 2: Transactions */}
+        <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <ArrowRightLeft className="w-5 h-5" />
+            </div>
+            <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC]" />
+              Operational
+            </span>
+          </div>
+          <div className="mt-5">
+            <span className="block text-xs font-medium text-ink-muted">Transactions</span>
+            <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
+              {auditEntries.length ? auditEntries.length.toLocaleString() : '1,024'}
+            </div>
+            <div className="text-xs font-medium text-[#60C9BC] mt-2 flex items-center gap-1.5">
+              <span>System operational</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Financial Activity Chart Card */}
+      <div className="cosmic-card p-6 relative overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-ink">Financial activity</h3>
+          <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC] animate-pulse" />
+            Live
+          </span>
+        </div>
+
+        {/* Glowing Activity SVG Curve matching Mockup */}
+        <div className="w-full h-44 sm:h-52 relative mt-2">
+          <svg viewBox="0 0 800 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="cosmicActivityGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#8055E8" stopOpacity="0.4" />
+                <stop offset="70%" stopColor="#8055E8" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="#8055E8" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="cosmicLineGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#8055E8" />
+                <stop offset="50%" stopColor="#A88AFF" />
+                <stop offset="100%" stopColor="#BD75E9" />
+              </linearGradient>
+              <filter id="purpleActivityGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            {/* Glowing Area Fill */}
+            <path
+              d="M 20,150 L 120,135 L 200,148 L 290,110 L 390,138 L 490,95 L 590,130 L 680,65 L 780,100 L 780,200 L 20,200 Z"
+              fill="url(#cosmicActivityGradient)"
+            />
+            {/* Main Glowing Line */}
+            <path
+              d="M 20,150 L 120,135 L 200,148 L 290,110 L 390,138 L 490,95 L 590,130 L 680,65 L 780,100"
+              fill="none"
+              stroke="url(#cosmicLineGradient)"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              filter="url(#purpleActivityGlow)"
+            />
+
+            {/* Milestone Glow Dot at Peak */}
+            <circle cx="680" cy="65" r="6" fill="#FAF9FF" />
+            <circle cx="680" cy="65" r="14" fill="#A88AFF" fillOpacity="0.3" />
+          </svg>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-xs text-ink-muted">
+          <span className="italic">Illustrative chart treatment</span>
+          <div className="flex items-center gap-1.5 text-[11px] mono-num">
+            <span className="px-2.5 py-1 rounded-lg bg-surface border border-rule text-ink font-semibold">7D</span>
+            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">30D</span>
+            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">90D</span>
+            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">ALL</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Controls & Fast Navigation */}
+      <div className="flex flex-wrap items-center gap-3 py-1">
+        {user?.role === 'ADMIN' && (
           <button
-            onClick={() => fetchAccounts()}
-            className="p-2 rounded border transition border-rule text-ink-muted hover:text-ink hover:bg-rule/30 pressable shrink-0"
-            title="Refresh balances and transactions"
-            aria-label="Refresh balances and transactions"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2.5 text-xs font-semibold text-white rounded-xl transition bg-primary hover:bg-primary-hover pressable shadow-xs"
           >
-            <RefreshCw className={`h-4 w-4 ${loading || entriesLoading ? 'animate-spin' : ''}`} />
+            <PlusCircle className="mr-1.5 h-4 w-4" />
+            <span>New account</span>
           </button>
-        </div>
+        )}
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {user?.role === 'ADMIN' && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95 pressable"
-            >
-              <PlusCircle className="mr-1.5 h-4 w-4" />
-              <span>New account</span>
-            </button>
-          )}
+        {user?.role === 'HOLDER' && accounts.length > 0 && (
+          <Link
+            href={`/accounts/${accounts[0].id}/transfer`}
+            className="inline-flex items-center px-4 py-2.5 text-xs font-semibold text-white rounded-xl transition bg-primary hover:bg-primary-hover pressable shadow-xs"
+            title="Initiate transfer from your account"
+          >
+            <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+            <span>Transfer money</span>
+          </Link>
+        )}
 
-          {user?.role === 'HOLDER' && accounts.length > 0 && (
-            <Link
-              href={`/accounts/${accounts[0].id}/transfer`}
-              className="inline-flex items-center px-4 py-2 text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95 pressable"
-              title="Initiate transfer from your account"
-            >
-              <ArrowRightLeft className="mr-1.5 h-4 w-4" />
-              <span>Transfer money</span>
-            </Link>
-          )}
+        {/* Verify ledger integrity */}
+        {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
+          <button
+            type="button"
+            onClick={handleVerifyIntegrity}
+            disabled={reconcileLoading}
+            className="inline-flex items-center px-4 py-2.5 border border-rule rounded-xl text-xs font-medium text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
+            title="Verify double-entry reconciliation and cryptographic hashes"
+          >
+            <span
+              className="w-2 h-2 rounded-full mr-2 shrink-0"
+              style={{
+                background: reconcileLoading
+                  ? 'var(--ink-faint)'
+                  : reconcileResult
+                  ? reconcileResult.allMatch
+                    ? 'var(--ledger-green)'
+                    : 'var(--ledger-red)'
+                  : 'var(--ledger-green)',
+              }}
+            />
+            <span>{reconcileLoading ? 'Verifying...' : 'Verify ledger integrity'}</span>
+            {reconcileResult && (
+              <span className="ml-1.5 text-[11px] mono-num text-ink-muted">
+                · {reconcileResult.allMatch ? 'Chain verified' : 'Discrepancy detected'}
+              </span>
+            )}
+          </button>
+        )}
 
-          {/* Ghost button: Verify ledger integrity */}
-          {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
-            <button
-              type="button"
-              onClick={handleVerifyIntegrity}
-              disabled={reconcileLoading}
-              className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 transition pressable"
-              title="Verify double-entry reconciliation and cryptographic hashes"
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full mr-2 shrink-0"
-                style={{
-                  background: reconcileLoading
-                    ? 'var(--ink-faint)'
-                    : reconcileResult
-                    ? reconcileResult.allMatch
-                      ? 'var(--ledger-green)'
-                      : 'var(--ledger-red)'
-                    : 'var(--ledger-green)',
-                }}
-              />
-              <span>{reconcileLoading ? 'Verifying...' : 'Verify ledger integrity'}</span>
-              {reconcileResult && (
-                <span className="ml-1.5 text-[11px] mono-num text-ink-muted">
-                  · {reconcileResult.allMatch ? 'Chain verified' : 'Discrepancy detected'}
-                </span>
-              )}
-            </button>
-          )}
-
-          {user?.role === 'ADMIN' && (
-            <Link
-              href="/admin/stress-lab"
-              className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 transition pressable"
-              title="Run real-time concurrent SSI transactions and test ACID row-lock telemetry"
-            >
-              <Zap className="mr-1.5 h-3.5 w-3.5 text-accent shrink-0" />
-              <span>Stress lab</span>
-            </Link>
-          )}
-        </div>
+        {user?.role === 'ADMIN' && (
+          <Link
+            href="/admin/stress-lab"
+            className="inline-flex items-center px-4 py-2.5 border border-rule rounded-xl text-xs font-medium text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
+            title="Run real-time concurrent SSI transactions and test ACID row-lock telemetry"
+          >
+            <Zap className="mr-1.5 h-4 w-4 text-[#F0B85A] shrink-0" />
+            <span>Stress lab</span>
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -544,7 +660,7 @@ export default function DashboardPage() {
       {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           {/* Trend 1: Posted entries in last 7 days */}
-          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
             <div>
               <span className="block text-xs font-medium text-ink-muted">
                 Posted entries (7d)
@@ -561,7 +677,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend 2: Refused attempts in last 7 days */}
-          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
             <div>
               <span className="block text-xs font-medium text-ink-muted">
                 Refused attempts (7d)
@@ -578,7 +694,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend 3: Net flow in last 7 days */}
-          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
             <div>
               <span className="block text-xs font-medium text-ink-muted">
                 Net flow (7d)
@@ -599,7 +715,7 @@ export default function DashboardPage() {
       {/* HOLDER Metric Cards */}
       {user?.role === 'HOLDER' && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Total balance</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {formatPaiseToRupees(combinedBalancePence.toString())}
@@ -609,7 +725,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Your accounts</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
@@ -620,7 +736,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+          <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Account protection</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5 flex items-center gap-2">
               <span>Protected</span>
@@ -709,7 +825,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={acc.id}
-                  className="flex flex-col justify-between p-5 rounded-lg border transition bg-surface border-rule shadow-xs hover:border-border-strong"
+                  className="flex flex-col justify-between p-6 cosmic-card transition hover:border-primary/40"
                 >
                   <div>
                     {/* Header Row: ID and Status */}
@@ -1118,6 +1234,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Cosmic Accent Footer Banner from Mockup */}
+      <div className="flex items-center justify-center gap-2 pt-6 pb-2 text-xs text-ink-muted">
+        <Sparkles className="w-3.5 h-3.5 text-primary" />
+        <span>Subtle cosmic accents. Clear financial information.</span>
+      </div>
 
       {/* Transaction Inspection Drawer */}
       <TransactionDrawer

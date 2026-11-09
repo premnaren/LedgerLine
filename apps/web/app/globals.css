@@ -9,13 +9,13 @@
   --surface: #FFFFFF; /* Primary Card */
   --surface-secondary: #F6F3FC; /* Secondary Surface */
   --surface-elevated: #FFFFFF;
-  --primary: #648EFF; /* Stellar Blue / Violet */
-  --primary-hover: #542A91;
-  --text-primary: #17142B; /* Primary Text */
-  --text-secondary: #55516D; /* Secondary Text */
-  --text-muted: #77718C; /* Muted Text */
+  --primary: #8055E8; /* Stellar Purple */
+  --primary-hover: #693BC4;
+  --text-primary: #151126; /* Primary Text */
+  --text-secondary: #585270; /* Secondary Text */
+  --text-muted: #7A7394; /* Muted Text */
   --border: #DED9EA; /* Border Light */
-  --border-secondary: #E9E3F5;
+  --border-secondary: #EAE4F5;
   --success: #13835D;
   --danger: #D14949;
   --warning: #B7791F;
@@ -23,7 +23,7 @@
   --planet-glow: rgba(240, 199, 229, 0.45);
 
   /* Module accents */
-  --accent-accounts: #294B7A;
+  --accent-accounts: #8055E8;
   --accent-audit: #5275A5;
   --accent-stress: #D99524;
   --accent-seal: #13835D;
@@ -32,14 +32,14 @@
   /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #77718C;
+  --ink-faint: #7A7394;
   --paper: var(--bg);
   --rule: var(--border);
   --rule-strong: #C4BCD3;
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #8155D9;
+  --role-admin: #8055E8;
   --role-holder: #648EFF;
   --role-auditor: #B7791F;
 
@@ -50,50 +50,50 @@
 
 [data-theme="dark"], .dark {
   color-scheme: dark;
-  /* Dark Cosmic Theme Palette (Reference 1) */
-  --bg: #080712; /* Cosmic Black */
-  --surface: #19172B; /* Card Surface */
-  --surface-secondary: #171629; /* Elevated Surface */
-  --surface-elevated: #19172B; /* Card Surface */
-  --primary: #8155D9; /* Electric Violet */
-  --primary-hover: #648EFF; /* Stellar Blue */
-  --text-primary: #F7F4FF; /* Primary Text */
-  --text-secondary: #C0BAD5; /* Secondary Text */
-  --text-muted: #9189AA; /* Muted Text */
-  --border: #34304D; /* Card Border */
-  --border-secondary: #221F38; /* Secondary Border */
-  --success: #42D6B0; /* Verified / Green */
-  --danger: #F07886; /* Error / Destructive */
-  --warning: #F4B860; /* Warning / Pending */
-  --nebula: #542A91; /* Nebula Purple */
+  /* Dark Cosmic Theme Palette (Cosmic Finance Specification) */
+  --bg: #080713; /* Void Black */
+  --surface: #151126; /* Nebula Card Surface */
+  --surface-secondary: #19132D; /* Midnight Violet */
+  --surface-elevated: #1C1630; /* Elevated Surface */
+  --primary: #8055E8; /* Stellar Purple */
+  --primary-hover: #A88AFF; /* Nebula Glow */
+  --text-primary: #FAF9FF; /* Primary Celestial White */
+  --text-secondary: #B8B2CE; /* Secondary Lavender */
+  --text-muted: #8A82A5; /* Muted Star Dust */
+  --border: rgba(168, 138, 255, 0.14); /* Subtle Nebula Glow Border */
+  --border-secondary: rgba(168, 138, 255, 0.08); /* Faint Secondary Border */
+  --success: #60C9BC; /* Success Teal */
+  --danger: #F07889; /* Alert Red */
+  --warning: #F0B85A; /* Solar Amber */
+  --nebula: #8055E8; /* Stellar Purple */
   --magenta: #BD75E9; /* Magenta Glow */
   --cyan: #75C8F0; /* Soft Cyan */
-  --planet-glow: rgba(189, 117, 233, 0.45);
+  --planet-glow: rgba(168, 138, 255, 0.25);
 
   /* Module accents for dark mode */
-  --accent-accounts: #648EFF;
-  --accent-audit: #8155D9;
-  --accent-stress: #F4B860;
-  --accent-seal: #42D6B0;
-  --accent-failed: #F07886;
+  --accent-accounts: #A88AFF;
+  --accent-audit: #8055E8;
+  --accent-stress: #F0B85A;
+  --accent-seal: #60C9BC;
+  --accent-failed: #F07889;
 
   /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #9189AA;
+  --ink-faint: #8A82A5;
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: #34304D;
+  --rule-strong: rgba(168, 138, 255, 0.22);
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #8155D9;
+  --role-admin: #8055E8;
   --role-holder: #648EFF;
-  --role-auditor: #F4B860;
+  --role-auditor: #F0B85A;
 
-  --background: 245 42% 5%;
-  --foreground: 255 100% 98%;
-  --border-hsl: 248 23% 25%;
+  --background: 248 45% 5%;
+  --foreground: 255 100% 99%;
+  --border-hsl: 256 50% 20%;
 }
 
 body {
@@ -130,14 +130,85 @@ body {
 .glass-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .glass-elevated {
   background: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 12px 36px -6px rgba(15, 23, 42, 0.08);
+}
+
+/* Cosmic Finance UI Components */
+.cosmic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -2px rgba(8, 7, 19, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.dark .cosmic-card {
+  background: #151126 !important;
+  border-color: rgba(168, 138, 255, 0.14) !important;
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(168, 138, 255, 0.06) !important;
+}
+
+.dark .cosmic-card:hover {
+  border-color: rgba(168, 138, 255, 0.28) !important;
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(128, 85, 232, 0.15) !important;
+}
+
+.cosmic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+}
+
+.dark .cosmic-pill {
+  border-color: rgba(168, 138, 255, 0.2);
+  background: rgba(168, 138, 255, 0.06);
+  color: #B8B2CE;
+}
+
+/* Subtle Atmospheric Cosmic Nebula layer for all authenticated screens */
+.cosmic-nebula-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 80% -10%, rgba(128, 85, 232, 0.06), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 10% 90%, rgba(100, 142, 255, 0.04), transparent 70%);
+}
+
+.dark .cosmic-nebula-bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 85% -15%, rgba(128, 85, 232, 0.11), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 10% 85%, rgba(168, 138, 255, 0.06), transparent 70%),
+    radial-gradient(circle at 50% 30%, rgba(100, 142, 255, 0.03), transparent 60%);
+}
+
+.orbital-ring {
+  position: relative;
+  border-radius: 9999px;
+}
+
+.orbital-ring::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1px dashed rgba(168, 138, 255, 0.35);
+  pointer-events: none;
 }
 
 /* ============================================================ */
