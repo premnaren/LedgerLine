@@ -70,12 +70,13 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
     const maxVal = Math.max(...values);
     const range = maxVal - minVal || 10;
 
-    const width = 640;
-    const height = 130;
-    const padTop = 15;
-    const padBottom = 25;
-    const padLeft = 65;
-    const padRight = 20;
+    // Generous spacious dimensions to eliminate congestion
+    const width = 800;
+    const height = 200;
+    const padTop = 24;
+    const padBottom = 32;
+    const padLeft = 85;
+    const padRight = 35;
 
     const usableWidth = width - padLeft - padRight;
     const usableHeight = height - padTop - padBottom;
@@ -92,7 +93,12 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
     const pathD =
       coords.length > 0
-        ? coords.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`, '')
+        ? coords.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`, '')
+        : '';
+
+    const areaD =
+      coords.length > 0
+        ? `${pathD} L ${coords[coords.length - 1].x.toFixed(1)} ${(padTop + usableHeight).toFixed(1)} L ${coords[0].x.toFixed(1)} ${(padTop + usableHeight).toFixed(1)} Z`
         : '';
 
     const firstDate = new Date(chronological[0].createdAt).toLocaleDateString('en-IN', {
@@ -107,6 +113,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
     return {
       coords,
       pathD,
+      areaD,
       minVal,
       maxVal,
       midVal: (minVal + maxVal) / 2,
@@ -116,6 +123,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
       height,
       padLeft,
       padTop,
+      padRight,
       usableWidth,
       usableHeight,
     };
@@ -123,13 +131,13 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
   if (loading) {
     return (
-      <div className="bg-surface border border-rule rounded-lg p-4 space-y-3 animate-pulse shadow-xs">
+      <div className="bg-surface border border-rule rounded-lg p-5 space-y-3 animate-pulse shadow-xs">
         <div className="flex items-center justify-between">
-          <div className="h-3.5 w-28 bg-rule/50 rounded" />
-          <div className="h-3 w-16 bg-rule/40 rounded" />
+          <div className="h-4 w-32 bg-rule/50 rounded" />
+          <div className="h-3.5 w-20 bg-rule/40 rounded" />
         </div>
-        <div className="h-32 bg-paper/70 border border-dashed border-rule rounded-lg flex items-center justify-center">
-          <span className="mono-num text-[11px] text-ink-faint">Loading telemetry stream...</span>
+        <div className="h-52 bg-surface-secondary/70 border border-dashed border-rule rounded-lg flex items-center justify-center">
+          <span className="mono-num text-xs text-ink-faint">Loading balance history stream...</span>
         </div>
       </div>
     );
@@ -137,85 +145,124 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
   if (!chartData || chartData.coords.length === 0) return null;
 
-  const { coords, pathD, minVal, maxVal, midVal, firstDate, lastDate, width, height, padLeft, padTop, usableWidth, usableHeight } = chartData;
+  const { coords, pathD, areaD, minVal, maxVal, midVal, firstDate, lastDate, width, height, padLeft, padTop, usableWidth, usableHeight } = chartData;
   const activePt = hoveredIdx !== null && coords[hoveredIdx] ? coords[hoveredIdx] : null;
 
+  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const relX = ((e.clientX - rect.left) / rect.width) * width;
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    coords.forEach((pt, i) => {
+      const diff = Math.abs(pt.x - relX);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
+    });
+    setHoveredIdx(closestIdx);
+  };
+
   return (
-    <div className="bg-surface border border-rule rounded-lg p-4 space-y-3 shadow-xs">
+    <div className="bg-surface border border-rule rounded-lg p-5 space-y-4 shadow-xs">
+      {/* Header bar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-ink-muted font-medium">Balance over time</span>
-          {activePt && (
-            <span className="text-xs mono-num text-accent bg-surface-secondary px-2 py-0.5 rounded-lg border border-rule animate-in fade-in duration-100">
-              Point #{hoveredIdx! + 1} of {coords.length}
-            </span>
-          )}
+        <div className="flex items-center space-x-2.5">
+          <span className="text-xs text-ink font-semibold">Balance over time</span>
+          <span className="text-xs text-ink-muted">·</span>
+          <span className="text-xs mono-num text-ink-muted">
+            {coords.length} {coords.length === 1 ? 'record' : 'records'}
+          </span>
         </div>
-        <span className="text-xs mono-num text-ink-muted">
-          {coords.length} {coords.length === 1 ? 'datapoint' : 'datapoints'}
-        </span>
+        {activePt && (
+          <span className="text-xs mono-num text-primary font-semibold">
+            Point #{hoveredIdx! + 1} of {coords.length}
+          </span>
+        )}
       </div>
 
-      {/* Interactive Scrubbing Ribbon */}
-      {activePt ? (
-        <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
-          <div className="flex items-center space-x-2">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{
-                background:
+      {/* Fixed-Height Scrubbing Ribbon (Guarantees ZERO layout shift / zero glitching on hover) */}
+      <div className="min-h-[44px] h-[44px] bg-surface-secondary border border-rule rounded-lg px-3.5 flex items-center justify-between text-xs transition">
+        {activePt ? (
+          <div className="flex items-center justify-between w-full gap-3">
+            <div className="flex items-center space-x-2 min-w-0">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{
+                  background:
+                    activePt.entry.status === 'REFUSED'
+                      ? 'var(--ink-faint)'
+                      : activePt.entry.direction === 'DEBIT'
+                      ? 'var(--danger)'
+                      : 'var(--success)',
+                }}
+              />
+              <span className="font-semibold text-ink truncate max-w-[280px]">
+                {activePt.entry.note || activePt.entry.type}
+              </span>
+              <span className="text-ink-muted">·</span>
+              <span className="mono-num text-xs text-ink-muted whitespace-nowrap">
+                {new Date(activePt.entry.createdAt).toLocaleString('en-IN', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+
+            <div className="flex items-center space-x-3 mono-num ml-auto shrink-0">
+              <span
+                className={`font-semibold ${
                   activePt.entry.status === 'REFUSED'
-                    ? 'var(--ink-faint)'
+                    ? 'text-ink-muted line-through'
                     : activePt.entry.direction === 'DEBIT'
-                    ? 'var(--ledger-red)'
-                    : 'var(--ledger-green)',
-              }}
-            />
-            <span className="font-semibold text-ink truncate max-w-[280px]">
-              {activePt.entry.note || activePt.entry.type}
+                    ? 'text-danger'
+                    : 'text-success'
+                }`}
+              >
+                {activePt.entry.status === 'REFUSED'
+                  ? 'REFUSED'
+                  : `${activePt.entry.direction === 'DEBIT' ? '−' : '+'}₹${(
+                      Number(activePt.entry.amountPence) / 100
+                    ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+              </span>
+              <span className="text-ink-muted">→</span>
+              <span className="font-bold text-ink bg-surface px-2.5 py-0.5 rounded-lg border border-rule">
+                ₹{activePt.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between w-full text-ink-muted">
+            <span className="flex items-center gap-1.5 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span>Hover anywhere across the chart to inspect balance transitions</span>
             </span>
-            <span className="text-ink-muted">·</span>
-            <span className="mono-num text-xs text-ink-muted whitespace-nowrap">
-              {new Date(activePt.entry.createdAt).toLocaleString('en-IN', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+            <span className="mono-num text-[11px] hidden sm:inline">
+              Range: ₹{minVal.toLocaleString('en-IN', { minimumFractionDigits: 0 })} – ₹{maxVal.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
             </span>
           </div>
+        )}
+      </div>
 
-          <div className="flex items-center space-x-3 mono-num ml-auto">
-            <span
-              className={
-                activePt.entry.status === 'REFUSED'
-                  ? 'text-ink-muted line-through'
-                  : activePt.entry.direction === 'DEBIT'
-                  ? 'text-ledger-red font-medium'
-                  : 'text-ledger-green font-medium'
-              }
-            >
-              {activePt.entry.status === 'REFUSED'
-                ? 'REFUSED'
-                : `${activePt.entry.direction === 'DEBIT' ? '-' : '+'}₹${(
-                    Number(activePt.entry.amountPence) / 100
-                  ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-            </span>
-            <span className="text-ink-muted">→</span>
-            <span className="font-semibold text-ink bg-surface px-2 py-0.5 rounded-lg border border-rule">
-              ₹{activePt.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="w-full overflow-x-auto relative">
+      {/* SVG Canvas with Generous Breathing Room */}
+      <div className="w-full relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-32 overflow-visible select-none"
+          className="w-full h-52 overflow-visible select-none cursor-crosshair"
           preserveAspectRatio="none"
+          onMouseMove={handleSvgMouseMove}
           onMouseLeave={() => setHoveredIdx(null)}
         >
+          <defs>
+            <linearGradient id="balanceAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.20" />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
           {/* Hairline Gridlines */}
           <line
             x1={padLeft}
@@ -223,7 +270,8 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             x2={padLeft + usableWidth}
             y2={padTop}
             stroke="var(--rule)"
-            strokeDasharray="2 2"
+            strokeDasharray="3 3"
+            opacity="0.6"
           />
           <line
             x1={padLeft}
@@ -231,7 +279,8 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             x2={padLeft + usableWidth}
             y2={padTop + usableHeight / 2}
             stroke="var(--rule)"
-            strokeDasharray="2 2"
+            strokeDasharray="3 3"
+            opacity="0.6"
           />
           <line
             x1={padLeft}
@@ -239,37 +288,41 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             x2={padLeft + usableWidth}
             y2={padTop + usableHeight}
             stroke="var(--rule)"
-            strokeDasharray="2 2"
+            strokeDasharray="3 3"
+            opacity="0.6"
           />
 
-          {/* Y-axis Labels */}
+          {/* Y-axis Labels with Clean Breathing Room */}
           <text
-            x={padLeft - 6}
+            x={padLeft - 12}
             y={padTop + 4}
             textAnchor="end"
-            className="mono-num text-[10px]"
-            fill="var(--ink-faint)"
+            className="mono-num text-[11px]"
+            fill="var(--ink-muted)"
           >
-            ₹{maxVal.toFixed(0)}
+            ₹{maxVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </text>
           <text
-            x={padLeft - 6}
-            y={padTop + usableHeight / 2 + 3}
+            x={padLeft - 12}
+            y={padTop + usableHeight / 2 + 4}
             textAnchor="end"
-            className="mono-num text-[10px]"
-            fill="var(--ink-faint)"
+            className="mono-num text-[11px]"
+            fill="var(--ink-muted)"
           >
-            ₹{midVal.toFixed(0)}
+            ₹{midVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </text>
           <text
-            x={padLeft - 6}
-            y={padTop + usableHeight + 3}
+            x={padLeft - 12}
+            y={padTop + usableHeight + 4}
             textAnchor="end"
-            className="mono-num text-[10px]"
-            fill="var(--ink-faint)"
+            className="mono-num text-[11px]"
+            fill="var(--ink-muted)"
           >
-            ₹{minVal.toFixed(0)}
+            ₹{minVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </text>
+
+          {/* Soft Gradient Area Fill */}
+          {areaD && <path d={areaD} fill="url(#balanceAreaGrad)" />}
 
           {/* Active Vertical Guideline on Hover */}
           {activePt && (
@@ -278,79 +331,66 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
               y1={padTop}
               x2={activePt.x}
               y2={padTop + usableHeight}
-              stroke="var(--accent)"
-              strokeWidth="1"
+              stroke="var(--primary)"
+              strokeWidth="1.5"
               strokeDasharray="3 3"
-              opacity="0.6"
+              opacity="0.75"
             />
           )}
 
-          {/* Balance Path Line (thin 1.5px var(--accent)) */}
+          {/* Balance Path Line */}
           <path
             d={pathD}
             fill="none"
-            stroke="var(--accent)"
-            strokeWidth="1.5"
+            stroke="var(--primary)"
+            strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
 
-          {/* Data points */}
+          {/* Data Points */}
           {coords.map((pt, i) => {
             const isHovered = hoveredIdx === i;
             return (
-              <circle
-                key={i}
-                cx={pt.x}
-                cy={pt.y}
-                r={isHovered ? 5 : 2.5}
-                fill="var(--accent)"
-                stroke={isHovered ? '#ffffff' : 'none'}
-                strokeWidth={isHovered ? 2 : 0}
-                className="transition-all duration-100 cursor-pointer"
-                style={{ pointerEvents: 'all' }}
-                onMouseEnter={() => setHoveredIdx(i)}
-              />
-            );
-          })}
-
-          {/* Interactive Scrubbing Rectangles with pointer-events: all */}
-          {coords.map((pt, i) => {
-            const sliceWidth = coords.length > 1 ? usableWidth / (coords.length - 1) : usableWidth;
-            const sliceX = Math.max(padLeft, pt.x - sliceWidth / 2);
-            return (
-              <rect
-                key={`slice-${i}`}
-                x={sliceX}
-                y={padTop}
-                width={sliceWidth}
-                height={usableHeight}
-                fill="black"
-                fillOpacity="0"
-                style={{ pointerEvents: 'all' }}
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseMove={() => setHoveredIdx(i)}
-              />
+              <g key={i}>
+                {isHovered && (
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={9}
+                    fill="var(--primary)"
+                    fillOpacity="0.25"
+                  />
+                )}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={isHovered ? 5.5 : 3}
+                  fill="var(--surface)"
+                  stroke="var(--primary)"
+                  strokeWidth={isHovered ? 2.5 : 1.5}
+                  className="transition-all duration-75"
+                />
+              </g>
             );
           })}
 
           {/* X-axis Date Labels */}
           <text
             x={padLeft}
-            y={height - 5}
+            y={height - 8}
             textAnchor="start"
             className="mono-num text-[10px]"
-            fill="var(--ink-faint)"
+            fill="var(--ink-muted)"
           >
             {firstDate}
           </text>
           <text
             x={padLeft + usableWidth}
-            y={height - 5}
+            y={height - 8}
             textAnchor="end"
             className="mono-num text-[10px]"
-            fill="var(--ink-faint)"
+            fill="var(--ink-muted)"
           >
             {lastDate}
           </text>

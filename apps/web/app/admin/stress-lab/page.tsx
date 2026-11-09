@@ -273,19 +273,19 @@ export default function StressLabPage() {
                   key={num}
                   type="button"
                   onClick={() => setConcurrency(num)}
-                  className={`relative min-h-[48px] rounded border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center pressable ${
+                  className={`relative min-h-[48px] rounded-lg border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center pressable shadow-xs ${
                     concurrency === num
-                      ? 'bg-ink text-white border-ink shadow-none'
-                      : 'bg-paper text-ink border-rule hover:bg-rule/30'
+                      ? 'bg-primary text-white dark:text-[#0B1220] border-primary ring-1 ring-primary'
+                      : 'bg-surface text-ink border-rule hover:bg-surface-secondary'
                   }`}
                 >
                   {concurrency === num && (
-                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-ledger-green" />
+                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-white dark:text-[#0B1220]" />
                   )}
                   <span className="font-bold text-sm leading-tight mono-num">{num}</span>
                   <span
                     className={`text-xs font-medium ${
-                      concurrency === num ? 'text-white/80' : 'text-ink-muted'
+                      concurrency === num ? 'text-white/80 dark:text-[#0B1220]/80' : 'text-ink-muted'
                     }`}
                   >
                     Requests
@@ -313,19 +313,19 @@ export default function StressLabPage() {
                   key={opt.paise}
                   type="button"
                   onClick={() => setAmountPence(opt.paise)}
-                  className={`relative min-h-[48px] rounded border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center pressable ${
+                  className={`relative min-h-[48px] rounded-lg border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center pressable shadow-xs ${
                     amountPence === opt.paise
-                      ? 'bg-ink text-white border-ink shadow-none'
-                      : 'bg-paper text-ink border-rule hover:bg-rule/30'
+                      ? 'bg-primary text-white dark:text-[#0B1220] border-primary ring-1 ring-primary'
+                      : 'bg-surface text-ink border-rule hover:bg-surface-secondary'
                   }`}
                 >
                   {amountPence === opt.paise && (
-                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-ledger-green" />
+                    <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-white dark:text-[#0B1220]" />
                   )}
                   <span className="font-bold text-sm leading-tight mono-num">{opt.label}</span>
                   <span
                     className={`text-xs font-medium ${
-                      amountPence === opt.paise ? 'text-white/80' : 'text-ink-muted'
+                      amountPence === opt.paise ? 'text-white/80 dark:text-[#0B1220]/80' : 'text-ink-muted'
                     }`}
                   >
                     per transfer
@@ -339,17 +339,17 @@ export default function StressLabPage() {
           </div>
         </div>
 
-        {/* Execution Safety Notice with Clear Contrast */}
-        <div className="p-4 rounded bg-amber-50 border border-amber-300 text-xs text-amber-950 flex items-start space-x-3">
-          <ShieldCheck className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+        {/* Execution Safety Notice with Clear Contrast in both themes */}
+        <div className="p-4 rounded-lg bg-amber-50/80 dark:bg-amber-950/25 border border-amber-300 dark:border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 flex items-start space-x-3">
+          <ShieldCheck className="h-5 w-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <div className="font-bold text-amber-950 flex items-center gap-1.5">
+            <div className="font-bold text-amber-950 dark:text-amber-100 flex items-center gap-1.5">
               <span>Isolated Sandbox Environment Safeguard</span>
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold">
+              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 font-bold">
                 TESTING ONLY
               </span>
             </div>
-            <p className="text-xs text-amber-900 leading-relaxed font-medium">
+            <p className="text-xs text-amber-900 dark:text-amber-200/80 leading-relaxed font-medium">
               This workbench operates exclusively on dedicated sandbox accounts (Sandbox A ⇄ Sandbox B). Real operating balances and customer accounts are completely isolated and cannot be modified by this test.
             </p>
           </div>
@@ -360,32 +360,32 @@ export default function StressLabPage() {
           <button
             onClick={() => setShowConfirmModal(true)}
             disabled={running}
-            className="w-full py-3 px-4 rounded bg-accent hover:opacity-95 text-white font-semibold shadow-none disabled:opacity-50 transition pressable flex items-center justify-between min-h-[48px]"
+            className="w-full py-3 px-4 rounded-lg bg-primary hover:opacity-95 text-white dark:text-[#0B1220] font-semibold shadow-xs disabled:opacity-50 transition pressable flex items-center justify-between min-h-[48px]"
           >
             {running ? (
               <div className="flex items-center space-x-3 mx-auto">
-                <RefreshCw className="h-4 w-4 animate-spin text-white shrink-0" />
+                <RefreshCw className="h-4 w-4 animate-spin text-white dark:text-[#0B1220] shrink-0" />
                 <div className="text-left">
                   <div className="text-xs font-bold leading-tight">Simulating Contention...</div>
-                  <div className="text-xs text-white/80 font-medium">Acquiring SSI row locks</div>
+                  <div className="text-xs text-white/80 dark:text-[#0B1220]/80 font-medium">Acquiring SSI row locks</div>
                 </div>
               </div>
             ) : (
               <>
                 <div className="flex items-center space-x-2.5">
-                  <div className="h-7 w-7 rounded bg-white/20 flex items-center justify-center shrink-0">
-                    <Zap className="h-4 w-4 fill-white text-white" />
+                  <div className="h-7 w-7 rounded-lg bg-white/20 dark:bg-[#0B1220]/15 flex items-center justify-center shrink-0">
+                    <Zap className="h-4 w-4 fill-current text-white dark:text-[#0B1220]" />
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-bold tracking-tight leading-tight text-white">
+                    <div className="text-xs font-bold tracking-tight leading-tight text-white dark:text-[#0B1220]">
                       Review &amp; run {concurrency} stress transfers
                     </div>
-                    <div className="text-xs font-normal text-white/80 mono-num">
+                    <div className="text-xs font-normal text-white/80 dark:text-[#0B1220]/80 mono-num">
                       {formatPaiseToRupees(amountPence)} per transfer · Total volume: {formatPaiseToRupees(concurrency * amountPence)}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-white bg-white/20 px-2.5 py-1 rounded">
+                <span className="text-xs font-bold text-white dark:text-[#0B1220] bg-white/20 dark:bg-[#0B1220]/15 px-2.5 py-1 rounded-lg">
                   Configure review →
                 </span>
               </>
@@ -427,7 +427,7 @@ export default function StressLabPage() {
             </div>
 
             {/* Simulation Parameters Summary */}
-            <div className="p-4 bg-paper rounded border border-rule space-y-2 text-xs">
+            <div className="p-4 bg-surface-secondary rounded-lg border border-rule space-y-2 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-ink-muted">Parallel requests:</span>
                 <span className="font-bold text-ink mono-num">
@@ -442,7 +442,7 @@ export default function StressLabPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-ink-muted">Total simulated volume:</span>
-                <span className="font-bold text-accent mono-num">
+                <span className="font-bold text-primary mono-num">
                   {formatPaiseToRupees(concurrency * amountPence)}
                 </span>
               </div>
@@ -461,11 +461,11 @@ export default function StressLabPage() {
             </div>
 
             {/* Environmental Safety Notice */}
-            <div className="p-3 bg-amber-50 rounded border border-amber-300 text-xs text-amber-950 flex items-start space-x-2.5">
-              <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+            <div className="p-3 bg-amber-50/80 dark:bg-amber-950/25 rounded-lg border border-amber-300 dark:border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 flex items-start space-x-2.5">
+              <ShieldCheck className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <span className="font-bold block">Sandbox Isolation Guarantee</span>
-                <p className="text-amber-900 leading-relaxed font-medium">
+                <span className="font-bold block text-amber-950 dark:text-amber-100">Sandbox Isolation Guarantee</span>
+                <p className="text-amber-900 dark:text-amber-200/80 leading-relaxed font-medium">
                   Transfers execute solely against test sandboxes. Production balances remain 100% isolated. Zero-sum ledger conservation invariant (ΔΣ = 0) is verified upon completion.
                 </p>
               </div>
@@ -476,7 +476,7 @@ export default function StressLabPage() {
               <button
                 type="button"
                 onClick={() => setShowConfirmModal(false)}
-                className="py-2.5 px-4 border border-rule rounded text-xs font-semibold text-ink-muted hover:text-ink hover:bg-paper transition pressable"
+                className="py-2.5 px-4 border border-rule rounded-lg text-xs font-semibold text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable"
               >
                 Cancel
               </button>
@@ -486,9 +486,9 @@ export default function StressLabPage() {
                   setShowConfirmModal(false);
                   handleRunStress();
                 }}
-                className="py-2.5 px-4 bg-accent hover:opacity-95 text-white rounded text-xs font-bold transition pressable flex items-center justify-center space-x-1.5"
+                className="py-2.5 px-4 bg-primary hover:opacity-95 text-white dark:text-[#0B1220] rounded-lg text-xs font-bold transition pressable flex items-center justify-center space-x-1.5 shadow-xs"
               >
-                <Zap className="h-3.5 w-3.5 fill-white text-white" />
+                <Zap className="h-3.5 w-3.5 fill-current text-white dark:text-[#0B1220]" />
                 <span>Authorize &amp; run {concurrency} requests</span>
               </button>
             </div>
@@ -584,7 +584,7 @@ export default function StressLabPage() {
               </h3>
               <div className="flex items-center space-x-3 text-xs">
                 <span className="text-ink-muted">Total system balance:</span>
-                <span className="font-mono font-bold text-ink bg-paper px-2.5 py-0.5 rounded border border-rule">
+                <span className="font-mono font-bold text-ink bg-surface-secondary px-2.5 py-0.5 rounded-lg border border-rule">
                   Before: {formatPaiseToRupees(totalBalanceBefore)} → After: {formatPaiseToRupees(totalBalanceAfter)}
                 </span>
               </div>
@@ -592,7 +592,7 @@ export default function StressLabPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Debit Account Shift */}
-              <div className="p-4 bg-paper border border-rule rounded space-y-2">
+              <div className="p-4 bg-surface-secondary border border-rule rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-ink">
                     Source account (Debited)
@@ -621,7 +621,7 @@ export default function StressLabPage() {
               </div>
 
               {/* Credit Account Shift */}
-              <div className="p-4 bg-paper border border-rule rounded space-y-2">
+              <div className="p-4 bg-surface-secondary border border-rule rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-ink">
                     Destination account (Credited)
@@ -651,7 +651,7 @@ export default function StressLabPage() {
             </div>
 
             {/* Cryptographic Seal Head Verification */}
-            <div className="p-3 bg-paper border border-rule rounded flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs font-mono">
+            <div className="p-3 bg-surface-secondary border border-rule rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs font-mono">
               <div className="truncate mr-3">
                 <span className="text-ink-muted mr-2">LEDGER_HEAD_SEAL:</span>
                 <span className="text-accent font-bold">
