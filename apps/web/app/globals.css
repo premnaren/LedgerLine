@@ -3,65 +3,71 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --border: 214.3 31.8% 91.4%;
+  --ink: #14181F;
+  --ink-muted: #6B6D72;
+  --ink-faint: #9A9C9F;
+  --paper: #FAFAF8;
+  --rule: #E2E0DB;
+  --rule-strong: #C9C6BF;
+  --ledger-green: #1A6B4F;
+  --ledger-red: #A23B2E;
+  --accent: #2C4A7C;
+  --role-admin: #6B47A8;
+  --role-holder: #2C4A7C;
+  --role-auditor: #B8863B;
+
+  --background: 48 20% 98%;
+  --foreground: 220 22% 10%;
+  --border: 43 11% 87%;
 }
 
 body {
-  color: rgb(15 23 42);
-  background: #f8fafc;
+  background: var(--paper);
+  color: var(--ink);
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Apple-style typography optical sizing & tracking */
-.tracking-tight-display {
-  letter-spacing: -0.028em;
+.mono-num {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Translucent Materials & Depth (WWDC Materials & Depth) */
+/* Structural Borders & Clean Surfaces */
 .glass-chrome {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  background: rgba(250, 250, 248, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  background: #ffffff;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
 }
 
 .glass-drawer {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  box-shadow: -12px 0 40px -4px rgba(15, 23, 42, 0.12);
+  background: var(--paper);
+  border-left: 1px solid var(--rule-strong);
 }
 
-/* Apple fluid tactile button press: instant response on pointer-down */
 .pressable {
-  transition: transform 100ms cubic-bezier(0.16, 1, 0.3, 1), opacity 100ms ease;
+  transition: transform 80ms ease, opacity 80ms ease;
   user-select: none;
   -webkit-user-select: none;
 }
 
 .pressable:active {
-  transform: scale(0.972);
+  transform: scale(0.985);
 }
 
-/* Reduced motion & accessibility (WWDC Accessibility) */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -69,13 +75,5 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
     transform: none !important;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glass-chrome, .glass-card, .glass-drawer {
-    background: #ffffff !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
   }
 }

@@ -71,7 +71,6 @@ export default function TransactionDrawer({
   const [showFullEntryHash, setShowFullEntryHash] = useState(false);
   const [showFullPrevHash, setShowFullPrevHash] = useState(false);
 
-  // Keyboard accessibility: Escape to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && entry) {
@@ -84,7 +83,7 @@ export default function TransactionDrawer({
 
   if (!entry) return null;
 
-  const email = entry.initiatedByEmail || entry.initiatedBy?.email || 'System / Automated Engine';
+  const email = entry.initiatedByEmail || entry.initiatedBy?.email || 'System';
   const isDebit = entry.isDebit ?? (entry.direction === 'DEBIT' || entry.type === 'TRANSFER_DEBIT');
   const amountStr = formatPaiseToRupees(entry.amountPence);
   const formattedDate = new Date(entry.createdAt).toLocaleDateString('en-IN', {
@@ -110,86 +109,69 @@ export default function TransactionDrawer({
   };
 
   const activeAccountName = isDebit
-    ? entry.debitAccountName || (entry.debitAccountId ? `Account ${entry.debitAccountId.slice(0, 8)}` : 'Debit Account')
-    : entry.creditAccountName || (entry.creditAccountId ? `Account ${entry.creditAccountId.slice(0, 8)}` : 'Credit Account');
+    ? entry.debitAccountName || (entry.debitAccountId ? `Account ${entry.debitAccountId.slice(0, 8)}` : 'Debit account')
+    : entry.creditAccountName || (entry.creditAccountId ? `Account ${entry.creditAccountId.slice(0, 8)}` : 'Credit account');
+
+  const statusColor = entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)';
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="transaction-drawer-title"
-      className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[1px] transition-opacity duration-200"
+      className="fixed inset-0 z-50 flex justify-end bg-ink/30 transition-opacity"
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-[540px] h-dvh bg-white flex flex-col border-l border-slate-200 shadow-2xl text-slate-900 transform transition-transform duration-200 animate-in slide-in-from-right"
+        className="w-full sm:max-w-[500px] h-dvh bg-white flex flex-col border-l border-rule text-ink transform animate-in slide-in-from-right duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pinned Header */}
-        <div className="shrink-0 p-6 border-b border-slate-100 flex items-start justify-between bg-white">
+        <div className="shrink-0 p-5 border-b border-rule flex items-start justify-between bg-paper">
           <div>
-            <div className="flex items-center space-x-2">
-              {/* Financial State Badge */}
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  entry.status === 'POSTED'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'bg-rose-50 text-rose-800 border-rose-300'
-                }`}
-              >
+            <div className="flex items-center space-x-3 mb-1">
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: statusColor }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
                 {entry.status}
               </span>
 
-              {/* Integrity State Badge */}
-              <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                <ShieldCheck className="h-3 w-3 text-indigo-600" />
-                <span>{entry.hash ? 'SHA-256 Sealed' : 'Genesis Block'}</span>
+              <span className="flex items-center gap-1 text-[11px] text-ink-muted mono-num">
+                <ShieldCheck className="h-3 w-3 text-accent" />
+                <span>{entry.hash ? 'SHA-256' : 'Genesis'}</span>
               </span>
 
-              <span className="text-xs font-semibold text-slate-400">
+              <span className="text-[11px] text-ink-faint mono-num">
                 · {formattedDate}
               </span>
             </div>
 
-            <h2 id="transaction-drawer-title" className="text-xl font-bold tracking-tight-display text-slate-950 mt-1.5">
-              Transaction Details
+            <h2 id="transaction-drawer-title" className="text-base font-bold tracking-tight text-ink">
+              Transaction details
             </h2>
 
-            <div className="flex items-center space-x-2 mt-1">
-              <span className="text-xs font-mono text-slate-500">
-                ID: entry_{entry.id.slice(0, 10)}...
+            <div className="flex items-center space-x-2 mt-0.5">
+              <span className="text-xs font-mono text-ink-faint">
+                ID: {entry.id.slice(0, 10)}...
               </span>
               <button
                 type="button"
                 onClick={() => handleCopy(entry.id, setCopiedId)}
-                className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-800 transition pressable"
-                title="Copy full entry UUID"
+                className="text-xs text-accent hover:underline"
+                title="Copy entry UUID"
               >
-                {copiedId ? (
-                  <>
-                    <Check className="h-3 w-3 mr-1 text-emerald-600" />
-                    <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3 mr-1 text-slate-400" />
-                    <span className="text-slate-500 text-[11px]">Copy ID</span>
-                  </>
-                )}
+                {copiedId ? 'Copied' : 'Copy ID'}
               </button>
             </div>
           </div>
 
           <div className="flex items-center space-x-1">
-            {/* Previous / Next Stepper Controls */}
             {(onNavigatePrevious || onNavigateNext) && (
-              <div className="flex items-center space-x-1 mr-2 border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+              <div className="flex items-center space-x-0.5 mr-2 border border-rule rounded bg-white">
                 <button
                   type="button"
                   onClick={onNavigatePrevious}
                   disabled={!hasPrevious}
-                  className="p-1.5 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  title="Previous transaction in sequence (↑)"
+                  className="p-1 text-ink-muted hover:text-ink disabled:opacity-30"
                   aria-label="Previous transaction"
                 >
                   <ChevronUp className="h-4 w-4" />
@@ -198,8 +180,7 @@ export default function TransactionDrawer({
                   type="button"
                   onClick={onNavigateNext}
                   disabled={!hasNext}
-                  className="p-1.5 rounded text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                  title="Next transaction in sequence (↓)"
+                  className="p-1 text-ink-muted hover:text-ink disabled:opacity-30"
                   aria-label="Next transaction"
                 >
                   <ChevronDown className="h-4 w-4" />
@@ -209,377 +190,202 @@ export default function TransactionDrawer({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition pressable"
-              title="Close drawer (ESC)"
+              className="p-1 text-ink-faint hover:text-ink"
+              title="Close drawer"
               aria-label="Close dialog"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Scrollable Body - 3-Tier Information Hierarchy */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5">
-          {/* TIER 1 (PRIMARY): Hero Card - Amount & Account Impact */}
-          <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Account Impact ({isDebit ? 'Outflow' : 'Inflow'})
-                </span>
-                <div
-                  className={`text-3xl font-black tracking-tight-display tabular-nums mt-0.5 ${
-                    isDebit ? 'text-red-600' : 'text-emerald-700'
-                  }`}
-                >
-                  {isDebit ? `−${amountStr}` : `+${amountStr}`}
-                </div>
-                <span className="text-xs text-slate-500 mt-0.5 block font-medium">
-                  {isDebit ? 'Subtracted from account balance' : 'Credited to account balance'}
-                </span>
-              </div>
-
-              <div
-                className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 border ${
-                  isDebit
-                    ? 'bg-amber-500/10 text-amber-600 border-amber-200'
-                    : 'bg-emerald-500/10 text-emerald-600 border-emerald-200'
-                }`}
-              >
-                {isDebit ? (
-                  <ArrowUpRight className="h-6 w-6 text-amber-600" />
-                ) : (
-                  <ArrowDownLeft className="h-6 w-6 text-emerald-600" />
-                )}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-200/60 grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-500 block font-medium">Transfer Amount:</span>
-                <span className="font-bold text-slate-900 font-mono text-sm">{amountStr}</span>
-                <span className="text-[11px] text-slate-400 block font-mono">
-                  {entry.amountPence} paise
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500 block font-medium">Transaction Type:</span>
-                <span className="font-semibold text-slate-800 font-mono">
-                  {entry.type}
-                </span>
-                <span className="text-[11px] text-slate-400 block">
-                  Double-entry leg
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* TIER 2 (SECONDARY): T-Account Double-Entry Movement & Attribution */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3.5 shadow-2xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
-                <ArrowRightLeft className="h-4 w-4 text-slate-500" />
-                <span>Double-Entry Flow (T-Account)</span>
-              </span>
-              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase font-semibold">
-                Atomic Zero-Sum
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Debit Side */}
-              <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/70">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
-                  DEBIT ACCOUNT · SOURCE
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1 block truncate">
-                  {entry.debitAccountName ||
-                    (entry.debitAccountId
-                      ? `Acc: ${entry.debitAccountId.slice(0, 10)}...`
-                      : 'External / Source')}
-                </span>
-                <span className="text-xs font-mono font-bold text-red-600 mt-1 block tabular-nums">
-                  −{amountStr}
-                </span>
-              </div>
-
-              {/* Credit Side */}
-              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/70">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                  CREDIT ACCOUNT · DEST
-                </span>
-                <span className="text-xs font-bold text-slate-900 mt-1 block truncate">
-                  {entry.creditAccountName ||
-                    (entry.creditAccountId
-                      ? `Acc: ${entry.creditAccountId.slice(0, 10)}...`
-                      : 'External / Destination')}
-                </span>
-                <span className="text-xs font-mono font-bold text-emerald-700 mt-1 block tabular-nums">
-                  +{amountStr}
-                </span>
-              </div>
-            </div>
-
-            {/* Clear Attribution of Running Balance */}
-            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-              <span className="font-medium">
-                Post-entry Balance ({activeAccountName}):
-              </span>
-              <span className="font-bold tabular-nums font-mono text-slate-950 text-sm">
-                {formatPaiseToRupees(entry.runningBalance)}
-              </span>
-            </div>
-          </div>
-
-          {/* TIER 3 (SUPPORTING): Cryptographic SHA-256 Proof of Custody */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-4 shadow-2xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center space-x-1.5">
-                <ShieldCheck className="h-4 w-4 text-indigo-600" />
-                <span>Cryptographic Proof of Custody</span>
-              </span>
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
-                SHA-256 Chain
-              </span>
-            </div>
-
-            {/* Entry Hash */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">
-                  Entry Hash (Block Seal)
-                </span>
-                {entry.hash && (
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(entry.hash!, setCopiedHash)}
-                      className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition pressable"
-                      title="Copy full SHA-256 hash"
-                    >
-                      {copiedHash ? (
-                        <>
-                          <Check className="h-3 w-3 mr-1 text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3 mr-1 text-slate-400" />
-                          <span className="text-[11px]">Copy</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFullEntryHash(!showFullEntryHash)}
-                      className="inline-flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-800 transition pressable"
-                    >
-                      {showFullEntryHash ? (
-                        <>
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          <span className="text-[11px]">Collapse</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-3 w-3 mr-1" />
-                          <span className="text-[11px]">View full hash</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {showFullEntryHash ? (
-                <div className="p-3 bg-slate-900 text-emerald-400 rounded-xl font-mono text-xs break-all border border-slate-800 select-all tracking-wide leading-relaxed">
-                  {entry.hash || 'Genesis Block'}
-                </div>
-              ) : (
-                <div className="flex items-center bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/70">
-                  <span className="font-mono text-xs text-slate-800 truncate font-medium">
-                    {entry.hash ? `${entry.hash.slice(0, 36)}...` : 'Genesis Block / Pre-migration entry'}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Parent Hash */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">
-                  Parent Block Hash (prevHash)
-                </span>
-                {entry.prevHash && (
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(entry.prevHash!, setCopiedPrevHash)}
-                      className="inline-flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition pressable"
-                      title="Copy parent hash"
-                    >
-                      {copiedPrevHash ? (
-                        <>
-                          <Check className="h-3 w-3 mr-1 text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold text-[11px]">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3 mr-1 text-slate-400" />
-                          <span className="text-[11px]">Copy</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFullPrevHash(!showFullPrevHash)}
-                      className="inline-flex items-center text-xs font-medium text-indigo-600 hover:text-indigo-800 transition pressable"
-                    >
-                      {showFullPrevHash ? (
-                        <>
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          <span className="text-[11px]">Collapse</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-3 w-3 mr-1" />
-                          <span className="text-[11px]">View full hash</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {showFullPrevHash ? (
-                <div className="p-3 bg-slate-900 text-slate-300 rounded-xl font-mono text-xs break-all border border-slate-800 select-all tracking-wide leading-relaxed">
-                  {entry.prevHash || '0'.repeat(64)}
-                </div>
-              ) : (
-                <div className="flex items-center bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200/70">
-                  <span className="font-mono text-xs text-slate-600 truncate">
-                    {entry.prevHash ? `${entry.prevHash.slice(0, 36)}...` : '0000000000000000000000000000000000000000000000000000000000000000'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* TIER 3 (SUPPORTING): Audit Metadata in Definition List Layout */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3 text-xs shadow-2xs">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block pb-2 border-b border-slate-100">
-              Audit Metadata
+        {/* Scrollable Body */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+          {/* Amount Card */}
+          <div className="p-4 rounded border border-rule bg-paper space-y-3">
+            <span className="text-[11px] text-ink-muted font-medium block">
+              Account impact ({isDebit ? 'Outflow' : 'Inflow'})
             </span>
+            <div
+              className="mono-num text-2xl font-medium tracking-tight"
+              style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
+            >
+              {isDebit ? `−${amountStr}` : `+${amountStr}`}
+            </div>
 
-            <dl className="space-y-2.5">
-              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
-                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                  <User className="h-3.5 w-3.5" />
-                  <span>Initiated By:</span>
-                </dt>
-                <dd className="font-semibold text-slate-900">{email}</dd>
+            <div className="pt-2 border-t border-rule grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-ink-muted block text-[11px]">Exact volume:</span>
+                <span className="mono-num font-medium text-ink">{amountStr}</span>
+                <span className="text-[10px] mono-num text-ink-faint block">{entry.amountPence} paise</span>
+              </div>
+              <div>
+                <span className="text-ink-muted block text-[11px]">Entry type:</span>
+                <span className="mono-num font-medium text-ink">{entry.type}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Double-entry routing */}
+          <div className="border border-rule rounded p-4 space-y-3 bg-white">
+            <div className="flex items-center justify-between pb-2 border-b border-rule">
+              <span className="font-semibold text-ink flex items-center space-x-1.5">
+                <ArrowRightLeft className="h-3.5 w-3.5 text-accent" />
+                <span>Double-entry movement</span>
+              </span>
+              <span className="mono-num text-[10px] text-ledger-green font-medium">
+                Zero-sum Δ=0
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 bg-paper border border-rule rounded">
+                <span className="text-[10px] text-ink-muted block font-medium">Debit source</span>
+                <span className="font-medium text-ink truncate block mt-0.5">
+                  {entry.debitAccountName || (entry.debitAccountId ? `Acc: ${entry.debitAccountId.slice(0, 8)}...` : 'Source')}
+                </span>
+                <span className="mono-num font-medium text-ledger-red block mt-0.5">−{amountStr}</span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
-                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                  <Hash className="h-3.5 w-3.5" />
-                  <span>Transaction ID:</span>
-                </dt>
-                <dd className="font-mono text-slate-900 font-medium">{entry.id}</dd>
+              <div className="p-2.5 bg-paper border border-rule rounded">
+                <span className="text-[10px] text-ink-muted block font-medium">Credit dest</span>
+                <span className="font-medium text-ink truncate block mt-0.5">
+                  {entry.creditAccountName || (entry.creditAccountId ? `Acc: ${entry.creditAccountId.slice(0, 8)}...` : 'Destination')}
+                </span>
+                <span className="mono-num font-medium text-ledger-green block mt-0.5">+{amountStr}</span>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-100/80">
-                <dt className="flex items-center space-x-1.5 text-slate-500 font-medium">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>Timestamp:</span>
-                </dt>
-                <dd className="font-mono text-slate-900">
-                  {new Date(entry.createdAt).toLocaleTimeString()} · {formattedDate}
-                </dd>
+            <div className="pt-2 border-t border-rule flex justify-between">
+              <span className="text-ink-muted">Running balance ({activeAccountName}):</span>
+              <span className="mono-num font-medium text-ink">{formatPaiseToRupees(entry.runningBalance)}</span>
+            </div>
+          </div>
+
+          {/* SHA-256 Proof */}
+          <div className="border border-rule rounded p-4 space-y-3 bg-white">
+            <div className="flex items-center justify-between pb-2 border-b border-rule">
+              <span className="font-semibold text-ink flex items-center space-x-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                <span>Cryptographic seal</span>
+              </span>
+              <span className="mono-num text-[10px] text-ink-muted">SHA-256</span>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">Block seal (currentHash):</span>
+                {entry.hash && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(entry.hash!, setCopiedHash)}
+                    className="text-accent hover:underline text-[11px]"
+                  >
+                    {copiedHash ? 'Copied' : 'Copy'}
+                  </button>
+                )}
               </div>
+              <div className="mono-num text-[11px] text-ink bg-paper p-2 border border-rule rounded truncate select-all">
+                {entry.hash || 'Genesis Block'}
+              </div>
+            </div>
 
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-ink-muted">Parent hash (prevHash):</span>
+                {entry.prevHash && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(entry.prevHash!, setCopiedPrevHash)}
+                    className="text-accent hover:underline text-[11px]"
+                  >
+                    {copiedPrevHash ? 'Copied' : 'Copy'}
+                  </button>
+                )}
+              </div>
+              <div className="mono-num text-[11px] text-ink bg-paper p-2 border border-rule rounded truncate select-all">
+                {entry.prevHash || '0'.repeat(64)}
+              </div>
+            </div>
+          </div>
+
+          {/* Audit metadata */}
+          <div className="border border-rule rounded p-4 space-y-2 bg-white">
+            <span className="font-semibold text-ink block pb-1 border-b border-rule">
+              Audit metadata
+            </span>
+            <div className="space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Initiated by:</span>
+                <span className="mono-num text-ink">{email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Timestamp:</span>
+                <span className="mono-num text-ink">{new Date(entry.createdAt).toLocaleTimeString()} · {formattedDate}</span>
+              </div>
               {entry.note && (
                 <div className="pt-1">
-                  <dt className="text-slate-500 font-medium block">Note / Reason Reference:</dt>
-                  <dd className="mt-1 text-slate-800 bg-slate-50 p-2.5 rounded-xl font-mono text-xs border border-slate-200/60">
+                  <span className="text-ink-muted block mb-0.5">Note:</span>
+                  <p className="bg-paper p-2 rounded border border-rule mono-num text-[11px] text-ink">
                     {entry.note}
-                  </dd>
+                  </p>
                 </div>
               )}
-            </dl>
+            </div>
           </div>
 
-          {/* TIER 3 (SUPPORTING): Structured In-Drawer Raw JSON Viewer */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
+          {/* Raw JSON toggle */}
+          <div className="border border-rule rounded p-3 bg-white">
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowRawJson(!showRawJson)}
-                className="text-xs font-semibold text-slate-700 hover:text-slate-950 flex items-center space-x-1.5 pressable"
+                className="font-medium text-ink-muted hover:text-ink flex items-center space-x-1"
               >
-                <FileCode className="h-4 w-4 text-slate-500" />
-                <span>{showRawJson ? 'Hide Raw JSON Payload' : 'Inspect Raw JSON Payload'}</span>
+                <FileCode className="h-3.5 w-3.5" />
+                <span>{showRawJson ? 'Hide raw JSON' : 'Inspect raw JSON'}</span>
               </button>
 
               {showRawJson && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(JSON.stringify(entry, null, 2), setCopiedJson)}
-                    className="text-xs text-sky-600 hover:text-sky-700 font-semibold inline-flex items-center transition"
-                  >
-                    {copiedJson ? (
-                      <>
-                        <Check className="h-3 w-3 mr-1 text-emerald-600" />
-                        <span className="text-emerald-700">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3 mr-1" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDownloadJson}
-                    className="text-xs text-slate-600 hover:text-slate-900 font-semibold inline-flex items-center transition"
-                    title="Download entry JSON"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    <span>Download</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadJson}
+                  className="text-accent hover:underline text-[11px] flex items-center space-x-1"
+                >
+                  <Download className="h-3 w-3 mr-0.5" />
+                  <span>Download</span>
+                </button>
               )}
             </div>
 
             {showRawJson && (
-              <pre className="mt-3 p-3.5 bg-slate-950 text-slate-200 rounded-xl text-[11px] font-mono overflow-x-auto max-h-52 border border-slate-800">
+              <pre className="mt-2.5 p-3 bg-paper border border-rule rounded text-[11px] mono-num overflow-x-auto max-h-48 text-ink">
                 {JSON.stringify(entry, null, 2)}
               </pre>
             )}
           </div>
         </div>
 
-        {/* Pinned Footer Actions */}
-        <div className="shrink-0 p-6 border-t border-slate-100 bg-white flex items-center space-x-3">
+        {/* Pinned Footer */}
+        <div className="shrink-0 p-4 border-t border-rule bg-paper flex items-center space-x-2">
           {isAdmin && entry.status === 'POSTED' && entry.type !== 'ADJUSTMENT' && onReverse && (
             <button
               onClick={() => {
                 onClose();
                 onReverse(entry);
               }}
-              className="flex-1 inline-flex justify-center items-center py-2.5 px-4 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-semibold tracking-tight transition pressable"
+              className="flex-1 py-2 px-3 bg-white hover:bg-rule/30 text-ink border border-rule rounded text-xs font-medium transition"
             >
-              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-              Reverse Transaction
+              <RotateCcw className="mr-1 h-3 w-3 inline" />
+              Reverse
             </button>
           )}
 
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 bg-slate-950 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold tracking-tight transition pressable shadow-2xs"
+            className="flex-1 py-2 px-3 bg-ink hover:opacity-90 text-white rounded text-xs font-semibold transition"
           >
-            Done Inspecting
+            Close
           </button>
         </div>
       </div>

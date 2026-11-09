@@ -8,15 +8,11 @@ import { formatPaiseToRupees } from '@/lib/utils';
 import {
   BookOpen,
   Download,
-  Filter,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   RefreshCw,
   Search,
   RotateCcw,
-  ShieldAlert,
-  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
 import ReversalModal from '@/components/ReversalModal';
@@ -67,22 +63,6 @@ export default function AuditPage() {
   // Transaction inspection slide-over drawer
   const [inspectedEntry, setInspectedEntry] = useState<InspectedTransaction | null>(null);
 
-  const inspectedIndex = inspectedEntry ? entries.findIndex((e) => e.id === inspectedEntry.id) : -1;
-  const hasPrevious = inspectedIndex > 0;
-  const hasNext = inspectedIndex >= 0 && inspectedIndex < entries.length - 1;
-
-  const handleNavigatePrevious = () => {
-    if (hasPrevious) {
-      setInspectedEntry(entries[inspectedIndex - 1]);
-    }
-  };
-
-  const handleNavigateNext = () => {
-    if (hasNext) {
-      setInspectedEntry(entries[inspectedIndex + 1]);
-    }
-  };
-
   const fetchAuditEntries = useCallback(async () => {
     try {
       setLoading(true);
@@ -128,19 +108,23 @@ export default function AuditPage() {
     fetchAuditEntries();
   }, [fetchAuditEntries, router]);
 
-  const handleExecuteReversal = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleExecuteReversal = async (reasonArg?: string | React.FormEvent) => {
+    if (typeof reasonArg === 'object' && reasonArg && 'preventDefault' in reasonArg) {
+      reasonArg.preventDefault();
+    }
     if (!reversingEntry) return;
 
     setReversalLoading(true);
     setReversalError(null);
     setReversalSuccess(null);
 
+    const actualReason = typeof reasonArg === 'string' ? reasonArg : reversalReason;
+
     try {
       const idempotencyKey = crypto.randomUUID();
       await api.post(
         `/transfers/${reversingEntry.id}/reverse`,
-        { reason: reversalReason.trim() || undefined },
+        { reason: actualReason.trim() || undefined },
         { 'Idempotency-Key': idempotencyKey }
       );
 
@@ -198,75 +182,77 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
         <div>
           <div className="flex items-center space-x-2">
-            <BookOpen className="h-6 w-6 text-sky-600" />
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Auditor & Compliance Ledger
+            <BookOpen className="h-5 w-5 text-accent" />
+            <h1 className="text-xl font-bold tracking-tight text-ink">
+              Auditor &amp; compliance ledger
             </h1>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Global append-only audit view: Showing all ledger postings including REFUSED attempts.
+          <p className="text-xs text-ink-muted mt-0.5">
+            Global append-only audit view: Showing all ledger postings including refused attempts.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <button
             onClick={() => fetchAuditEntries()}
-            className="p-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition shadow-sm"
+            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable"
             title="Refresh"
+            aria-label="Refresh audit records"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
+          {/* Ghost button for Export to CSV */}
           <button
             onClick={handleExportCSV}
             disabled={entries.length === 0}
-            className="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg shadow-sm text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition"
+            className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 disabled:opacity-40 transition"
           >
-            <Download className="mr-2 h-4 w-4 text-slate-500" />
-            Export to CSV
+            <Download className="mr-1.5 h-3.5 w-3.5 text-ink-faint" />
+            <span>Export to CSV</span>
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-3 text-red-700">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+        <div className="p-3.5 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red text-xs">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <p>{error}</p>
         </div>
       )}
 
       {reversalSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-emerald-800">
-          <div className="flex items-center space-x-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-            <p className="text-sm font-medium">{reversalSuccess}</p>
+        <div className="p-3.5 bg-paper border border-ledger-green rounded flex items-center justify-between text-ledger-green text-xs">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <p>{reversalSuccess}</p>
           </div>
           <button
             onClick={() => setReversalSuccess(null)}
-            className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+            className="hover:underline text-[11px]"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* Filter Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+      {/* Filter Bar: border border-rule rounded, "Apply Filters" is the single primary filled button */}
+      <div className="bg-white border border-rule rounded p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <div>
-          <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-            Filter Account
+          <label className="block text-xs text-ink-muted font-medium mb-1">
+            Account filter
           </label>
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
           >
-            <option value="">All Accounts</option>
+            <option value="">All accounts</option>
             {accounts.map((acc) => (
               <option key={acc.id} value={acc.id}>
                 {acc.name}
@@ -276,128 +262,127 @@ export default function AuditPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-            Start Date
+          <label className="block text-xs text-ink-muted font-medium mb-1">
+            Start date
           </label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-            End Date
+          <label className="block text-xs text-ink-muted font-medium mb-1">
+            End date
           </label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
           />
         </div>
 
         <div>
           <button
             onClick={() => fetchAuditEntries()}
-            className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 transition"
+            className="w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition"
           >
-            <Search className="mr-2 h-4 w-4" />
-            Apply Filters
+            <Search className="mr-1.5 h-3.5 w-3.5" />
+            <span>Apply filters</span>
           </button>
         </div>
       </div>
 
-      {/* Ledger Metrics Summary Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Entries</span>
-          <div className="text-2xl font-bold tracking-tight text-slate-900 mt-1 font-mono">
+      {/* Metric Cards Summary Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white border border-rule rounded p-4">
+          <span className="text-xs text-ink-muted font-medium block">Total entries</span>
+          <div className="mono-num text-xl font-medium text-ink mt-0.5">
             {loading ? '—' : entries.length}
           </div>
-          <span className="text-[11px] text-slate-400 mt-0.5 block font-medium">Immutable audit trail</span>
+          <span className="text-[11px] text-ink-faint mt-0.5 block">Audit log count</span>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider block">Posted Records</span>
-          <div className="text-2xl font-bold tracking-tight text-emerald-700 mt-1 font-mono">
+        <div className="bg-white border border-rule rounded p-4">
+          <span className="text-xs text-ink-muted font-medium block">Posted records</span>
+          <div className="mono-num text-xl font-medium text-ledger-green mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'POSTED').length}
           </div>
-          <span className="text-[11px] text-emerald-600/80 mt-0.5 block font-medium">Committed double-entry</span>
+          <span className="text-[11px] text-ink-faint mt-0.5 block">Committed</span>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider block">Refused Attempts</span>
-          <div className="text-2xl font-bold tracking-tight text-rose-700 mt-1 font-mono">
+        <div className="bg-white border border-rule rounded p-4">
+          <span className="text-xs text-ink-muted font-medium block">Refused attempts</span>
+          <div className="mono-num text-xl font-medium text-ledger-red mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'REFUSED').length}
           </div>
-          <span className="text-[11px] text-rose-600/80 mt-0.5 block font-medium">Prevented overdrafts</span>
+          <span className="text-[11px] text-ink-faint mt-0.5 block">Refused</span>
         </div>
 
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider block">Cryptographic Seal</span>
-          <div className="text-2xl font-bold tracking-tight text-indigo-700 mt-1 flex items-center space-x-1.5">
-            <span className="font-mono">100%</span>
-            <ShieldCheck className="h-5 w-5 text-indigo-600" />
+        <div className="bg-white border border-rule rounded p-4">
+          <span className="text-xs text-ink-muted font-medium block">Cryptographic seal</span>
+          <div className="mono-num text-xl font-medium text-ink mt-0.5 flex items-center space-x-1.5">
+            <span>100%</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
           </div>
-          <span className="text-[11px] text-indigo-600/80 mt-0.5 block font-medium">Genesis-to-Head SHA-256</span>
+          <span className="text-[11px] text-ink-faint mt-0.5 block">Genesis-to-Head SHA-256</span>
         </div>
       </div>
 
-      {/* Global Audit Ledger Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Audit Table */}
+      <div className="bg-white border border-rule rounded overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-slate-700 font-semibold text-xs uppercase tracking-wider">
+          <table className="min-w-full divide-y divide-rule text-xs">
+            <thead className="bg-paper text-ink-muted font-medium border-b border-rule-strong">
               <tr>
-                <th scope="col" className="px-5 py-3.5 text-left">
-                  Date & Time <span className="text-slate-400 font-normal">↓ Newest first</span>
+                <th scope="col" className="px-4 py-3 text-left">
+                  Date &amp; time
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-left">
+                <th scope="col" className="px-4 py-3 text-left">
                   Type
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-center">
+                <th scope="col" className="px-4 py-3 text-center">
                   Status
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-right">
-                  Amount (₹)
+                <th scope="col" className="px-4 py-3 text-right">
+                  Amount
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-left">
-                  Debit Account
+                <th scope="col" className="px-4 py-3 text-left">
+                  Debit account
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-left">
-                  Credit Account
+                <th scope="col" className="px-4 py-3 text-left">
+                  Credit account
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-left">
-                  Initiated By
+                <th scope="col" className="px-4 py-3 text-left">
+                  Initiated by
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-left">
+                <th scope="col" className="px-4 py-3 text-left">
                   Note
                 </th>
-                <th scope="col" className="px-5 py-3.5 text-right">
+                <th scope="col" className="px-4 py-3 text-right">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
+            <tbody className="divide-y divide-rule bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-12 text-center text-ink-muted">
                     Loading global audit entries...
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-12 text-center text-ink-muted">
                     No matching audit records found.
                   </td>
                 </tr>
               ) : (
                 entries.map((entry) => {
                   const isPosted = entry.status === 'POSTED';
-                  const isSelected = inspectedEntry?.id === entry.id;
                   const dateStr = new Date(entry.createdAt).toLocaleString('en-IN', {
                     dateStyle: 'short',
                     timeStyle: 'short',
@@ -407,86 +392,78 @@ export default function AuditPage() {
                     <tr
                       key={entry.id}
                       onClick={() => setInspectedEntry(entry)}
-                      className={`cursor-pointer transition border-l-4 ${
-                        isSelected
-                          ? 'bg-sky-50/90 border-l-sky-600 font-medium ring-1 ring-inset ring-sky-300/80 shadow-2xs'
-                          : !isPosted
-                          ? 'bg-red-50/60 hover:bg-red-100/60 border-l-transparent'
-                          : 'hover:bg-sky-50/50 border-l-transparent'
-                      }`}
-                      title="Click row to inspect cryptographic seal & double-entry T-account details"
+                      className="cursor-pointer transition hover:bg-[#F3F2EE]"
+                      title="Click row to inspect cryptographic seal & double-entry details"
                     >
-                      <td className="px-5 py-3 whitespace-nowrap text-xs font-mono text-slate-600">
-                        <div className="flex items-center space-x-1.5">
-                          {isSelected && (
-                            <span className="inline-block w-2 h-2 rounded-full bg-sky-600 shrink-0 animate-pulse" />
-                          )}
-                          <span>{dateStr}</span>
-                        </div>
+                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink-muted">
+                        {dateStr}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-800">
-                          {entry.type}
+                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink font-medium">
+                        {entry.type}
+                      </td>
+
+                      {/* Status Column: 6px colored dot + plain text */}
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <span
+                          className="inline-flex items-center gap-1.5 font-medium"
+                          style={{
+                            color: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
+                          }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{
+                              background: isPosted ? 'var(--ledger-green)' : 'var(--ledger-red)',
+                            }}
+                          />
+                          {entry.status}
                         </span>
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-center">
-                        {isPosted ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                            POSTED
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-                            <XCircle className="mr-1 h-3 w-3" />
-                            REFUSED
-                          </span>
-                        )}
-                      </td>
-
                       <td
-                        className={`px-5 py-3 whitespace-nowrap text-right font-mono font-bold ${
-                          !isPosted ? 'text-red-500 line-through' : 'text-slate-900'
+                        className={`px-4 py-3 whitespace-nowrap text-right mono-num font-medium ${
+                          !isPosted ? 'text-ink-faint line-through' : 'text-ink'
                         }`}
                       >
                         {formatPaiseToRupees(entry.amountPence)}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-ink-muted">
                         {entry.debitAccountName}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-700">
+                      <td className="px-4 py-3 whitespace-nowrap text-ink-muted">
                         {entry.creditAccountName}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-600">
+                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink-muted">
                         {entry.initiatedByEmail}
                       </td>
 
-                      <td className="px-5 py-3 text-xs text-slate-500 max-w-xs truncate">
+                      <td className="px-4 py-3 text-ink-muted max-w-xs truncate">
                         {entry.note || '—'}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-right text-xs">
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
                         {user?.role === 'ADMIN' && isPosted && entry.type !== 'ADJUSTMENT' ? (
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setInspectedEntry(null);
                               setReversingEntry(entry);
                               setReversalError(null);
                             }}
-                            className="inline-flex items-center px-2.5 py-1 border border-amber-300 rounded-md text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium transition shadow-xs"
+                            className="inline-flex items-center px-2 py-1 border border-rule rounded text-xs text-ink-muted hover:text-ink hover:bg-rule/30 transition"
                             title="Execute compensating-entry reversal"
                           >
                             <RotateCcw className="mr-1 h-3 w-3" />
                             Reverse
                           </button>
                         ) : entry.type === 'ADJUSTMENT' ? (
-                          <span className="text-slate-400 font-mono text-[11px]">Compensating Leg</span>
+                          <span className="text-ink-faint mono-num text-[11px]">Compensating leg</span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-ink-faint">—</span>
                         )}
                       </td>
                     </tr>
@@ -499,53 +476,25 @@ export default function AuditPage() {
       </div>
 
       {/* Reversal Confirmation Modal */}
-      <ReversalModal
-        entry={reversingEntry}
-        onClose={() => setReversingEntry(null)}
-        onConfirm={async (reason) => {
-          if (!reversingEntry) return;
-          setReversalLoading(true);
-          setReversalError(null);
-          setReversalSuccess(null);
+      {reversingEntry && (
+        <ReversalModal
+          isOpen={true}
+          onClose={() => setReversingEntry(null)}
+          onConfirm={(reason: string) => handleExecuteReversal(reason)}
+          entry={reversingEntry}
+          reason={reversalReason}
+          setReason={setReversalReason}
+          loading={reversalLoading}
+          error={reversalError}
+        />
+      )}
 
-          try {
-            const idempotencyKey = crypto.randomUUID();
-            await api.post(
-              `/transfers/${reversingEntry.id}/reverse`,
-              { reason },
-              { 'Idempotency-Key': idempotencyKey }
-            );
-
-            setReversalSuccess(
-              `Successfully reversed transaction #${reversingEntry.id.slice(-8)}. Compensating ADJUSTMENT entries posted to immutable ledger.`
-            );
-            setReversingEntry(null);
-            fetchAuditEntries();
-          } catch (err: any) {
-            setReversalError(err.message || 'Failed to execute reversal');
-          } finally {
-            setReversalLoading(false);
-          }
-        }}
-        loading={reversalLoading}
-        error={reversalError}
-      />
-
-      {/* Slide-Over Transaction Inspection Drawer - Suppressed when Reversal Modal is active */}
+      {/* Transaction Slide-over Drawer */}
       <TransactionDrawer
-        entry={reversingEntry ? null : inspectedEntry}
+        entry={inspectedEntry}
         onClose={() => setInspectedEntry(null)}
-        onReverse={(e) => {
-          setInspectedEntry(null);
-          setReversingEntry(e as any);
-        }}
         isAdmin={user?.role === 'ADMIN'}
-        onNavigatePrevious={handleNavigatePrevious}
-        onNavigateNext={handleNavigateNext}
-        hasPrevious={hasPrevious}
-        hasNext={hasNext}
       />
     </div>
   );
 }
-

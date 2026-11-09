@@ -90,10 +90,54 @@ interface Account {
   }>;
 }
 
+interface AuditEntryItem {
+  id: string;
+  createdAt: string;
+  type: string;
+  status: 'POSTED' | 'REFUSED';
+  amountPence: string;
+}
+
+function BarSparkline({
+  data,
+  color,
+}: {
+  data: number[];
+  color: string;
+}) {
+  const max = Math.max(...data.map(Math.abs), 1);
+  const width = 56;
+  const height = 22;
+  const barWidth = 5;
+  const gap = 3;
+
+  return (
+    <svg width={width} height={height} className="overflow-visible" aria-hidden="true">
+      {data.map((val, idx) => {
+        const barHeight = Math.max(2, Math.round((Math.abs(val) / max) * (height - 3)));
+        const x = idx * (barWidth + gap);
+        const y = height - barHeight;
+        return (
+          <rect
+            key={idx}
+            x={x}
+            y={y}
+            width={barWidth}
+            height={barHeight}
+            fill={color}
+            rx={1}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserSession | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [auditEntries, setAuditEntries] = useState<AuditEntryItem[]>([]);
   const [recentEntries, setRecentEntries] = useState<StatementEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [entriesLoading, setEntriesLoading] = useState(false);
@@ -125,6 +169,16 @@ export default function DashboardPage() {
       const data = await api.get<Account[]>('/accounts');
       setAccounts(data);
       setLastRefreshedAt(new Date());
+
+      // If user is ADMIN or AUDITOR, fetch audit entries to compute 7-day trend widgets
+      if (currentUser?.role === 'ADMIN' || currentUser?.role === 'AUDITOR') {
+        try {
+          const auditData = await api.get<AuditEntryItem[]>('/statements/audit/entries?limit=100');
+          setAuditEntries(auditData);
+        } catch (auditErr) {
+          console.error('Audit entries fetch error:', auditErr);
+        }
+      }
 
       // If user is an AUDITOR, proactively check system reconciliation
       if (currentUser?.role === 'AUDITOR') {
@@ -222,11 +276,11 @@ export default function DashboardPage() {
 
   const handleVerifyIntegrity = async () => {
     setReconcileLoading(true);
-    setShowReconcileModal(true);
     try {
       const data = await api.get<SystemReconciliationResult>('/admin/reconcile-all');
       setReconcileResult(data);
-      setVerificationTimestamp(new Date().toLocaleString());
+      setVerificationTimestamp(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setShowReconcileModal(true);
     } catch (err: any) {
       setError(err.message || 'Reconciliation check failed');
     } finally {
@@ -299,6 +353,61 @@ export default function DashboardPage() {
     }, 0n);
   }, [accounts]);
 
+  // Client-side 7-day Trend Analytics for Admin/Auditor
+  const sevenDayStats = useMemo(() => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recent = auditEntries.filter((e) => new Date(e.createdAt) >= sevenDaysAgo);
+
+    const posted = recent.filter((e) => e.status === 'POSTED');
+    const refused = recent.filter((e) => e.status === 'REFUSED');
+
+    let netFlowPence = 0n;
+    posted.forEach((e) => {
+      const amt = BigInt(e.amountPence || '0');
+      if (e.type === 'DEPOSIT') {
+        netFlowPence += amt;
+      } else if (e.type === 'WITHDRAWAL') {
+        netFlowPence -= amt;
+      }
+    });
+
+    // 7 day buckets
+    const postedDaily: number[] = [];
+    const refusedDaily: number[] = [];
+    const netFlowDaily: number[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayStr = d.toISOString().slice(0, 10);
+      const dayEntries = recent.filter((e) => e.createdAt.slice(0, 10) === dayStr);
+
+      const pCount = dayEntries.filter((e) => e.status === 'POSTED').length;
+      const rCount = dayEntries.filter((e) => e.status === 'REFUSED').length;
+      let flow = 0;
+      dayEntries.forEach((e) => {
+        if (e.status === 'POSTED') {
+          const amt = Number(e.amountPence || 0) / 100;
+          if (e.type === 'DEPOSIT') flow += amt;
+          else if (e.type === 'WITHDRAWAL') flow -= amt;
+        }
+      });
+
+      postedDaily.push(pCount);
+      refusedDaily.push(rCount);
+      netFlowDaily.push(flow);
+    }
+
+    return {
+      postedCount: posted.length,
+      refusedCount: refused.length,
+      netFlowPence,
+      postedDaily,
+      refusedDaily,
+      netFlowDaily,
+    };
+  }, [auditEntries]);
+
   // Filter accounts by name, ID, or holder
   const filteredAccounts = useMemo(() => {
     if (!searchQuery.trim()) return accounts;
@@ -311,40 +420,31 @@ export default function DashboardPage() {
     );
   }, [accounts, searchQuery]);
 
+  const roleColor =
+    user?.role === 'ADMIN'
+      ? 'var(--role-admin)'
+      : user?.role === 'AUDITOR'
+      ? 'var(--role-auditor)'
+      : 'var(--role-holder)';
+
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Top Banner Navigation & Primary Actions */}
-      <div className="flex flex-col gap-4 pb-4 border-b border-slate-200">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Top Banner Navigation & Actions */}
+      <div className="flex flex-col gap-4 pb-4 border-b border-rule">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center space-x-2.5 mb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight-display text-slate-950">
-                Accounts Dashboard
+              <h1 className="text-2xl font-bold tracking-tight text-ink">
+                Accounts dashboard
               </h1>
               {user?.role && (
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                    user.role === 'HOLDER'
-                      ? 'bg-sky-50 text-sky-700 border-sky-200/80'
-                      : user.role === 'ADMIN'
-                      ? 'bg-purple-50 text-purple-700 border-purple-200/80'
-                      : 'bg-amber-50 text-amber-700 border-amber-200/80'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
-                      user.role === 'HOLDER'
-                        ? 'bg-sky-500'
-                        : user.role === 'ADMIN'
-                        ? 'bg-purple-500'
-                        : 'bg-amber-500'
-                    }`}
-                  />
+                <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleColor }} />
                   {user.role}
                 </span>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-500">
+            <p className="text-xs text-ink-muted">
               {user?.role === 'ADMIN' &&
                 'System-wide ledger control: Viewing all accounts with full debit/credit authority.'}
               {user?.role === 'HOLDER' &&
@@ -356,7 +456,7 @@ export default function DashboardPage() {
 
           <button
             onClick={() => fetchAccounts()}
-            className="p-2 sm:p-2.5 border border-slate-300 rounded-xl text-slate-600 hover:bg-slate-100 transition shadow-2xs pressable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0"
+            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable shrink-0"
             title="Refresh balances and transactions"
             aria-label="Refresh balances and transactions"
           >
@@ -364,48 +464,67 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Action Buttons: Responsive Grid (New Account prominent on mobile, secondary actions side-by-side) */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-2.5">
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {user?.role === 'ADMIN' && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="col-span-2 sm:col-auto w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-4 py-2.5 border border-transparent rounded-xl shadow-2xs text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable"
+              className="inline-flex items-center px-4 py-2 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition pressable"
             >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              <span>New Account</span>
+              <PlusCircle className="mr-1.5 h-4 w-4" />
+              <span>New account</span>
             </button>
           )}
 
           {user?.role === 'HOLDER' && accounts.length > 0 && (
             <Link
               href={`/accounts/${accounts[0].id}/transfer`}
-              className="col-span-2 sm:col-auto w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-4 py-2.5 border border-transparent rounded-xl shadow-2xs text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable"
+              className="inline-flex items-center px-4 py-2 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition pressable"
               title="Initiate transfer from your account"
             >
-              <ArrowRightLeft className="mr-2 h-4 w-4" />
-              <span>Transfer Money</span>
+              <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+              <span>Transfer money</span>
             </Link>
           )}
 
+          {/* Ghost button: Verify ledger integrity */}
           {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
             <button
+              type="button"
               onClick={handleVerifyIntegrity}
-              className="col-span-1 sm:col-auto w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-3 py-2.5 border border-emerald-300 rounded-xl shadow-2xs text-xs sm:text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition pressable whitespace-nowrap"
-              title="Verify double-entry reconciliation across all accounts"
+              disabled={reconcileLoading}
+              className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 transition pressable"
+              title="Verify double-entry reconciliation and cryptographic hashes"
             >
-              <ShieldCheck className="mr-1.5 h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Verify Integrity</span>
+              <span
+                className="w-1.5 h-1.5 rounded-full mr-2 shrink-0"
+                style={{
+                  background: reconcileLoading
+                    ? 'var(--ink-faint)'
+                    : reconcileResult
+                    ? reconcileResult.allMatch
+                      ? 'var(--ledger-green)'
+                      : 'var(--ledger-red)'
+                    : 'var(--ledger-green)',
+                }}
+              />
+              <span>{reconcileLoading ? 'Verifying...' : 'Verify ledger integrity'}</span>
+              {reconcileResult && (
+                <span className="ml-1.5 text-[11px] mono-num text-ink-muted">
+                  · {reconcileResult.allMatch ? 'Chain verified' : 'Discrepancy detected'}
+                </span>
+              )}
             </button>
           )}
 
           {user?.role === 'ADMIN' && (
             <Link
               href="/admin/stress-lab"
-              className="col-span-1 sm:col-auto w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-3 py-2.5 border border-amber-300 rounded-xl shadow-2xs text-xs sm:text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 transition pressable whitespace-nowrap"
+              className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-medium text-ink bg-paper hover:bg-rule/30 transition pressable"
               title="Run real-time concurrent SSI transactions and test ACID row-lock telemetry"
             >
-              <Zap className="mr-1.5 h-4 w-4 text-amber-600 fill-amber-500 shrink-0" />
-              <span>Stress Lab</span>
+              <Zap className="mr-1.5 h-3.5 w-3.5 text-accent shrink-0" />
+              <span>Stress lab</span>
             </Link>
           )}
         </div>
@@ -414,291 +533,123 @@ export default function DashboardPage() {
       {error && (
         <div
           role="alert"
-          className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-3 text-red-700 animate-in fade-in-50"
+          className="p-4 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red"
         >
           <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-xs font-medium">{error}</p>
         </div>
       )}
 
-      {/* System Overview: Executive KPI Metric Cards */}
-      {user?.role === 'HOLDER' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Available Balance */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total Balance
+      {/* ADMIN & AUDITOR Trend Widgets (Computed client-side from existing endpoints) */}
+      {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {/* Trend 1: Posted entries in last 7 days */}
+          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-ink-muted font-medium block">
+                Posted entries (7d)
               </span>
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-                <Coins className="h-4 w-4" />
-              </div>
+              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+                {sevenDayStats.postedCount}
+              </span>
+              <span className="text-[11px] text-ink-faint">Double-entry legs</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+            <div className="text-right">
+              <BarSparkline data={sevenDayStats.postedDaily} color="var(--ledger-green)" />
+              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+            </div>
+          </div>
+
+          {/* Trend 2: Refused attempts in last 7 days */}
+          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-ink-muted font-medium block">
+                Refused attempts (7d)
+              </span>
+              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+                {sevenDayStats.refusedCount}
+              </span>
+              <span className="text-[11px] text-ink-faint">Prevented overdrafts</span>
+            </div>
+            <div className="text-right">
+              <BarSparkline data={sevenDayStats.refusedDaily} color="var(--ledger-red)" />
+              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+            </div>
+          </div>
+
+          {/* Trend 3: Net flow in last 7 days */}
+          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-ink-muted font-medium block">
+                Net flow (7d)
+              </span>
+              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+                {formatPaiseToRupees(sevenDayStats.netFlowPence.toString())}
+              </span>
+              <span className="text-[11px] text-ink-faint">Deposits minus withdrawals</span>
+            </div>
+            <div className="text-right">
+              <BarSparkline data={sevenDayStats.netFlowDaily} color="var(--accent)" />
+              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HOLDER Metric Cards */}
+      {user?.role === 'HOLDER' && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="bg-white border border-rule rounded p-4">
+            <span className="text-xs text-ink-muted font-medium block">Total balance</span>
+            <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {formatPaiseToRupees(combinedBalancePence.toString())}
             </div>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-xs text-ink-faint mt-1">
               Across {accounts.length} registered {accounts.length === 1 ? 'account' : 'accounts'}
             </p>
           </div>
 
-          {/* Card 2: Registered Accounts */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Your Accounts
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/60">
-                <Wallet className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
+          <div className="bg-white border border-rule rounded p-4">
+            <span className="text-xs text-ink-muted font-medium block">Your accounts</span>
+            <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
             </div>
-            <p className="text-xs text-emerald-700 mt-1 font-medium flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              Active &amp; verified checking
+            <p className="text-xs text-ink-muted mt-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
+              Active checking
             </p>
           </div>
 
-          {/* Card 3: Recent Activity */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Recent Activity
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center border border-purple-200/60">
-                <ArrowRightLeft className="h-4 w-4" />
-              </div>
-            </div>
-            {recentEntries.length > 0 ? (
-              <>
-                <div className="text-2xl sm:text-3xl font-black tracking-tight-display tabular-nums text-slate-950">
-                  {recentEntries[0].isDebit || recentEntries[0].direction === 'DEBIT' || recentEntries[0].type.includes('DEBIT') || recentEntries[0].type === 'WITHDRAWAL' ? '−' : '+'}
-                  {formatPaiseToRupees(recentEntries[0].amountPence)}
-                </div>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  {recentEntries[0].status} · {new Date(recentEntries[0].createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="text-2xl font-black tracking-tight-display text-slate-400">
-                  —
-                </div>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  No recent activity recorded
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* Card 4: Ledger Protection */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Account Protection
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-                <ShieldCheck className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 flex items-center gap-2">
+          <div className="bg-white border border-rule rounded p-4">
+            <span className="text-xs text-ink-muted font-medium block">Account protection</span>
+            <div className="mono-num text-2xl font-medium text-ink mt-0.5 flex items-center gap-2">
               <span>Protected</span>
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
             </div>
-            <p className="text-xs text-emerald-700 mt-1 font-medium">
+            <p className="text-xs text-ink-faint mt-1">
               Append-only cryptographic seal
             </p>
           </div>
         </div>
-      ) : user?.role === 'AUDITOR' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Auditor Card 1: Total Accounts Under Audit */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total Accounts
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/60">
-                <Wallet className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
-              {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
-            </div>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              Accounts under continuous observation
-            </p>
-          </div>
-
-          {/* Auditor Card 2: Combined Ledger Balance */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Combined Balance
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-                <Coins className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950 tabular-nums">
-              {formatPaiseToRupees(combinedBalancePence.toString())}
-            </div>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              Exact BigInt ledger balance
-            </p>
-          </div>
-
-          {/* Auditor Card 3: Ledger Integrity Verification Status */}
-          <div
-            onClick={handleVerifyIntegrity}
-            className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs cursor-pointer hover:border-emerald-300 transition pressable"
-            role="button"
-            tabIndex={0}
-            title="Click to run full Genesis-to-Head ledger seal verification"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Ledger Integrity
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-                <ShieldCheck className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-2xl sm:text-3xl font-black tracking-tight-display text-slate-950">
-                {reconcileLoading ? 'Verifying...' : reconcileResult ? (reconcileResult.allMatch ? 'Verified' : 'Drift') : 'Verified'}
-              </span>
-            </div>
-            <p className="text-xs text-emerald-700 mt-1 font-medium">
-              {reconcileResult?.allMatch !== false ? 'No discrepancies detected' : 'Integrity discrepancy detected'}
-            </p>
-          </div>
-
-          {/* Auditor Card 4: Verification Timestamp & State */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Verification State
-              </span>
-              <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60">
-                <Clock className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">
-              {verificationTimestamp ? `Verified at ${verificationTimestamp}` : 'Verified just now'}
-            </div>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              Read-only observation mode
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Total Accounts */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Total Accounts
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center border border-sky-200/60">
-              <Wallet className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black tracking-tight-display text-slate-950 tabular-nums">
-            {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Active double-entry accounts
-          </p>
-        </div>
-
-        {/* Metric 2: Combined Balance */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Combined Balance
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-              <Coins className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black tracking-tight-display text-slate-950 tabular-nums">
-            {formatPaiseToRupees(combinedBalancePence.toString())}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Total ledger assets in circulation
-          </p>
-        </div>
-
-        {/* Metric 3: Ledger Integrity */}
-        <div
-          onClick={handleVerifyIntegrity}
-          className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs cursor-pointer hover:border-emerald-300 transition pressable"
-          role="button"
-          tabIndex={0}
-          title="Click to run full Genesis-to-Head ledger seal verification"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Ledger Integrity
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200/60">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-2xl font-black tracking-tight-display text-slate-950">
-              Verified
-            </span>
-          </div>
-          <p className="text-xs text-emerald-700 mt-1 font-medium">
-            SHA-256 chain seal intact
-          </p>
-        </div>
-
-        {/* Metric 4: Concurrency & ACID State */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              ACID Isolation
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60">
-              <Zap className="h-4 w-4 fill-amber-500" />
-            </div>
-          </div>
-          <div className="text-2xl font-black tracking-tight-display text-slate-950">
-            Serializable
-          </div>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Deterministic row-locked execution
-          </p>
-        </div>
-      </div>
       )}
 
-      {/* Account List Header with Search Filter */}
+      {/* Accounts List Section */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center space-x-2.5">
-            <h2 className="text-lg font-bold tracking-tight-display text-slate-950">
-              {user?.role === 'HOLDER'
-                ? 'Your Accounts'
-                : user?.role === 'AUDITOR'
-                ? 'Accounts Under Observation'
-                : 'All Accounts'}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-ink">
+              {user?.role === 'HOLDER' ? 'Your accounts' : 'Ledger accounts'}
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/60 font-mono">
-              {filteredAccounts.length} {filteredAccounts.length === 1 ? 'account' : 'accounts'}
-            </span>
+            <p className="text-xs text-ink-muted">
+              {user?.role === 'HOLDER'
+                ? 'Select an account to initiate transfers or view statements'
+                : 'Showing all system accounts with current balances and overdraft limits'}
+            </p>
           </div>
 
-          {accounts.length > 0 && (
-            <div className="relative w-full sm:w-72">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          {accounts.length > 2 && (
+            <div className="relative w-full sm:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-faint">
                 <Search className="h-3.5 w-3.5" />
               </div>
               <input
@@ -706,7 +657,7 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by name or ID..."
-                className="h-9 w-full pl-9 pr-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition shadow-2xs"
+                className="h-9 w-full pl-9 pr-3 rounded border border-rule bg-white text-xs text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:border-accent"
               />
             </div>
           )}
@@ -714,30 +665,30 @@ export default function DashboardPage() {
 
         {/* Account Cards Grid */}
         {loading && accounts.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-56 bg-white/70 border border-slate-200 rounded-2xl p-6 animate-pulse"
-              ></div>
+                className="h-44 bg-white border border-rule rounded p-5 animate-pulse"
+              />
             ))}
           </div>
         ) : accounts.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-            <Building className="mx-auto h-12 w-12 text-slate-400" />
-            <h3 className="mt-2 text-base font-semibold text-slate-900">No accounts accessible</h3>
-            <p className="mt-1 text-sm text-slate-500">
+          <div className="bg-white border border-rule rounded p-10 text-center">
+            <Building className="mx-auto h-10 w-10 text-ink-faint" />
+            <h3 className="mt-2 text-sm font-semibold text-ink">No accounts accessible</h3>
+            <p className="mt-1 text-xs text-ink-muted">
               You do not currently hold any registered accounts on this ledger.
             </p>
           </div>
         ) : filteredAccounts.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-            <p className="text-sm text-slate-500">
+          <div className="bg-white border border-rule rounded p-8 text-center">
+            <p className="text-xs text-ink-muted">
               No accounts match &ldquo;{searchQuery}&rdquo;. Clear filter to view all accounts.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredAccounts.map((acc) => {
               const balanceNum = Number(acc.balancePence);
               const isNegative = balanceNum < 0;
@@ -745,107 +696,96 @@ export default function DashboardPage() {
               return (
                 <div
                   key={acc.id}
-                  className="glass-card rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition duration-150 flex flex-col justify-between border border-slate-200/80"
+                  className="bg-white border border-rule rounded p-5 flex flex-col justify-between"
                 >
                   <div>
-                    {/* Top Identifiers Row */}
-                    <div className="flex items-center justify-between mb-3.5">
+                    {/* Header Row: ID and Status */}
+                    <div className="flex items-center justify-between mb-3">
                       <button
                         type="button"
                         onClick={(e) => handleCopyId(acc.id, e)}
                         title="Copy full Account ID"
                         aria-label="Copy Account ID"
-                        className="inline-flex items-center gap-1.5 text-xs font-mono font-medium px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-lg border border-slate-200/60 transition pressable"
+                        className="mono-num text-xs text-ink-faint hover:text-ink inline-flex items-center gap-1.5 transition"
                       >
                         <span>ID: {acc.id.slice(0, 10)}...</span>
-                        <span className="text-slate-300">·</span>
                         {copiedId === acc.id ? (
-                          <span className="inline-flex items-center font-sans text-[11px] font-bold text-emerald-600">
-                            <Check className="h-3 w-3 mr-0.5" /> Copied!
+                          <span className="text-[11px] font-sans font-medium text-ledger-green">
+                            Copied
                           </span>
                         ) : (
-                          <span className="inline-flex items-center font-sans text-[11px] font-semibold text-sky-600 hover:text-sky-700">
-                            <Copy className="h-3 w-3 mr-1" /> Copy ID
-                          </span>
+                          <Copy className="h-3 w-3 text-ink-faint" />
                         )}
                       </button>
 
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                      <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
                         {user?.role === 'AUDITOR' ? 'Available' : 'Active'}
                       </span>
                     </div>
 
-                    <h3 className="text-xl font-bold tracking-tight-display text-slate-950 mb-1">
+                    <h3 className="text-base font-semibold tracking-tight text-ink mb-2">
                       {acc.name}
                     </h3>
 
                     {/* Balance Display */}
-                    <div className="mt-2.5">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                        {user?.role === 'AUDITOR' ? 'Ledger Balance' : 'Current Balance'}
+                    <div>
+                      <span className="text-xs text-ink-muted font-medium block">
+                        {user?.role === 'AUDITOR' ? 'Ledger balance' : 'Current balance'}
                       </span>
                       <span
-                        className={`text-3xl font-black tracking-tight-display tabular-nums ${
-                          isNegative ? 'text-red-600' : 'text-slate-950'
-                        }`}
+                        className="mono-num text-3xl font-medium tracking-tight block mt-0.5"
+                        style={{ color: isNegative ? 'var(--ledger-red)' : 'var(--ink)' }}
                       >
                         {formatPaiseToRupees(acc.balancePence)}
                       </span>
                     </div>
 
                     {acc.overdraftLimit !== '0' && (
-                      <p className="text-xs font-mono text-slate-600 mt-1 font-medium">
+                      <p className="text-xs mono-num text-ink-muted mt-1">
                         Overdraft limit: {formatPaiseToRupees(acc.overdraftLimit)}
                       </p>
                     )}
 
-                    {acc.holders && (
-                      <div className="mt-3 pt-2.5 border-t border-slate-100 text-xs text-slate-600">
-                        <span className="font-semibold text-slate-700">Holder:</span>{' '}
-                        <span className="font-medium text-slate-800">
+                    {acc.holders && acc.holders.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-rule text-xs text-ink-muted">
+                        <span className="font-medium text-ink">Holders:</span>{' '}
+                        <span className="mono-num text-ink-muted">
                           {acc.holders.map((h) => h.user.email).join(', ')}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Card Actions */}
-                  {user?.role === 'AUDITOR' ? (
-                    <div className="mt-4 pt-3.5 border-t border-slate-100">
+                  {/* Card Actions Footer: Plain text links in var(--accent) separated by border-t border-rule */}
+                  <div className="mt-4 pt-3 border-t border-rule flex items-center justify-between text-xs">
+                    {user?.role === 'AUDITOR' ? (
                       <Link
                         href={`/accounts/${acc.id}`}
-                        title={`Inspect read-only statement and cryptographic proofs for ${acc.name}`}
-                        className="w-full inline-flex justify-between items-center py-2.5 px-4 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-800 bg-white hover:bg-slate-50 transition pressable shadow-2xs group min-h-[40px]"
+                        className="font-semibold text-accent hover:underline flex items-center gap-1"
                       >
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-slate-500" />
-                          <span>View Statement</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition" />
+                        <span>View statement</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
-                    </div>
-                  ) : (
-                    <div className="mt-4 pt-3.5 border-t border-slate-100 grid grid-cols-2 gap-3">
-                      <Link
-                        href={`/accounts/${acc.id}/transfer`}
-                        title={`Initiate a transfer from ${acc.name}`}
-                        className="col-span-1 inline-flex justify-center items-center py-2.5 px-3 border border-transparent rounded-xl text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition pressable shadow-2xs min-h-[40px]"
-                      >
-                        <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
-                        Transfer
-                      </Link>
-
-                      <Link
-                        href={`/accounts/${acc.id}`}
-                        title="View historical statement and immutable ledger entries"
-                        className="col-span-1 inline-flex justify-center items-center py-2.5 px-3 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition pressable shadow-2xs min-h-[40px]"
-                      >
-                        <FileText className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
-                        Statement
-                      </Link>
-                    </div>
-                  )}
+                    ) : (
+                      <>
+                        <Link
+                          href={`/accounts/${acc.id}/transfer`}
+                          className="font-semibold text-accent hover:underline flex items-center gap-1.5"
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                          <span>Transfer</span>
+                        </Link>
+                        <Link
+                          href={`/accounts/${acc.id}`}
+                          className="font-semibold text-accent hover:underline flex items-center gap-1.5"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          <span>Statement</span>
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -853,184 +793,102 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Screen 12 Addition: Recent Transactions Feed for Account Holder */}
+      {/* Recent Transactions Feed for Account Holder */}
       {user?.role === 'HOLDER' && (
-        <div className="space-y-4 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <div className="flex items-center space-x-2.5">
-                <h2 className="text-lg font-bold tracking-tight-display text-slate-950">
-                  Recent Transactions
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/60 font-mono">
-                  Latest {recentEntries.length}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Latest money movements and double-entry transfers on your accounts
-              </p>
-            </div>
-
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold tracking-tight text-ink">
+              Recent transactions
+            </h2>
             {accounts.length > 0 && (
               <Link
                 href={`/accounts/${accounts[0].id}`}
-                className="inline-flex items-center text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline transition group"
+                className="text-xs font-semibold text-accent hover:underline flex items-center gap-1"
               >
-                <span>View Complete Statement</span>
-                <ChevronRight className="ml-1 h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+                <span>View complete statement</span>
+                <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             )}
           </div>
 
           {entriesLoading && recentEntries.length === 0 ? (
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-3">
+            <div className="bg-white border border-rule rounded p-5 space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 bg-slate-100/80 rounded-xl animate-pulse"></div>
+                <div key={i} className="h-10 bg-rule/30 rounded animate-pulse" />
               ))}
             </div>
           ) : recentEntries.length === 0 ? (
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center shadow-2xs">
-              <div className="mx-auto h-12 w-12 rounded-2xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center mb-3">
-                <ArrowRightLeft className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-900">No recent transactions</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                When you send, receive, or deposit funds, your activity and cryptographic ledger seals will appear here.
-              </p>
-              {accounts.length > 0 && (
-                <div className="mt-4">
-                  <Link
-                    href={`/accounts/${accounts[0].id}/transfer`}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-2xs text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition"
-                  >
-                    <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" />
-                    Make Your First Transfer
-                  </Link>
-                </div>
-              )}
+            <div className="bg-white border border-rule rounded p-8 text-center">
+              <p className="text-xs text-ink-muted">No recent transactions recorded on this account.</p>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
-              <div className="divide-y divide-slate-100">
-                {recentEntries.map((entry) => {
-                  const isDebit =
-                    entry.isDebit ||
-                    entry.direction === 'DEBIT' ||
-                    entry.type.includes('DEBIT') ||
-                    entry.type === 'WITHDRAWAL';
-                  const isAdjustment = entry.type === 'ADJUSTMENT';
+            <div className="bg-white border border-rule rounded divide-y divide-rule">
+              {recentEntries.map((entry) => {
+                const isDebit =
+                  entry.isDebit ||
+                  entry.direction === 'DEBIT' ||
+                  entry.type.includes('DEBIT') ||
+                  entry.type === 'WITHDRAWAL';
 
-                  return (
-                    <div
-                      key={entry.id}
-                      onClick={() => {
-                        setInspectedEntry({
-                          id: entry.id,
-                          createdAt: entry.createdAt,
-                          type: entry.type,
-                          status: entry.status,
-                          amountPence: entry.amountPence,
-                          runningBalance: entry.runningBalance,
-                          debitAccountId: entry.debitAccountId || null,
-                          creditAccountId: entry.creditAccountId || null,
-                          initiatedByEmail: entry.initiatedBy?.email || 'N/A',
-                          note: entry.note || null,
-                          hash: entry.hash || null,
-                          prevHash: entry.prevHash || null,
-                        });
-                      }}
-                      className="p-4 sm:px-6 flex items-center justify-between hover:bg-slate-50/80 transition cursor-pointer group"
-                    >
-                      <div className="flex items-center space-x-3.5 min-w-0">
-                        <div
-                          className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                            isAdjustment
-                              ? 'bg-purple-50 text-purple-600 border-purple-200'
-                              : isDebit
-                              ? 'bg-slate-100 text-slate-700 border-slate-200'
-                              : 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                          }`}
-                        >
-                          {isAdjustment ? (
-                            <RotateCcw className="h-4 w-4" />
-                          ) : isDebit ? (
-                            <ArrowUpRight className="h-4 w-4" />
-                          ) : (
-                            <ArrowDownLeft className="h-4 w-4" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center space-x-2">
-                            <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-sky-700 transition">
-                              {entry.note || (isDebit ? 'Transfer to Account' : 'Received Funds')}
-                            </p>
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                entry.status === 'POSTED'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}
-                            >
-                              {entry.status === 'POSTED' ? (
-                                <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />
-                              ) : (
-                                <AlertCircle className="mr-1 h-3 w-3 text-amber-600" />
-                              )}
-                              {entry.status}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {new Date(entry.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}{' '}
-                            ·{' '}
-                            {new Date(entry.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                            {entry.runningBalance && (
-                              <span className="ml-2 text-slate-400 font-mono">
-                                Balance: {formatPaiseToRupees(entry.runningBalance)}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0 ml-4">
-                        <span
-                          className={`text-base font-black tracking-tight tabular-nums block ${
-                            isDebit ? 'text-slate-900' : 'text-emerald-600'
-                          }`}
-                        >
-                          {isDebit ? '−' : '+'}
-                          {formatPaiseToRupees(entry.amountPence)}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-400 group-hover:text-sky-600 flex items-center justify-end gap-0.5 transition">
-                          <span>Inspect</span>
-                          <ChevronRight className="h-3 w-3" />
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 px-6">
-                <span>Click any transaction to inspect cryptographic proof</span>
-                {accounts.length > 0 && (
-                  <Link
-                    href={`/accounts/${accounts[0].id}`}
-                    className="font-semibold text-sky-600 hover:text-sky-700 hover:underline inline-flex items-center gap-1"
+                return (
+                  <div
+                    key={entry.id}
+                    onClick={() => {
+                      setInspectedEntry({
+                        id: entry.id,
+                        createdAt: entry.createdAt,
+                        type: entry.type,
+                        status: entry.status,
+                        amountPence: entry.amountPence,
+                        runningBalance: entry.runningBalance,
+                        debitAccountId: entry.debitAccountId || null,
+                        creditAccountId: entry.creditAccountId || null,
+                        initiatedByEmail: entry.initiatedBy?.email || 'N/A',
+                        note: entry.note || null,
+                        hash: entry.hash || null,
+                        prevHash: entry.prevHash || null,
+                      });
+                    }}
+                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-[#F3F2EE] transition cursor-pointer"
                   >
-                    <span>View All Transactions</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
-                )}
-              </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-xs font-medium text-ink truncate">
+                          {entry.note || (isDebit ? 'Transfer to account' : 'Received funds')}
+                        </p>
+                        <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ background: entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)' }}
+                          />
+                          {entry.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-ink-faint mono-num mt-0.5">
+                        {new Date(entry.createdAt).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}{' '}
+                        ·{' '}
+                        {new Date(entry.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0 ml-4">
+                      <span
+                        className="mono-num text-sm font-medium block"
+                        style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
+                      >
+                        {isDebit ? '−' : '+'}
+                        {formatPaiseToRupees(entry.amountPence)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1038,78 +896,68 @@ export default function DashboardPage() {
 
       {/* Create Account Modal (Admin only) */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Create New Ledger Account</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+          <div className="bg-white rounded border border-rule max-w-md w-full p-6 space-y-4">
+            <h3 className="text-base font-semibold text-ink">Create new ledger account</h3>
             <form onSubmit={handleCreateAccount} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase">
-                  Account Name
+                <label className="block text-xs text-ink-muted font-medium mb-1">
+                  Account name
                 </label>
                 <input
                   type="text"
                   required
                   value={newAccountName}
                   onChange={(e) => setNewAccountName(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                  className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
                   placeholder="e.g. Treasury Operations"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Initial Balance (₹)
+                <label className="block text-xs text-ink-muted font-medium mb-1">
+                  Initial balance (₹)
                 </label>
-                <div className="relative rounded-xl shadow-2xs">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">
-                    ₹
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newAccountBalance}
-                    onChange={(e) => setNewAccountBalance(e.target.value)}
-                    className="block w-full pl-7 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                    placeholder="0.00"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newAccountBalance}
+                  onChange={(e) => setNewAccountBalance(e.target.value)}
+                  className="mono-num block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
+                  placeholder="0.00"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Overdraft Limit (₹)
+                <label className="block text-xs text-ink-muted font-medium mb-1">
+                  Overdraft limit (₹)
                 </label>
-                <div className="relative rounded-xl shadow-2xs">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">
-                    ₹
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newAccountOverdraft}
-                    onChange={(e) => setNewAccountOverdraft(e.target.value)}
-                    className="block w-full pl-7 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                    placeholder="0.00"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newAccountOverdraft}
+                  onChange={(e) => setNewAccountOverdraft(e.target.value)}
+                  className="mono-num block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
+                  placeholder="0.00"
+                />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition pressable"
+                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink border border-rule rounded"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl transition pressable disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded hover:opacity-90 disabled:opacity-50"
                 >
-                  {createLoading ? 'Creating...' : 'Create Account'}
+                  {createLoading ? 'Creating...' : 'Create account'}
                 </button>
               </div>
             </form>
@@ -1117,49 +965,38 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Screen 4: System Double-Entry Reconciliation & Cryptographic Audit Report Modal */}
+      {/* System Double-Entry Reconciliation & Cryptographic Audit Report Modal */}
       {showReconcileModal && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="System Double-Entry & Integrity Audit"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
         >
-          <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[88vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-emerald-500/10 text-emerald-600 border border-emerald-200/80 rounded-xl">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
+          <div className="bg-white rounded border border-rule max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-rule shrink-0">
+              <div className="flex items-center space-x-2.5">
+                <ShieldCheck className="h-5 w-5 text-accent" />
                 <div>
-                  <h3 className="text-lg font-bold tracking-tight-display text-slate-950">
-                    System Double-Entry & Integrity Audit
+                  <h3 className="text-sm font-semibold text-ink">
+                    System double-entry &amp; integrity audit
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Account-level conservation and Genesis-to-Head cryptographic verification
+                  <p className="text-[11px] text-ink-muted">
+                    Genesis-to-Head SHA-256 seal verification
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2.5">
+              <div className="flex items-center space-x-2">
                 {reconcileResult && (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      reconcileResult.allMatch
-                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                        : 'bg-red-100 text-red-900 border-red-300'
-                    }`}
-                  >
-                    {reconcileResult.allMatch
-                      ? `${reconcileResult.totalAccounts}/${reconcileResult.totalAccounts} RECONCILED · ZERO DISCREPANCIES ✓`
-                      : 'DISCREPANCY DETECTED'}
+                  <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: reconcileResult.allMatch ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: reconcileResult.allMatch ? 'var(--ledger-green)' : 'var(--ledger-red)' }} />
+                    {reconcileResult.allMatch ? 'Reconciled · Zero discrepancies' : 'Discrepancy detected'}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => setShowReconcileModal(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition pressable"
+                  className="p-1 text-ink-faint hover:text-ink"
                   aria-label="Close dialog"
                 >
                   <X className="h-4 w-4" />
@@ -1167,215 +1004,103 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Modal Body with Internal Scrolling */}
-            <div className="overflow-y-auto p-6 space-y-5">
+            <div className="overflow-y-auto p-5 space-y-4">
               {reconcileLoading ? (
-                <div className="py-16 text-center text-slate-500 flex flex-col items-center space-y-3">
-                  <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
-                  <p className="text-sm font-medium">
-                    Aggregating immutable ledger entries across all system accounts...
-                  </p>
+                <div className="py-12 text-center text-ink-muted flex flex-col items-center space-y-2">
+                  <RefreshCw className="h-5 w-5 animate-spin text-accent" />
+                  <p className="text-xs">Aggregating ledger entries across all system accounts...</p>
                 </div>
               ) : reconcileResult ? (
-                <div className="space-y-5">
-                  {/* Top Summary Metrics: 3 Columns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-center">
-                    <div className="p-4 bg-slate-50/80 border border-slate-200/80 rounded-xl">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                        Total Accounts
-                      </span>
-                      <span className="text-2xl font-black tracking-tight text-slate-900 tabular-nums">
+                <div className="space-y-4 text-xs">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-3 bg-paper border border-rule rounded">
+                      <span className="text-[11px] text-ink-muted block">Total accounts</span>
+                      <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
                         {reconcileResult.totalAccounts}
                       </span>
-                      <p className="text-xs text-slate-500 mt-1 font-medium">
-                        Zero unbalanced accounts
-                      </p>
                     </div>
 
-                    <div className="p-4 bg-slate-50/80 border border-slate-200/80 rounded-xl">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                        System Circulating Total
-                      </span>
-                      <span className="text-2xl font-black tracking-tight text-slate-900 tabular-nums">
+                    <div className="p-3 bg-paper border border-rule rounded">
+                      <span className="text-[11px] text-ink-muted block">System total</span>
+                      <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
                         {formatPaiseToRupees(reconcileResult.totalStoredBalancePence)}
                       </span>
-                      <p className="text-xs text-slate-500 mt-1 font-medium">
-                        Exact BigInt integer conservation
-                      </p>
                     </div>
 
-                    <div className="p-4 bg-slate-50/80 border border-slate-200/80 rounded-xl">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                        Reconciliation Status
-                      </span>
-                      <span className="text-2xl font-black tracking-tight text-emerald-700">
+                    <div className="p-3 bg-paper border border-rule rounded">
+                      <span className="text-[11px] text-ink-muted block">Status</span>
+                      <span className="text-xl font-medium text-ledger-green mt-0.5 block">
                         Balanced
                       </span>
-                      <p className="text-xs text-slate-500 mt-1 font-medium">
-                        Σ(Debits) = Σ(Credits)
-                      </p>
                     </div>
                   </div>
 
-                  {/* Cryptographic SHA-256 Chain Evidence Panel */}
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
-                      <div className="flex items-center space-x-2">
-                        <div className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-200">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                          Cryptographic SHA-256 Proof of Custody
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-200">
-                        Tamper-Evident · Passed
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Algorithm</span>
-                        <span className="font-semibold text-slate-900">SHA-256 (FIPS 180-4)</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Entries Sealed</span>
-                        <span className="font-semibold text-slate-900 font-mono">
-                          {reconcileResult.cryptographicIntegrity?.totalEntries ?? 0} blocks
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Chain Sequence</span>
-                        <span className="font-semibold text-slate-900 font-mono">Genesis → Head</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Verification Time</span>
-                        <span className="font-semibold text-slate-900 font-mono">
-                          {verificationTimestamp || 'Just now'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {reconcileResult.cryptographicIntegrity?.headHash && (
-                      <div className="pt-2 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
-                        <div className="flex items-center space-x-1.5 overflow-hidden">
-                          <span className="text-slate-500 shrink-0 font-medium">Head Hash:</span>
-                          <span
-                            className="font-mono text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200 truncate"
-                            title={reconcileResult.cryptographicIntegrity.headHash}
-                          >
-                            {reconcileResult.cryptographicIntegrity.headHash}
-                          </span>
-                        </div>
+                  {reconcileResult.cryptographicIntegrity?.headHash && (
+                    <div className="p-3 bg-paper border border-rule rounded space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-ink-muted font-medium">Head hash (SHA-256):</span>
                         <button
                           type="button"
-                          onClick={() =>
-                            handleCopyHeadHash(
-                              reconcileResult.cryptographicIntegrity?.headHash || ''
-                            )
-                          }
-                          className="shrink-0 inline-flex items-center text-xs font-semibold text-sky-600 hover:text-sky-700 transition"
+                          onClick={() => handleCopyHeadHash(reconcileResult.cryptographicIntegrity?.headHash || '')}
+                          className="text-accent hover:underline text-[11px]"
                         >
-                          {copiedHeadHash ? (
-                            <>
-                              <Check className="h-3 w-3 mr-1 text-emerald-600" />
-                              <span className="text-emerald-700">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-3 w-3 mr-1" />
-                              <span>Copy Hash</span>
-                            </>
-                          )}
+                          {copiedHeadHash ? 'Copied' : 'Copy hash'}
                         </button>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Account-Level Double-Entry Reconciliation Table */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Account Balance Verification
-                      </h4>
-                      <span className="text-xs text-slate-500">
-                        B<sub>stored</sub> = B<sub>opening</sub> + Σ(Credits) - Σ(Debits)
-                      </span>
+                      <div className="mono-num text-[11px] text-ink truncate bg-white p-1.5 border border-rule rounded">
+                        {reconcileResult.cryptographicIntegrity.headHash}
+                      </div>
                     </div>
+                  )}
 
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="min-w-full divide-y divide-slate-200 text-xs">
-                        <thead className="bg-slate-50 text-slate-600 font-semibold">
-                          <tr>
-                            <th className="px-4 py-3 text-left">Account</th>
-                            <th className="px-4 py-3 text-right">Stored Balance</th>
-                            <th className="px-4 py-3 text-right">Computed (Ledger)</th>
-                            <th className="px-4 py-3 text-right">Difference</th>
-                            <th className="px-4 py-3 text-center">Status</th>
+                  <div className="border border-rule rounded overflow-hidden">
+                    <table className="min-w-full divide-y divide-rule text-xs">
+                      <thead className="bg-paper text-ink-muted font-medium border-b border-rule-strong">
+                        <tr>
+                          <th className="px-3.5 py-2 text-left">Account</th>
+                          <th className="px-3.5 py-2 text-right">Stored</th>
+                          <th className="px-3.5 py-2 text-right">Computed</th>
+                          <th className="px-3.5 py-2 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-rule bg-white">
+                        {reconcileResult.accounts.map((acc) => (
+                          <tr key={acc.accountId} className="hover:bg-[#F3F2EE]">
+                            <td className="px-3.5 py-2 font-medium text-ink">{acc.accountName}</td>
+                            <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.storedBalance)}</td>
+                            <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.computedBalance)}</td>
+                            <td className="px-3.5 py-2 text-center">
+                              <span className="flex items-center justify-center gap-1 text-[11px] font-medium" style={{ color: acc.matches ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: acc.matches ? 'var(--ledger-green)' : 'var(--ledger-red)' }} />
+                                {acc.matches ? 'Match' : 'Drift'}
+                              </span>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 bg-white">
-                          {reconcileResult.accounts.map((acc) => (
-                            <tr key={acc.accountId} className="hover:bg-slate-50 transition">
-                              <td className="px-4 py-3 font-semibold text-slate-900">
-                                {acc.accountName}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
-                                {formatPaiseToRupees(acc.storedBalance)}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
-                                {formatPaiseToRupees(acc.computedBalance)}
-                              </td>
-                              <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600 font-medium">
-                                {formatPaiseToRupees(acc.discrepancyPence)}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                {acc.matches ? (
-                                  <span className="inline-flex items-center text-slate-800 font-medium">
-                                    <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-600" />
-                                    Match
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center text-red-700 font-bold">
-                                    <XCircle className="h-3.5 w-3.5 mr-1 text-red-600" />
-                                    Drift
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ) : null}
             </div>
 
-            {/* Modal Actions Footer */}
-            <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
-              <span className="text-xs text-slate-500 font-medium">
-                Verified via PostgreSQL SERIALIZABLE isolation &amp; SHA-256 ledger chaining
-              </span>
-              <div className="flex items-center space-x-2.5">
-                <button
-                  type="button"
-                  onClick={handleExportReport}
-                  disabled={!reconcileResult}
-                  className="inline-flex items-center px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition pressable shadow-2xs disabled:opacity-50"
-                  title="Export cryptographic integrity report as JSON"
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5 text-slate-500" />
-                  Export Report
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowReconcileModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-slate-950 hover:bg-slate-800 rounded-xl transition pressable shadow-2xs"
-                >
-                  Close Audit Report
-                </button>
-              </div>
+            <div className="px-5 py-3 border-t border-rule bg-paper flex items-center justify-between text-xs shrink-0">
+              <button
+                type="button"
+                onClick={handleExportReport}
+                disabled={!reconcileResult}
+                className="inline-flex items-center px-3 py-1.5 border border-rule rounded text-xs font-medium text-ink bg-white hover:bg-rule/30"
+              >
+                <Download className="mr-1.5 h-3.5 w-3.5 text-ink-faint" />
+                Export JSON
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowReconcileModal(false)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-ink rounded hover:opacity-90"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

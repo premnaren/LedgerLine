@@ -11,20 +11,43 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        border: 'hsl(var(--border, 214.3 31.8% 91.4%))',
-        background: 'hsl(var(--background, 0 0% 100%))',
-        foreground: 'hsl(var(--foreground, 222.2 84% 4.9%))',
+        ink: 'var(--ink)',
+        'ink-muted': 'var(--ink-muted)',
+        'ink-faint': 'var(--ink-faint)',
+        paper: 'var(--paper)',
+        rule: 'var(--rule)',
+        'rule-strong': 'var(--rule-strong)',
+        'ledger-green': 'var(--ledger-green)',
+        'ledger-red': 'var(--ledger-red)',
+        accent: 'var(--accent)',
+        'role-admin': 'var(--role-admin)',
+        'role-holder': 'var(--role-holder)',
+        'role-auditor': 'var(--role-auditor)',
+
+        border: 'var(--rule)',
+        background: 'var(--paper)',
+        foreground: 'var(--ink)',
         primary: {
-          DEFAULT: '#0284c7',
+          DEFAULT: 'var(--accent)',
           foreground: '#ffffff',
         },
         card: {
           DEFAULT: '#ffffff',
-          foreground: '#0f172a',
+          foreground: 'var(--ink)',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+      },
+      borderRadius: {
+        DEFAULT: '4px',
+        sm: '2px',
+        md: '4px',
+        lg: '6px',
+        xl: '8px',
       },
     },
   },
   plugins: [],
 };
-

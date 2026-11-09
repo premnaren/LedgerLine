@@ -99,9 +99,9 @@ export default function CommandPalette({
         category: 'OPERATIONS',
         badge: 'Admin Only',
         badgeType: 'admin',
-        keywords: ['stress', 'concurrency', 'acid', 'bench', 'load', 'telemetry', 'parallel', 'serializable'],
-        icon: <Zap className="h-4 w-4 text-amber-600 fill-amber-500" />,
-        iconBg: 'bg-amber-500/10 border-amber-200/80',
+        keywords: ['stress', 'concurrency', 'acid', 'race', 'ssi', 'parallel', 'test', 'bench', 'lab'],
+        icon: <Zap className="h-4 w-4 text-accent" />,
+        iconBg: 'bg-paper text-accent border border-rule',
         requiredRole: 'ADMIN',
         onSelect: () => {
           onClose();
@@ -109,15 +109,28 @@ export default function CommandPalette({
         },
       },
       {
-        id: 'verify-integrity',
-        title: 'Verify System Double-Entry & SHA-256 Chain',
-        description: 'Run balance conservation proof and Genesis-to-Head cryptographic chain audit',
+        id: 'transfer-funds',
+        title: 'Initiate Money Transfer',
+        description: 'Post an atomic double-entry debit and credit transfer between ledger accounts',
         category: 'OPERATIONS',
         badge: 'Action',
         badgeType: 'action',
-        keywords: ['verify', 'reconcile', 'audit', 'integrity', 'sha256', 'hash', 'chain', 'conservation'],
-        icon: <ShieldCheck className="h-4 w-4 text-emerald-600" />,
-        iconBg: 'bg-emerald-500/10 border-emerald-200/80',
+        keywords: ['transfer', 'send', 'money', 'deposit', 'withdraw', 'post', 'pay', 'transaction'],
+        icon: <ArrowRightLeft className="h-4 w-4 text-accent" />,
+        iconBg: 'bg-paper text-accent border border-rule',
+        onSelect: handleNavigateTransfer,
+      },
+      {
+        id: 'verify-integrity',
+        title: 'Verify Cryptographic Seal & System Invariant',
+        description: 'Compute Genesis-to-Head SHA-256 seal integrity and verify zero-sum ledger conservation',
+        category: 'OPERATIONS',
+        badge: 'Integrity',
+        badgeType: 'action',
+        keywords: ['verify', 'integrity', 'reconcile', 'audit', 'sha256', 'hash', 'cryptographic', 'proof', 'seal'],
+        icon: <ShieldCheck className="h-4 w-4 text-ledger-green" />,
+        iconBg: 'bg-paper text-ledger-green border border-rule',
+        requiredRole: 'AUDITOR',
         onSelect: () => {
           onClose();
           if (onTriggerReconcile) {
@@ -130,104 +143,88 @@ export default function CommandPalette({
 
       // NAVIGATION
       {
-        id: 'dashboard',
-        title: 'Accounts Overview',
-        description: 'Inspect held accounts, balances, and registered holders',
+        id: 'nav-dashboard',
+        title: 'Accounts Overview Dashboard',
+        description: 'View registered accounts, current balances, and overdraft limits',
         category: 'NAVIGATION',
-        badge: 'Navigation',
-        badgeType: 'navigation',
-        keywords: ['accounts', 'overview', 'dashboard', 'balance', 'home', 'cards', 'holders'],
-        icon: <CreditCard className="h-4 w-4 text-sky-600" />,
-        iconBg: 'bg-sky-500/10 border-sky-200/60',
+        keywords: ['accounts', 'dashboard', 'home', 'overview', 'balances', 'wallets'],
+        icon: <CreditCard className="h-4 w-4 text-ink-muted" />,
+        iconBg: 'bg-paper text-ink-muted border border-rule',
         onSelect: () => {
           onClose();
           router.push('/dashboard');
         },
       },
       {
-        id: 'audit-ledger',
-        title: 'Immutable Audit Ledger',
-        description: 'Inspect chronological ledger entries and reversal events',
+        id: 'nav-audit',
+        title: 'Global Compliance Audit Ledger',
+        description: 'Inspect full append-only audit log with SHA-256 block hashes and REFUSED attempts',
         category: 'NAVIGATION',
-        badge: 'Admin / Auditor',
-        badgeType: 'admin',
-        keywords: ['ledger', 'audit', 'entries', 'reversal', 'history', 'statements', 'immutable'],
-        icon: <BookOpen className="h-4 w-4 text-purple-600" />,
-        iconBg: 'bg-purple-500/10 border-purple-200/60',
-        requiredRole: 'ADMIN',
+        badge: 'Audit',
+        badgeType: 'navigation',
+        keywords: ['audit', 'compliance', 'log', 'ledger', 'refused', 'history', 'records', 'statements'],
+        icon: <BookOpen className="h-4 w-4 text-ink-muted" />,
+        iconBg: 'bg-paper text-ink-muted border border-rule',
+        requiredRole: 'AUDITOR',
         onSelect: () => {
           onClose();
           router.push('/admin/audit');
         },
       },
-      {
-        id: 'transfer',
-        title: 'Initiate Money Movement',
-        description: 'Open transfer workflow with atomic double-entry conservation and optimistic locking',
-        category: 'NAVIGATION',
-        badge: 'Action',
-        badgeType: 'action',
-        keywords: ['transfer', 'send', 'money', 'payment', 'movement', 'credit', 'debit', 'pay'],
-        icon: <ArrowRightLeft className="h-4 w-4 text-blue-600" />,
-        iconBg: 'bg-blue-500/10 border-blue-200/60',
-        onSelect: handleNavigateTransfer,
-      },
 
-      // ADMINISTRATION / ROLE SWITCHING
+      // ADMINISTRATION (ROLE SWITCHING)
       {
         id: 'role-admin',
-        title: 'Switch to ADMIN Role',
-        description: 'admin@ledgerline.dev (Full debit/credit authority, stress workbench, & reversals)',
+        title: 'Switch Role to Administrator',
+        description: 'Superuser session: full ledger control, account creation, stress bench, and adjustments',
         category: 'ADMINISTRATION',
-        badge: currentUser?.role === 'ADMIN' ? 'Active' : 'Superuser',
+        badge: currentUser?.role === 'ADMIN' ? 'Current' : 'Demo Switch',
         badgeType: currentUser?.role === 'ADMIN' ? 'active' : 'admin',
-        keywords: ['admin', 'role', 'superuser', 'switch', 'auth', 'permissions'],
-        icon: <Users className="h-4 w-4 text-purple-600" />,
-        iconBg: 'bg-purple-500/10 border-purple-200/60',
+        keywords: ['admin', 'switch', 'role', 'demo', 'superuser', 'login', 'operator'],
+        icon: <Lock className="h-4 w-4" style={{ color: 'var(--role-admin)' }} />,
+        iconBg: 'bg-paper border border-rule',
         onSelect: () => handleQuickLogin('ADMIN', 'admin@ledgerline.dev', 'Admin1234!'),
       },
       {
         id: 'role-holder',
-        title: 'Switch to HOLDER Role',
-        description: 'holder@ledgerline.dev (Scoped strictly to personal accounts)',
+        title: 'Switch Role to Account Holder',
+        description: 'Customer checking session: view personal statements, execute transfers and deposits',
         category: 'ADMINISTRATION',
-        badge: currentUser?.role === 'HOLDER' ? 'Active' : 'Account Owner',
-        badgeType: currentUser?.role === 'HOLDER' ? 'active' : 'navigation',
-        keywords: ['holder', 'role', 'owner', 'client', 'switch', 'personal'],
-        icon: <Users className="h-4 w-4 text-sky-600" />,
-        iconBg: 'bg-sky-500/10 border-sky-200/60',
+        badge: currentUser?.role === 'HOLDER' ? 'Current' : 'Demo Switch',
+        badgeType: currentUser?.role === 'HOLDER' ? 'active' : 'action',
+        keywords: ['holder', 'customer', 'user', 'switch', 'role', 'demo', 'login', 'personal'],
+        icon: <Users className="h-4 w-4" style={{ color: 'var(--role-holder)' }} />,
+        iconBg: 'bg-paper border border-rule',
         onSelect: () => handleQuickLogin('HOLDER', 'holder@ledgerline.dev', 'Holder1234!'),
       },
       {
         id: 'role-auditor',
-        title: 'Switch to AUDITOR Role',
-        description: 'auditor@ledgerline.dev (Read-only observation across all ledger accounts)',
+        title: 'Switch Role to Regulatory Auditor',
+        description: 'Auditor session: read-only access across all accounts, full ledger verification proofs',
         category: 'ADMINISTRATION',
-        badge: currentUser?.role === 'AUDITOR' ? 'Active' : 'Compliance',
-        badgeType: currentUser?.role === 'AUDITOR' ? 'active' : 'action',
-        keywords: ['auditor', 'role', 'compliance', 'read-only', 'switch', 'observe'],
-        icon: <Users className="h-4 w-4 text-amber-600" />,
-        iconBg: 'bg-amber-500/10 border-amber-200/60',
+        badge: currentUser?.role === 'AUDITOR' ? 'Current' : 'Demo Switch',
+        badgeType: currentUser?.role === 'AUDITOR' ? 'active' : 'navigation',
+        keywords: ['auditor', 'regulator', 'compliance', 'switch', 'role', 'demo', 'read-only', 'inspect'],
+        icon: <ShieldCheck className="h-4 w-4" style={{ color: 'var(--role-auditor)' }} />,
+        iconBg: 'bg-paper border border-rule',
         onSelect: () => handleQuickLogin('AUDITOR', 'auditor@ledgerline.dev', 'Audit1234!'),
       },
     ],
-    [currentUser, onTriggerReconcile, router]
+    [currentUser, onClose, router, onTriggerReconcile]
   );
 
-  // Substring & keyword matching
+  // Filter commands based on search query
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;
     const q = query.toLowerCase().trim();
-    return commands.filter((c) => {
-      const titleMatch = c.title.toLowerCase().includes(q);
-      const descMatch = c.description.toLowerCase().includes(q);
-      const catMatch = c.category.toLowerCase().includes(q);
-      const keywordMatch = c.keywords.some((k) => k.toLowerCase().includes(q));
-      return titleMatch || descMatch || catMatch || keywordMatch;
+    return commands.filter((cmd) => {
+      const matchTitle = cmd.title.toLowerCase().includes(q);
+      const matchDesc = cmd.description.toLowerCase().includes(q);
+      const matchKeywords = cmd.keywords.some((kw) => kw.toLowerCase().includes(q));
+      return matchTitle || matchDesc || matchKeywords;
     });
   }, [commands, query]);
 
-  // Group filtered results by category
   const groupedResults = useMemo(() => {
     const groups: { [cat: string]: CommandItem[] } = {};
     for (const item of filtered) {
@@ -239,7 +236,6 @@ export default function CommandPalette({
     return groups;
   }, [filtered]);
 
-  // Flat array of ids for index-based selection
   const flatFilteredIds = useMemo(() => filtered.map((c) => c.id), [filtered]);
 
   useEffect(() => {
@@ -251,7 +247,6 @@ export default function CommandPalette({
     }
   }, [isOpen]);
 
-  // Reset index when filter changes
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -268,7 +263,6 @@ export default function CommandPalette({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [isOpen, onClose]);
 
-  // Keyboard navigation within palette
   const handleNavKeys = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -287,7 +281,6 @@ export default function CommandPalette({
     }
   };
 
-  // Scroll active item into view
   useEffect(() => {
     if (!listRef.current || filtered.length === 0) return;
     const selectedElement = listRef.current.querySelector(
@@ -305,74 +298,62 @@ export default function CommandPalette({
       role="dialog"
       aria-modal="true"
       aria-label="Command Palette"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 sm:px-6 bg-slate-900/40 backdrop-blur-md transition-opacity"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 sm:px-6 bg-ink/40 transition-opacity"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden text-slate-900 transform transition-all duration-150 animate-in fade-in-0 zoom-in-95"
+        className="w-full max-w-xl bg-white rounded border border-rule overflow-hidden text-ink animate-in fade-in-0 duration-150"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleNavKeys}
       >
         {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-slate-100">
-          <Search className="h-5 w-5 text-slate-500 shrink-0 mr-3" />
+        <div className="flex items-center px-4 py-3 border-b border-rule bg-paper">
+          <Search className="h-4 w-4 text-ink-faint shrink-0 mr-3" />
           <input
             ref={inputRef}
             type="text"
             role="combobox"
             aria-expanded="true"
             aria-autocomplete="list"
-            aria-controls="command-palette-results"
-            aria-activedescendant={
-              filtered[selectedIndex]?.id ? `cmd-${filtered[selectedIndex].id}` : undefined
-            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search commands and accounts..."
-            className="w-full bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            placeholder="Search commands, accounts, and actions..."
+            className="w-full bg-transparent text-xs font-medium text-ink placeholder:text-ink-faint focus:outline-none"
           />
-          <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-md">
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] mono-num text-ink-faint bg-white border border-rule rounded">
             ESC
           </kbd>
         </div>
 
-        {/* Role Switching Feedback Toast */}
+        {/* Role Switching Toast */}
         {switchingRole && (
-          <div className="px-4 py-2 bg-sky-50 border-b border-sky-100 flex items-center space-x-2 text-xs font-semibold text-sky-800 animate-in fade-in">
-            <Sparkles className="h-3.5 w-3.5 text-sky-600 animate-spin" />
+          <div className="px-4 py-2 bg-paper border-b border-rule flex items-center space-x-2 text-xs font-medium text-ink">
+            <Sparkles className="h-3.5 w-3.5 text-accent animate-spin" />
             <span>Establishing role session as {switchingRole}...</span>
           </div>
         )}
 
-        {/* Grouped Command Results List */}
+        {/* Results List */}
         <div
           id="command-palette-results"
           ref={listRef}
           role="listbox"
-          className="max-h-[380px] overflow-y-auto p-2 space-y-3"
+          className="max-h-[360px] overflow-y-auto p-2 space-y-2"
         >
           {filtered.length === 0 ? (
-            <div className="py-10 px-6 text-center">
-              <div className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-400 mb-3">
-                <Search className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-slate-900">No commands found</p>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Try searching for <span className="font-semibold text-sky-600">accounts</span>,{' '}
-                <span className="font-semibold text-sky-600">audit</span>,{' '}
-                <span className="font-semibold text-sky-600">stress</span>, or{' '}
-                <span className="font-semibold text-sky-600">verification</span>.
+            <div className="py-8 px-6 text-center text-xs text-ink-muted">
+              <p className="font-semibold text-ink">No commands found</p>
+              <p className="mt-1">
+                Try searching for accounts, audit, stress, or verification.
               </p>
             </div>
           ) : (
             Object.entries(groupedResults).map(([category, items]) => (
               <div key={category} className="space-y-1">
-                {/* Category Header */}
-                <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="px-2.5 pt-1 text-[10px] text-ink-muted font-medium">
                   {category}
                 </div>
 
-                {/* Category Items */}
                 {items.map((cmd) => {
                   const globalIdx = flatFilteredIds.indexOf(cmd.id);
                   const isSelected = globalIdx === selectedIndex;
@@ -386,58 +367,36 @@ export default function CommandPalette({
                       aria-selected={isSelected}
                       onClick={cmd.onSelect}
                       onMouseEnter={() => setSelectedIndex(globalIdx)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-all duration-100 ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition ${
                         isSelected
-                          ? 'bg-sky-50/90 text-sky-950 border-l-4 border-l-sky-600 border-y border-r border-sky-200/80 shadow-2xs pl-2.5'
-                          : 'hover:bg-slate-50 text-slate-800 border border-transparent'
+                          ? 'bg-[#F3F2EE] text-ink font-medium'
+                          : 'hover:bg-[#F3F2EE] text-ink'
                       }`}
                     >
-                      <div className="flex items-center space-x-3 min-w-0">
-                        {/* Icon Container with Consistent Sizing */}
-                        <div
-                          className={`h-8 w-8 rounded-xl border flex items-center justify-center shrink-0 transition ${
-                            isSelected
-                              ? 'bg-white shadow-2xs border-sky-200'
-                              : `${cmd.iconBg}`
-                          }`}
-                        >
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <div className="h-7 w-7 rounded border border-rule flex items-center justify-center shrink-0 bg-white">
                           {cmd.icon}
                         </div>
 
-                        {/* Text Block */}
                         <div className="truncate">
                           <div className="flex items-center space-x-2">
-                            <span
-                              className={`text-sm font-semibold tracking-tight ${
-                                isSelected ? 'text-sky-950' : 'text-slate-900'
-                              }`}
-                            >
+                            <span className="text-xs font-medium text-ink">
                               {cmd.title}
                             </span>
 
                             {cmd.badge && (
-                              <span
-                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
-                                  cmd.badgeType === 'admin'
-                                    ? 'bg-purple-100 text-purple-800 border border-purple-200/80'
-                                    : cmd.badgeType === 'action'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200/80'
-                                    : cmd.badgeType === 'active'
-                                    ? 'bg-emerald-100 text-emerald-800 font-bold border border-emerald-300'
-                                    : 'bg-slate-100 text-slate-700 border border-slate-200/80'
-                                }`}
-                              >
+                              <span className="text-[10px] mono-num px-1.5 py-0.2 border border-rule rounded text-ink-muted">
                                 {cmd.badge}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-600 truncate mt-0.5 font-normal">
+                          <p className="text-[11px] text-ink-muted truncate font-normal">
                             {cmd.description}
                           </p>
                         </div>
                       </div>
 
-                      <span className="text-[11px] font-mono font-medium text-slate-400 ml-3 shrink-0">
+                      <span className="text-[10px] mono-num text-ink-faint ml-2 shrink-0">
                         {cmd.category}
                       </span>
                     </button>
@@ -448,26 +407,10 @@ export default function CommandPalette({
           )}
         </div>
 
-        {/* Command Palette Footer */}
-        <div className="px-4 py-2.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <div className="flex items-center space-x-3">
-            <span className="flex items-center space-x-1">
-              <kbd className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs text-[10px] text-slate-600">
-                ↑
-              </kbd>
-              <kbd className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs text-[10px] text-slate-600">
-                ↓
-              </kbd>
-              <span className="text-slate-600 font-medium">Navigate</span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <kbd className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs text-[10px] text-slate-600">
-                ↵
-              </kbd>
-              <span className="text-slate-600 font-medium">Execute</span>
-            </span>
-          </div>
-          <span className="font-mono text-slate-400 text-[11px]">LedgerLine Core v2.4</span>
+        {/* Footer */}
+        <div className="px-4 py-2 bg-paper border-t border-rule flex items-center justify-between text-[11px] text-ink-faint mono-num">
+          <span>Navigate with ↑ / ↓ · Enter to select</span>
+          <span>LedgerLine</span>
         </div>
       </div>
     </div>
