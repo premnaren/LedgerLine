@@ -6,6 +6,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  accountName: z.string().trim().max(100).optional(),
+});
+
 export const createAccountSchema = z.object({
   name: z.string().trim().min(1, 'Account name is required').max(100, 'Account name too long'),
   initialBalance: z

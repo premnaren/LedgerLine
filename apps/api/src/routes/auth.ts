@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/db';
 import { JwtPayload } from '../middleware/auth';
-import { validateBody, loginSchema } from '../validation/schemas';
+import { validateBody, loginSchema, registerSchema } from '../validation/schemas';
 
 const router = Router();
 
@@ -80,6 +80,88 @@ router.post('/login', validateBody(loginSchema), async (req: Request, res: Respo
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /auth/register
+router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
+  try {
+    const { email, password, accountName } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'A user with this email address already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user with HOLDER role
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        role: 'HOLDER',
+      },
+    });
+
+    // Create default operating account for the new user
+    const accName = accountName?.trim() || `${normalizedEmail.split('@')[0]}'s Account`;
+    const account = await prisma.account.create({
+      data: {
+        name: accName,
+        balancePence: 0n,
+        overdraftLimit: 0n,
+        version: 0,
+        holders: {
+          create: {
+            userId: user.id,
+          },
+        },
+      },
+    });
+
+    const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.email);
+
+    // Save refresh token in DB
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        active: true,
+        expiresAt,
+      },
+    });
+
+    // Set cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    return res.status(201).json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      account: {
+        id: account.id,
+        name: account.name,
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({ error: 'Internal server error during registration' });
   }
 });
 
