@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setSession } from '@/lib/auth';
+import InteractiveLedgerNetwork from '@/components/InteractiveLedgerNetwork';
 import {
   Layers,
   Lock,
@@ -12,7 +13,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ShieldCheck,
   Info,
   X,
   Building,
@@ -130,73 +130,15 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-paper text-ink">
       {/* ============================================================ */}
-      {/* Left Column: Quiet Brand Panel (Desktop Only)                 */}
+      {/* Left Column: Visual Interactive Ledger Network (Desktop)     */}
       {/* ============================================================ */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F5F4F0] border-r border-rule flex-col justify-between p-10 xl:p-14 overflow-hidden select-none">
-        {/* Low-Contrast Ledger Paper Grid Pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-40"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, var(--rule) 1px, transparent 1px),
-              linear-gradient(to bottom, var(--rule) 1px, transparent 1px)
-            `,
-            backgroundSize: '32px 32px',
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Ambient Gradient Drift (Subtle motion, respects reduced-motion) */}
-        <div
-          className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/5 blur-3xl pointer-events-none animate-subtle-drift"
-          aria-hidden="true"
-        />
-
-        {/* Faint Connected Account Nodes & Hash-Chain Drawing */}
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30" aria-hidden="true">
-          <svg
-            className="w-[500px] h-[500px] text-accent stroke-current"
-            viewBox="0 0 500 500"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Fine coordinate axes */}
-            <line x1="50" y1="250" x2="450" y2="250" strokeDasharray="3 3" strokeWidth="1" opacity="0.6" />
-            <line x1="250" y1="50" x2="250" y2="450" strokeDasharray="3 3" strokeWidth="1" opacity="0.6" />
-
-            {/* Account Node Links */}
-            <path
-              className="animate-node-draw"
-              d="M 110 180 L 250 130 L 390 210 L 310 360 L 150 330 Z"
-              strokeWidth="1.2"
-              strokeDasharray="4 4"
-            />
-            <path
-              className="animate-node-draw"
-              d="M 110 180 L 310 360"
-              strokeWidth="1"
-              opacity="0.7"
-            />
-            <path
-              className="animate-node-draw"
-              d="M 250 130 L 150 330"
-              strokeWidth="1"
-              opacity="0.7"
-            />
-
-            {/* Circular Nodes */}
-            <circle cx="110" cy="180" r="4.5" fill="var(--accent)" />
-            <circle cx="250" cy="130" r="5" fill="var(--ledger-green)" />
-            <circle cx="390" cy="210" r="4.5" fill="var(--accent)" />
-            <circle cx="310" cy="360" r="4.5" fill="var(--role-admin)" />
-            <circle cx="150" cy="330" r="4.5" fill="var(--accent)" />
-            <circle cx="250" cy="250" r="6" fill="#ffffff" stroke="var(--accent)" strokeWidth="2" />
-          </svg>
-        </div>
+      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F6F5F2] border-r border-rule flex-col justify-between p-10 xl:p-14 overflow-hidden select-none">
+        {/* Interactive Connected-Node Network Canvas */}
+        <InteractiveLedgerNetwork />
 
         {/* Top: Brand Identity */}
-        <div className="relative z-10 flex items-center space-x-3">
-          <div className="flex justify-center items-center w-9 h-9 bg-white rounded border border-rule text-accent shadow-none">
+        <div className="relative z-10 flex items-center space-x-3 pointer-events-none">
+          <div className="flex justify-center items-center w-9 h-9 bg-white rounded border border-rule text-accent shadow-none pointer-events-auto">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -209,56 +151,12 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Center: Headline & Value Proposition */}
-        <div className="relative z-10 max-w-lg space-y-6 my-auto py-12">
-          <div className="inline-flex items-center space-x-2 text-xs font-mono px-2.5 py-1 rounded bg-white text-ink-muted border border-rule">
-            <span className="w-1.5 h-1.5 rounded-full bg-ledger-green" />
-            <span>PostgreSQL Serializable SSI</span>
-          </div>
-
-          <div className="space-y-3">
-            <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-ink leading-tight">
-              Every transaction,<br />
-              <span className="text-accent">accounted for.</span>
-            </h1>
-            <p className="text-sm text-ink-muted leading-relaxed font-normal">
-              Secure, auditable double-entry bookkeeping with cryptographic verification,
-              real-time balance conservation, and append-only ledger integrity.
-            </p>
-          </div>
-
-          {/* Quiet Running-Balance Specimen Card */}
-          <div className="p-4 bg-white/90 backdrop-blur-xs rounded border border-rule space-y-2.5 max-w-sm text-xs shadow-none">
-            <div className="flex items-center justify-between pb-2 border-b border-rule">
-              <span className="font-semibold text-ink flex items-center space-x-1.5">
-                <ShieldCheck className="h-4 w-4 text-ledger-green" />
-                <span>Conservation Invariant</span>
-              </span>
-              <span className="mono-num font-mono text-xs text-ledger-green font-bold">
-                ΔΣ = 0
-              </span>
-            </div>
-            <div className="space-y-1.5 font-mono text-xs text-ink-muted">
-              <div className="flex justify-between">
-                <span>Debit Asset (Operating):</span>
-                <span className="text-ink font-semibold mono-num">−₹500.00</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Credit Dest (Settlement):</span>
-                <span className="text-ledger-green font-semibold mono-num">+₹500.00</span>
-              </div>
-              <div className="flex justify-between pt-1 border-t border-rule text-ink-muted text-xs">
-                <span>Cryptographic seal:</span>
-                <span className="text-accent font-semibold">SHA-256 SEALED</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom: Regulatory & Architecture Seal */}
-        <div className="relative z-10 pt-6 border-t border-rule/70 flex items-center justify-between text-xs text-ink-muted">
-          <span>ACID Serializable · Append-Only Core</span>
-          <span className="font-mono">FIPS 180-4 Seal</span>
+        {/* Bottom: Single Short Headline */}
+        <div className="relative z-10 mt-auto pt-16 pointer-events-none">
+          <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-ink leading-tight">
+            Every transaction,<br />
+            <span className="text-accent">accounted for.</span>
+          </h1>
         </div>
       </div>
 
@@ -479,21 +377,16 @@ export default function LoginPage() {
               </form>
 
               {/* Quick Demo Access Divider */}
-              <div className="relative pt-2">
+              <div className="relative pt-1">
                 <div className="flex absolute inset-0 items-center" aria-hidden="true">
                   <div className="w-full border-t border-rule" />
                 </div>
                 <div className="flex relative justify-center text-xs">
                   <span className="bg-white px-2.5 text-xs text-ink-muted font-medium">
-                    Pre-configured demo accounts for evaluation
+                    Demo accounts
                   </span>
                 </div>
               </div>
-
-              {/* Demo Role Clarification Subtext */}
-              <p className="text-xs text-ink-muted text-center leading-relaxed">
-                Selecting an account loads test credentials. Permissions are authenticated and enforced server-side upon sign-in.
-              </p>
 
               {/* Demo Buttons */}
               <div className="grid grid-cols-3 gap-2">
@@ -713,17 +606,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Privilege & Permission Scope Explanation */}
-              <div className="p-3 bg-paper rounded border border-rule text-xs text-ink-muted flex items-start space-x-2.5">
-                <CheckCircle2 className="w-4 h-4 text-ledger-green shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <span>
-                    New accounts are registered with the <strong className="text-ink font-semibold">Holder</strong> role. This provisions your own operating account, personal statement generation, and internal double-entry transfers.
-                  </span>
-                  <span className="block mt-1 text-ink-muted">
-                    Administrative and Auditor privileges require organization credential elevation.
-                  </span>
-                </div>
+              {/* Privilege Scope Note */}
+              <div className="p-2.5 bg-paper rounded border border-rule text-xs text-ink-muted flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-ledger-green shrink-0" />
+                <span>
+                  New registrations receive the <strong className="text-ink font-semibold">Holder</strong> role for operating accounts.
+                </span>
               </div>
 
               {/* Primary Sign Up Button */}
@@ -746,12 +634,6 @@ export default function LoginPage() {
               </button>
             </form>
           )}
-
-          {/* Card Footer Security Seal */}
-          <div className="pt-2 border-t border-rule flex items-center justify-center space-x-1.5 text-xs text-ink-muted">
-            <ShieldCheck className="h-4 w-4 text-ledger-green" />
-            <span>Serializable ACID · SHA-256 seal</span>
-          </div>
         </div>
 
         {/* Small Screen Footer */}
