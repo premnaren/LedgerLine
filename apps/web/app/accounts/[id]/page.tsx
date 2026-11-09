@@ -307,12 +307,14 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
                 fill="var(--accent)"
                 stroke={isHovered ? '#ffffff' : 'none'}
                 strokeWidth={isHovered ? 2 : 0}
-                className="transition-all duration-100"
+                className="transition-all duration-100 cursor-pointer"
+                style={{ pointerEvents: 'all' }}
+                onMouseEnter={() => setHoveredIdx(i)}
               />
             );
           })}
 
-          {/* Interactive Scrubbing Rectangles */}
+          {/* Interactive Scrubbing Rectangles with pointer-events: all */}
           {coords.map((pt, i) => {
             const sliceWidth = coords.length > 1 ? usableWidth / (coords.length - 1) : usableWidth;
             const sliceX = Math.max(padLeft, pt.x - sliceWidth / 2);
@@ -323,9 +325,12 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
                 y={padTop}
                 width={sliceWidth}
                 height={usableHeight}
-                fill="transparent"
+                fill="black"
+                fillOpacity="0"
+                style={{ pointerEvents: 'all' }}
                 className="cursor-pointer"
                 onMouseEnter={() => setHoveredIdx(i)}
+                onMouseMove={() => setHoveredIdx(i)}
               />
             );
           })}
