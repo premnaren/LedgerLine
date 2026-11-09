@@ -11,22 +11,35 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Cosmic Design System tokens
-        'deep-space': '#080E1C',
-        'midnight-navy': '#0B1220',
-        'secondary-surface': '#111C30',
-        'elevated-surface': '#17243A',
-        'primary-border': '#263750',
-        'secondary-border': '#1D2A40',
-        'stellar-blue': '#79A9FF',
-        'active-blue': '#91B8FF',
-        'nebula-violet': '#A78BFA',
+        // Dark Cosmic palette tokens (Reference 1)
+        'cosmic-black': '#080712',
+        'deep-space': '#100D20',
+        'midnight-violet': '#17112D',
+        'nebula-purple': '#542A91',
+        'electric-violet': '#8155D9',
+        'stellar-blue': '#648EFF',
+        'magenta-glow': '#BD75E9',
+        'soft-cyan': '#75C8F0',
+        'elevated-surface': '#171629',
+        'card-surface': '#19172B',
+        'card-border': '#34304D',
+        'primary-border': '#34304D',
+        'secondary-border': '#221F38',
+
+        // Light Cosmic palette tokens
+        'cosmic-ivory': '#F4F1FA',
+        'lunar-white': '#FAF9FF',
+        'pale-lavender': '#EEE8FA',
+        'soft-nebula': '#D6C2F4',
+        'celestial-pink': '#F0C7E5',
+        'aurora-blue': '#C4DDF9',
+        'peach-glow': '#F6D9CE',
+        'border-light': '#DED9EA',
+
+        // Semantic Cosmic tokens
         'cosmic-success': '#42D6B0',
         'cosmic-warning': '#F4B860',
         'cosmic-error': '#F07886',
-        'primary-text': '#F4F7FF',
-        'secondary-text': '#A5B4CC',
-        'muted-text': '#71819B',
 
         // Dynamic theme tokens
         bg: 'var(--bg)',

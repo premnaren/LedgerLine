@@ -4,21 +4,23 @@
 
 :root {
   color-scheme: light;
-  --bg: #F5F7FA;
-  --surface: #FFFFFF;
-  --surface-secondary: #F0F3F7;
+  /* Light Cosmic Theme Palette */
+  --bg: #F4F1FA; /* Cosmic Ivory */
+  --surface: #FFFFFF; /* Primary Card */
+  --surface-secondary: #F6F3FC; /* Secondary Surface */
   --surface-elevated: #FFFFFF;
-  --primary: #294B7A;
-  --primary-hover: #203D65;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #64748B;
-  --border: #DCE2E9;
-  --border-secondary: #E2E8F0;
+  --primary: #648EFF; /* Stellar Blue / Violet */
+  --primary-hover: #542A91;
+  --text-primary: #17142B; /* Primary Text */
+  --text-secondary: #55516D; /* Secondary Text */
+  --text-muted: #77718C; /* Muted Text */
+  --border: #DED9EA; /* Border Light */
+  --border-secondary: #E9E3F5;
   --success: #13835D;
   --danger: #D14949;
   --warning: #B7791F;
-  --nebula: #7C3AED;
+  --nebula: #D6C2F4; /* Soft Nebula Purple */
+  --planet-glow: rgba(240, 199, 229, 0.45);
 
   /* Module accents */
   --accent-accounts: #294B7A;
@@ -27,68 +29,71 @@
   --accent-seal: #13835D;
   --accent-failed: #D14949;
 
-  /* Semantic aliases for backwards compatibility */
+  /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #8E9BAE;
+  --ink-faint: #77718C;
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: #BDC6D4;
+  --rule-strong: #C4BCD3;
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #7C3AED;
-  --role-holder: #294B7A;
+  --role-admin: #8155D9;
+  --role-holder: #648EFF;
   --role-auditor: #B7791F;
 
-  --background: 216 28% 97%;
-  --foreground: 218 34% 14%;
-  --border-hsl: 214 20% 89%;
+  --background: 260 30% 97%;
+  --foreground: 250 36% 12%;
+  --border-hsl: 260 22% 89%;
 }
 
 [data-theme="dark"], .dark {
   color-scheme: dark;
-  /* Cosmic Design System Palette */
-  --bg: #080E1C; /* Deep Space */
-  --surface: #0B1220; /* Midnight Navy */
-  --surface-secondary: #111C30; /* Secondary Surface */
-  --surface-elevated: #17243A; /* Elevated Surface */
-  --primary: #79A9FF; /* Stellar Blue */
-  --primary-hover: #91B8FF; /* Active Blue */
-  --text-primary: #F4F7FF; /* Primary Text */
-  --text-secondary: #A5B4CC; /* Secondary Text */
-  --text-muted: #71819B; /* Muted Text */
-  --border: #263750; /* Primary Border */
-  --border-secondary: #1D2A40; /* Secondary Border */
-  --success: #42D6B0; /* Success / Verified */
+  /* Dark Cosmic Theme Palette (Reference 1) */
+  --bg: #080712; /* Cosmic Black */
+  --surface: #19172B; /* Card Surface */
+  --surface-secondary: #171629; /* Elevated Surface */
+  --surface-elevated: #19172B; /* Card Surface */
+  --primary: #8155D9; /* Electric Violet */
+  --primary-hover: #648EFF; /* Stellar Blue */
+  --text-primary: #F7F4FF; /* Primary Text */
+  --text-secondary: #C0BAD5; /* Secondary Text */
+  --text-muted: #9189AA; /* Muted Text */
+  --border: #34304D; /* Card Border */
+  --border-secondary: #221F38; /* Secondary Border */
+  --success: #42D6B0; /* Verified / Green */
   --danger: #F07886; /* Error / Destructive */
   --warning: #F4B860; /* Warning / Pending */
-  --nebula: #A78BFA; /* Nebula Violet */
+  --nebula: #542A91; /* Nebula Purple */
+  --magenta: #BD75E9; /* Magenta Glow */
+  --cyan: #75C8F0; /* Soft Cyan */
+  --planet-glow: rgba(189, 117, 233, 0.45);
 
   /* Module accents for dark mode */
-  --accent-accounts: #79A9FF;
-  --accent-audit: #91B8FF;
+  --accent-accounts: #648EFF;
+  --accent-audit: #8155D9;
   --accent-stress: #F4B860;
   --accent-seal: #42D6B0;
   --accent-failed: #F07886;
 
-  /* Semantic aliases for backwards compatibility */
+  /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #71819B;
+  --ink-faint: #9189AA;
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: #263750;
+  --rule-strong: #34304D;
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #A78BFA;
-  --role-holder: #79A9FF;
+  --role-admin: #8155D9;
+  --role-holder: #648EFF;
   --role-auditor: #F4B860;
 
-  --background: 221 56% 7%;
-  --foreground: 217 65% 98%;
-  --border-hsl: 216 35% 23%;
+  --background: 245 42% 5%;
+  --foreground: 255 100% 98%;
+  --border-hsl: 248 23% 25%;
 }
 
 body {

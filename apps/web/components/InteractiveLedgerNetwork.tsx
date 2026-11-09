@@ -1,7 +1,19 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Plus, RefreshCw, RotateCcw } from 'lucide-react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
+
+export interface InteractiveLedgerNetworkHandle {
+  addStar: () => void;
+  regenerate: () => void;
+  reset: () => void;
+}
 
 interface RuntimeNode {
   id: number;
@@ -85,10 +97,13 @@ interface NetworkState {
   downPos: { x: number; y: number } | null;
 }
 
-export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: boolean }) {
+const InteractiveLedgerNetwork = forwardRef<
+  InteractiveLedgerNetworkHandle,
+  { isDark?: boolean; showInternalControls?: boolean }
+>(({ isDark = true, showInternalControls = false }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [nodeCount, setNodeCount] = useState<number>(22);
+  const [, setNodeCount] = useState<number>(28);
 
   const stateRef = useRef<NetworkState>({
     width: 0,
@@ -118,24 +133,26 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
   const triggerWakeRef = useRef<(() => void) | null>(null);
 
   // Helper: check if a normalized point is inside protected zones
-  // 1. Top-left logo zone: rx < 0.42 && ry < 0.22
-  // 2. Bottom-left headline zone: rx < 0.58 && ry > 0.70
+  // 1. Top-left logo zone: rx < 0.28 && ry < 0.16
+  // 2. Top-right controls zone: rx > 0.74 && ry < 0.16
+  // 3. Center Auth Card: rx > 0.33 && rx < 0.67 && ry > 0.16 && ry < 0.84
   const isProtectedZone = (rx: number, ry: number) => {
-    if (rx < 0.42 && ry < 0.22) return true; // Logo & Brand badge
-    if (rx < 0.58 && ry > 0.70) return true; // Headline
+    if (rx < 0.28 && ry < 0.16) return true; // Brand badge
+    if (rx > 0.74 && ry < 0.16) return true; // Top controls
+    if (rx > 0.33 && rx < 0.67 && ry > 0.16 && ry < 0.84) return true; // Centered Auth Card
     return false;
   };
 
   // Helper: generate celestial micro-star dust in background
-  const generateStars = (width: number, height: number, count = 56): StarDust[] => {
+  const generateStars = (width: number, height: number, count = 64): StarDust[] => {
     const stars: StarDust[] = [];
     for (let i = 0; i < count; i++) {
       stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: 0.6 + Math.random() * 1.4,
-        alpha: 0.15 + Math.random() * 0.35,
-        baseAlpha: 0.15 + Math.random() * 0.35,
+        size: 0.6 + Math.random() * 1.5,
+        alpha: 0.15 + Math.random() * 0.40,
+        baseAlpha: 0.15 + Math.random() * 0.40,
         twinkleSpeed: 0.015 + Math.random() * 0.025,
         phase: Math.random() * Math.PI * 2,
       });
@@ -144,9 +161,9 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
   };
 
   // Helper: generate completely randomized, non-overlapping nodes avoiding protected zones
-  const generateRandomizedLayout = (width: number, height: number, count = 22) => {
+  const generateRandomizedLayout = (width: number, height: number, count = 28) => {
     const newNodes: RuntimeNode[] = [];
-    const minPixelDist = Math.min(width, height) * 0.12;
+    const minPixelDist = Math.min(width, height) * 0.09;
 
     for (let i = 0; i < count; i++) {
       let x = 0;
@@ -156,8 +173,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
       while (!valid && attempts < 100) {
         attempts++;
-        const rx = 0.10 + Math.random() * 0.84;
-        const ry = 0.10 + Math.random() * 0.84;
+        const rx = 0.06 + Math.random() * 0.88;
+        const ry = 0.08 + Math.random() * 0.84;
 
         if (isProtectedZone(rx, ry)) continue;
 
@@ -175,8 +192,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         }
       }
 
-      const isHub = i === 1 || i === 6 || i === 12;
-      const isBalanced = i === 9;
+      const isHub = i === 1 || i === 7 || i === 14 || i === 21;
+      const isBalanced = i === 11;
       const radius = isHub ? 8.5 : isBalanced ? 7 : 4.5 + (i % 3) * 1.2;
 
       // Unique crumple paper origami crease offset
@@ -210,7 +227,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const dists = newNodes
         .map((n, j) => ({
           idx: j,
-          dist: i === j ? Infinity : Math.hypot(n.targetX - newNodes[i].targetX, n.targetY - newNodes[i].targetY),
+          dist:
+            i === j ? Infinity : Math.hypot(n.targetX - newNodes[i].targetX, n.targetY - newNodes[i].targetY),
         }))
         .sort((a, b) => a.dist - b.dist);
 
@@ -220,7 +238,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         const key = i < j ? `${i}-${j}` : `${j}-${i}`;
         if (!edgeSet.has(key)) {
           edgeSet.add(key);
-          const isDashed = Math.random() < 0.12;
+          const isDashed = Math.random() < 0.14;
           edges.push([i, j, isDashed]);
         }
       }
@@ -234,15 +252,15 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     const state = stateRef.current;
     if (state.width === 0 || state.height === 0) return;
 
-    // Find a valid open position
-    let px = state.width * 0.5;
+    // Find a valid open position around the periphery
+    let px = state.width * 0.22;
     let py = state.height * 0.45;
     let attempts = 0;
 
-    while (attempts < 50) {
+    while (attempts < 60) {
       attempts++;
-      const rx = 0.20 + Math.random() * 0.65;
-      const ry = 0.20 + Math.random() * 0.55;
+      const rx = 0.08 + Math.random() * 0.84;
+      const ry = 0.10 + Math.random() * 0.80;
       if (!isProtectedZone(rx, ry)) {
         px = rx * state.width;
         py = ry * state.height;
@@ -315,23 +333,27 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     const state = stateRef.current;
     if (state.width === 0 || state.height === 0) return;
     state.selectedIndex = null;
-    const cx = state.width * 0.52;
-    const cy = state.height * 0.48;
+    const cx = state.width * 0.5;
+    const cy = state.height * 0.5;
 
     // Start water pour animation with new random constellation
-    const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(state.width, state.height, state.nodes.length);
+    const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(
+      state.width,
+      state.height,
+      state.nodes.length
+    );
     state.edges = newEdges;
 
     // Fluid splash ripples
     state.ripples.push(
-      { x: cx, y: cy, radius: 15, maxRadius: 360, alpha: 0.85 },
-      { x: cx, y: cy, radius: 35, maxRadius: 280, alpha: 0.60 }
+      { x: cx, y: cy, radius: 15, maxRadius: 380, alpha: 0.85 },
+      { x: cx, y: cy, radius: 35, maxRadius: 300, alpha: 0.60 }
     );
 
     // Stardust burst
-    for (let p = 0; p < 28; p++) {
+    for (let p = 0; p < 32; p++) {
       const pAngle = Math.random() * Math.PI * 2;
-      const pSpeed = 7 + Math.random() * 18;
+      const pSpeed = 7 + Math.random() * 20;
       state.particles.push({
         x: cx,
         y: cy,
@@ -354,7 +376,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       node.isBalanced = target.isBalanced;
 
       const angle = Math.atan2(target.targetY - cy, target.targetX - cx) + (Math.random() - 0.5) * 0.4;
-      const splashSpeed = 16 + Math.random() * 22;
+      const splashSpeed = 16 + Math.random() * 24;
       node.vx = Math.cos(angle) * splashSpeed;
       node.vy = Math.sin(angle) * splashSpeed;
       node.highlight = 1;
@@ -364,27 +386,33 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     if (triggerWakeRef.current) triggerWakeRef.current();
   }, []);
 
-  // Trigger: Reset to canonical 22-node layout
+  // Trigger: Reset to canonical 28-node layout
   const handleReset = useCallback(() => {
     const state = stateRef.current;
     if (state.width === 0 || state.height === 0) return;
     state.selectedIndex = null;
 
-    const { nodes: newNodes, edges: newEdges } = generateRandomizedLayout(state.width, state.height, 22);
+    const { nodes: newNodes, edges: newEdges } = generateRandomizedLayout(state.width, state.height, 28);
     state.nodes = newNodes;
     state.edges = newEdges;
-    setNodeCount(22);
+    setNodeCount(28);
 
     state.ripples.push({
       x: state.width * 0.5,
       y: state.height * 0.5,
-      radius: 12,
-      maxRadius: 280,
+      radius: 15,
+      maxRadius: 300,
       alpha: 0.75,
     });
 
     if (triggerWakeRef.current) triggerWakeRef.current();
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    addStar: handleAddNode,
+    regenerate: handleRegenerate,
+    reset: handleReset,
+  }));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -411,13 +439,14 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(d, d);
 
+      // Preserve existing nodes during theme switches or resize
       if (stateRef.current.nodes.length === 0) {
-        const { nodes, edges } = generateRandomizedLayout(w, h, 22);
+        const { nodes, edges } = generateRandomizedLayout(w, h, 28);
         stateRef.current.nodes = nodes;
         stateRef.current.edges = edges;
       }
 
-      stateRef.current.stars = generateStars(w, h, 56);
+      stateRef.current.stars = generateStars(w, h, 64);
       draw();
     };
 
@@ -449,15 +478,15 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       state.mode = 'POURING';
       canvas.style.cursor = 'grab';
 
-      // 1. Expanding ripples
+      // Expanding ripples
       state.ripples.push(
-        { x: releaseX, y: releaseY, radius: 10, maxRadius: 320, alpha: 0.75 },
-        { x: releaseX, y: releaseY, radius: 25, maxRadius: 240, alpha: 0.55 },
-        { x: releaseX, y: releaseY, radius: 45, maxRadius: 180, alpha: 0.40 }
+        { x: releaseX, y: releaseY, radius: 10, maxRadius: 360, alpha: 0.75 },
+        { x: releaseX, y: releaseY, radius: 25, maxRadius: 260, alpha: 0.55 },
+        { x: releaseX, y: releaseY, radius: 45, maxRadius: 200, alpha: 0.40 }
       );
 
-      // 2. Stardust particle burst
-      for (let p = 0; p < 24; p++) {
+      // Stardust particle burst
+      for (let p = 0; p < 28; p++) {
         const pAngle = Math.random() * Math.PI * 2;
         const pSpeed = 6 + Math.random() * 18;
         state.particles.push({
@@ -471,11 +500,15 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         });
       }
 
-      // 3. Generate brand new completely randomized destinations across open canvas
-      const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(width, height, state.nodes.length);
+      // Generate brand new completely randomized destinations across open space
+      const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(
+        width,
+        height,
+        state.nodes.length
+      );
       state.edges = newEdges;
 
-      // 4. Fluid outward splash velocities
+      // Fluid outward splash velocities
       state.nodes.forEach((node, i) => {
         const target = newLayout[i];
         node.baseX = target.targetX;
@@ -540,14 +573,13 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           isSettled = false;
         }
       } else if (isDark && !prefersReducedMotion && Math.random() < 0.0015) {
-        // Subtle, rare shooting star gliding across the night sky
         state.shootingStar = {
           x: Math.random() * (width * 0.6),
           y: Math.random() * (height * 0.35),
           len: 65 + Math.random() * 45,
           speed: 13 + Math.random() * 7,
           angle: Math.PI / 6 + (Math.random() - 0.5) * 0.2,
-          alpha: 0.50,
+          alpha: 0.55,
           active: true,
         };
         isSettled = false;
@@ -612,7 +644,12 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           if (dist > maxDist) maxDist = dist;
         });
 
-        if (maxSpeed < 0.15 && maxDist < 1.2 && state.ripples.length === 0 && state.particles.length === 0) {
+        if (
+          maxSpeed < 0.15 &&
+          maxDist < 1.2 &&
+          state.ripples.length === 0 &&
+          state.particles.length === 0
+        ) {
           state.mode = 'IDLE';
           nodes.forEach((n) => {
             n.x = n.targetX;
@@ -698,34 +735,34 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       } = stateRef.current;
       ctx.clearRect(0, 0, width, height);
 
-      // Cosmic Design System color tokens
-      const primaryLine = isDark ? 'rgba(121, 169, 255,' : 'rgba(41, 75, 122,';
-      const nodeFill = isDark ? '#79A9FF' : '#294B7A';
-      const nodeBorder = isDark ? '#F4F7FF' : '#FFFFFF';
+      // Cosmic Design System color tokens (Dark Cosmic & Light Cosmic)
+      const primaryLine = isDark ? 'rgba(129, 85, 217,' : 'rgba(41, 75, 122,';
+      const nodeFill = isDark ? '#648EFF' : '#294B7A';
+      const nodeBorder = isDark ? '#F7F4FF' : '#FFFFFF';
       const greenAnchor = isDark ? '#42D6B0' : '#13835D'; // Verified status
 
-      // 1. Draw celestial background micro-star dust (Dark mode only)
+      // 1. Draw celestial background micro-star dust (Dark mode)
       if (isDark) {
         stars.forEach((star) => {
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(244, 247, 255, ${star.alpha.toFixed(3)})`;
+          ctx.fillStyle = `rgba(247, 244, 255, ${star.alpha.toFixed(3)})`;
           ctx.fill();
         });
       }
 
-      // 2. Draw shooting star / delicate ledger streak
+      // 2. Draw shooting star streak
       if (shootingStar && shootingStar.active) {
         const tailX = shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.len;
         const tailY = shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.len;
         const grad = ctx.createLinearGradient(tailX, tailY, shootingStar.x, shootingStar.y);
-        grad.addColorStop(0, 'rgba(121, 169, 255, 0)');
-        grad.addColorStop(1, `rgba(244, 247, 255, ${shootingStar.alpha.toFixed(3)})`);
+        grad.addColorStop(0, 'rgba(189, 117, 233, 0)');
+        grad.addColorStop(1, `rgba(255, 255, 255, ${shootingStar.alpha.toFixed(3)})`);
         ctx.beginPath();
         ctx.moveTo(tailX, tailY);
         ctx.lineTo(shootingStar.x, shootingStar.y);
         ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.3;
+        ctx.lineWidth = 1.4;
         ctx.stroke();
       }
 
@@ -734,7 +771,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
         ctx.fillStyle = isDark
-          ? `rgba(145, 184, 255, ${pt.alpha.toFixed(3)})`
+          ? `rgba(189, 117, 233, ${pt.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${pt.alpha.toFixed(3)})`;
         ctx.fill();
       });
@@ -744,7 +781,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         ctx.beginPath();
         ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
         ctx.strokeStyle = isDark
-          ? `rgba(121, 169, 255, ${rip.alpha.toFixed(3)})`
+          ? `rgba(129, 85, 217, ${rip.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${rip.alpha.toFixed(3)})`;
         ctx.lineWidth = Math.max(1, 2.2 * rip.alpha);
         ctx.stroke();
@@ -753,7 +790,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.beginPath();
           ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
           ctx.fillStyle = isDark
-            ? `rgba(121, 169, 255, ${(rip.alpha * 0.05).toFixed(3)})`
+            ? `rgba(189, 117, 233, ${(rip.alpha * 0.05).toFixed(3)})`
             : `rgba(41, 75, 122, ${(rip.alpha * 0.05).toFixed(3)})`;
           ctx.fill();
         }
@@ -768,9 +805,9 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.lineTo(nodes[i + 2].x, nodes[i + 2].y);
           ctx.closePath();
         }
-        ctx.fillStyle = isDark ? 'rgba(121, 169, 255, 0.08)' : 'rgba(41, 75, 122, 0.08)';
+        ctx.fillStyle = isDark ? 'rgba(129, 85, 217, 0.08)' : 'rgba(41, 75, 122, 0.08)';
         ctx.fill();
-        ctx.strokeStyle = isDark ? 'rgba(145, 184, 255, 0.35)' : 'rgba(32, 61, 101, 0.30)';
+        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.35)' : 'rgba(32, 61, 101, 0.30)';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -794,17 +831,17 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
             : isHovered
             ? 0.85
             : isDark
-            ? 0.28 + maxHighlight * 0.45
-            : 0.32 + maxHighlight * 0.45;
+            ? 0.25 + maxHighlight * 0.45
+            : 0.28 + maxHighlight * 0.45;
 
         ctx.beginPath();
         ctx.strokeStyle = isSelectedEdge
           ? isDark
-            ? 'rgba(121, 169, 255, 0.95)'
+            ? 'rgba(189, 117, 233, 0.95)'
             : 'rgba(41, 75, 122, 0.90)'
           : isHovered
           ? isDark
-            ? 'rgba(145, 184, 255, 0.90)'
+            ? 'rgba(100, 142, 255, 0.90)'
             : 'rgba(32, 61, 101, 0.85)'
           : `${primaryLine} ${alpha.toFixed(3)})`;
 
@@ -839,22 +876,22 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           // Inner orbital ring
           ctx.beginPath();
           ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(121, 169, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
+          ctx.strokeStyle = isDark ? 'rgba(100, 142, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          // Middle orbital ring (Nebula Violet)
+          // Middle orbital ring (Magenta Glow)
           ctx.beginPath();
           ctx.arc(x, y, radius + 13, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(167, 139, 250, 0.65)' : 'rgba(124, 58, 237, 0.50)';
+          ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.75)' : 'rgba(124, 58, 237, 0.50)';
           ctx.lineWidth = 1.2;
           ctx.stroke();
 
-          // Outer subtle orbital ring (dashed)
+          // Outer subtle orbital ring (Soft Cyan dashed)
           ctx.beginPath();
           ctx.setLineDash([3, 4]);
           ctx.arc(x, y, radius + 19, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(121, 169, 255, 0.40)' : 'rgba(41, 75, 122, 0.35)';
+          ctx.strokeStyle = isDark ? 'rgba(117, 200, 240, 0.45)' : 'rgba(41, 75, 122, 0.35)';
           ctx.lineWidth = 1;
           ctx.stroke();
           ctx.setLineDash([]);
@@ -867,10 +904,10 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.arc(x, y, haloRadius, 0, Math.PI * 2);
           ctx.strokeStyle = isBalanced
             ? isDark
-              ? 'rgba(66, 214, 176, 0.50)'
+              ? 'rgba(66, 214, 176, 0.55)'
               : 'rgba(19, 131, 93, 0.40)'
             : isDark
-            ? `rgba(121, 169, 255, ${(0.30 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
+            ? `rgba(189, 117, 233, ${(0.32 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
             : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
           ctx.lineWidth = isDragged ? 2 : isHovered ? 1.5 : 1;
           ctx.stroke();
@@ -881,7 +918,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.beginPath();
           ctx.arc(x, y, radius + 9 + 3 * starPulse, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
-            ? `rgba(121, 169, 255, ${(0.12 + 0.12 * starPulse).toFixed(3)})`
+            ? `rgba(129, 85, 217, ${(0.14 + 0.12 * starPulse).toFixed(3)})`
             : `rgba(41, 75, 122, ${(0.08 + 0.08 * starPulse).toFixed(3)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -899,21 +936,21 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           ctx.lineWidth = 2;
           ctx.stroke();
         } else if (isHub) {
-          ctx.fillStyle = isDark ? '#0B1220' : '#FFFFFF';
+          ctx.fillStyle = isDark ? '#100D20' : '#FFFFFF';
           ctx.fill();
-          ctx.strokeStyle = isHovered || isSelected ? (isDark ? '#91B8FF' : '#203D65') : isDark ? '#79A9FF' : '#294B7A';
+          ctx.strokeStyle = isHovered || isSelected ? (isDark ? '#BD75E9' : '#203D65') : isDark ? '#8155D9' : '#294B7A';
           ctx.lineWidth = 2.2;
           ctx.stroke();
 
           // Inner solid core
           ctx.beginPath();
           ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = isDark ? '#79A9FF' : '#294B7A';
+          ctx.fillStyle = isDark ? '#648EFF' : '#294B7A';
           ctx.fill();
         } else {
           ctx.fillStyle = isSelected
             ? isDark
-              ? '#91B8FF'
+              ? '#BD75E9'
               : '#203D65'
             : isHovered
             ? isDark
@@ -973,13 +1010,11 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const hitIdx = findNodeIndexAt(px, py);
 
       if (hitIdx !== null) {
-        // Holding an existing node: select & drag wherever wanted
         state.draggedIndex = hitIdx;
         state.selectedIndex = hitIdx;
         canvas.style.cursor = 'grabbing';
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
       } else {
-        // Pressing on empty space
         state.draggedIndex = null;
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         holdTimerRef.current = setTimeout(() => {
@@ -1035,10 +1070,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
       if (state.mode === 'CRUMPLED') {
-        // Released after folding: water pour splash & randomized new constellation
         startWaterPour(px, py);
       } else if (state.draggedIndex !== null) {
-        // User dragged node: place permanently right where released
         const node = state.nodes[state.draggedIndex];
         if (node) {
           node.x = px;
@@ -1055,7 +1088,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
 
-        // Single click on empty space: add a new node
         if (dist < 14 && state.draggedIndex === null) {
           const rx = px / state.width;
           const ry = py / state.height;
@@ -1080,14 +1112,12 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               creaseDist: 16 + Math.random() * 12,
             });
 
-            // Water ripples
             state.ripples.push(
               { x: px, y: py, radius: 8, maxRadius: 240, alpha: 0.8 },
               { x: px, y: py, radius: 24, maxRadius: 180, alpha: 0.6 },
               { x: px, y: py, radius: 42, maxRadius: 120, alpha: 0.4 }
             );
 
-            // Sparkling stardust on node spawn
             for (let p = 0; p < 8; p++) {
               const pAngle = Math.random() * Math.PI * 2;
               const pSpeed = 3 + Math.random() * 6;
@@ -1102,7 +1132,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               });
             }
 
-            // Connect to 2 closest nodes
             const sorted = state.nodes
               .slice(0, -1)
               .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
@@ -1168,7 +1197,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       wakeLoop();
     };
 
-    // Keyboard navigation
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target !== canvas && e.target !== containerRef.current) return;
       if (e.key === 'a' || e.key === 'A') {
@@ -1190,7 +1218,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       }
     };
 
-    // Touch support
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const rect = canvas.getBoundingClientRect();
@@ -1246,55 +1273,17 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     <div
       ref={containerRef}
       tabIndex={0}
-      className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-stellar-blue/50"
-      aria-label="Interactive double-entry constellation playground. Press A to add a star, R to regenerate, Space to fold, or drag stars to reposition."
+      className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto z-10 focus:outline-none"
+      aria-label="Interactive LedgerLine constellation graph. Click to create star, drag to reposition, hold to flow, or press A to add and R to regenerate."
     >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
       />
-
-      {/* Sleek, minimal floating network controls (Linear / Vercel style) */}
-      <div className="absolute top-8 right-8 z-20 flex items-center gap-1.5 pointer-events-auto select-none">
-        <button
-          type="button"
-          onClick={handleAddNode}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
-          aria-label="Add new star node to constellation (Hotkey: A)"
-          title="Add Star (A)"
-        >
-          <Plus className="w-3.5 h-3.5 text-stellar-blue" />
-          <span className="hidden xl:inline">Add star</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleRegenerate}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
-          aria-label="Regenerate random constellation layout (Hotkey: R)"
-          title="Regenerate Constellation (R)"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-stellar-blue" />
-          <span className="hidden xl:inline">Regenerate</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleReset}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary bg-surface/85 hover:bg-surface-secondary/90 backdrop-blur-md rounded-xl border border-border transition-all duration-150 shadow-xs active:scale-95 focus-visible:ring-2 focus-visible:ring-stellar-blue"
-          aria-label="Reset constellation to canonical layout (Hotkey: Esc)"
-          title="Reset Layout"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-stellar-blue" />
-          <span className="hidden xl:inline">Reset</span>
-        </button>
-      </div>
-
-      {/* Subtle interaction guidance note */}
-      <div className="absolute bottom-6 right-8 z-20 pointer-events-none hidden xl:flex items-center gap-2 text-[11px] text-text-muted">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-stellar-blue animate-pulse" />
-        <span>Click to add star · Drag to place · Hold to crumple & flow</span>
-      </div>
     </div>
   );
-}
+});
+
+InteractiveLedgerNetwork.displayName = 'InteractiveLedgerNetwork';
+
+export default InteractiveLedgerNetwork;
