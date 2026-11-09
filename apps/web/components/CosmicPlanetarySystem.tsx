@@ -27,6 +27,15 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
             }}
           />
 
+          {/* Local atmospheric contrast shield behind the central headline area */}
+          <div
+            className="absolute top-[16%] left-1/2 -translate-x-1/2 w-[840px] max-w-[94vw] h-[240px] rounded-full blur-[70px] pointer-events-none opacity-85"
+            style={{
+              background:
+                'radial-gradient(ellipse at 50% 50%, rgba(8, 7, 18, 0.90) 0%, rgba(8, 7, 18, 0.60) 55%, transparent 85%)',
+            }}
+          />
+
           {/* Subtle atmospheric violet glow bloom accentuating the planetary crescent */}
           <div
             className="absolute -top-[10%] -right-[5%] w-[850px] h-[850px] rounded-full blur-[120px] opacity-35 pointer-events-none"
@@ -53,6 +62,15 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
             style={{
               background:
                 'radial-gradient(circle, rgba(246, 217, 206, 0.50) 0%, rgba(196, 221, 249, 0.30) 40%, transparent 75%)',
+            }}
+          />
+
+          {/* Local atmospheric contrast shield behind the central headline area in light mode */}
+          <div
+            className="absolute top-[16%] left-1/2 -translate-x-1/2 w-[840px] max-w-[94vw] h-[240px] rounded-full blur-[70px] pointer-events-none opacity-80"
+            style={{
+              background:
+                'radial-gradient(ellipse at 50% 50%, rgba(244, 241, 250, 0.95) 0%, rgba(244, 241, 250, 0.65) 55%, transparent 85%)',
             }}
           />
 

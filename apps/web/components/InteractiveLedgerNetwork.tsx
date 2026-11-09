@@ -812,7 +812,7 @@ const InteractiveLedgerNetwork = forwardRef<
         ctx.stroke();
       }
 
-      // 6. Draw connection lines
+      // 6. Draw connection lines with adaptive high-contrast outlines
       for (let i = 0; i < edges.length; i++) {
         const [aIdx, bIdx, isDashed] = edges[i];
         const a = nodes[aIdx];
@@ -823,29 +823,53 @@ const InteractiveLedgerNetwork = forwardRef<
         const isSelectedEdge = selectedIndex === aIdx || selectedIndex === bIdx;
         const maxHighlight = Math.max(a.highlight, b.highlight);
 
+        // Check if edge is in the upper-right planetary horizon
+        const isNearPlanet = (a.x > width * 0.48 && a.y < height * 0.58) || (b.x > width * 0.48 && b.y < height * 0.58);
+
+        const baseAlpha = isNearPlanet ? 0.45 : 0.28;
         const alpha =
           mode === 'CRUMPLED'
-            ? 0.55
+            ? 0.60
             : isSelectedEdge
-            ? 0.90
+            ? 0.95
             : isHovered
-            ? 0.85
+            ? 0.90
             : isDark
-            ? 0.25 + maxHighlight * 0.45
-            : 0.28 + maxHighlight * 0.45;
+            ? baseAlpha + maxHighlight * 0.45
+            : 0.32 + maxHighlight * 0.45;
 
+        const lineWidth = isDashed ? 1 : isSelectedEdge ? 2.4 : isHovered ? 2.2 : 1.4 + maxHighlight * 0.55;
+
+        // Pass 1: Subtle shadow contrast pass for lines near the bright planet rim
+        if (isDark && (isNearPlanet || isHovered || isSelectedEdge)) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(8, 7, 18, 0.70)';
+          ctx.lineWidth = lineWidth + 1.4;
+          if (isDashed && mode !== 'CRUMPLED') {
+            ctx.setLineDash([4, 4]);
+          } else {
+            ctx.setLineDash([]);
+          }
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+
+        // Pass 2: Primary luminous line
         ctx.beginPath();
         ctx.strokeStyle = isSelectedEdge
           ? isDark
-            ? 'rgba(189, 117, 233, 0.95)'
+            ? 'rgba(189, 117, 233, 0.98)'
             : 'rgba(41, 75, 122, 0.90)'
           : isHovered
           ? isDark
-            ? 'rgba(100, 142, 255, 0.90)'
+            ? 'rgba(100, 142, 255, 0.95)'
             : 'rgba(32, 61, 101, 0.85)'
+          : isNearPlanet && isDark
+          ? `rgba(189, 117, 233, ${alpha.toFixed(3)})`
           : `${primaryLine} ${alpha.toFixed(3)})`;
 
-        ctx.lineWidth = isDashed ? 1 : isSelectedEdge ? 2.2 : isHovered ? 2 : 1.35 + maxHighlight * 0.5;
+        ctx.lineWidth = lineWidth;
 
         if (isDashed && mode !== 'CRUMPLED') {
           ctx.setLineDash([4, 4]);
@@ -877,22 +901,22 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.beginPath();
           ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
           ctx.strokeStyle = isDark ? 'rgba(100, 142, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 1.6;
           ctx.stroke();
 
           // Middle orbital ring (Magenta Glow)
           ctx.beginPath();
           ctx.arc(x, y, radius + 13, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.75)' : 'rgba(124, 58, 237, 0.50)';
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.80)' : 'rgba(124, 58, 237, 0.50)';
+          ctx.lineWidth = 1.4;
           ctx.stroke();
 
           // Outer subtle orbital ring (Soft Cyan dashed)
           ctx.beginPath();
           ctx.setLineDash([3, 4]);
           ctx.arc(x, y, radius + 19, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(117, 200, 240, 0.45)' : 'rgba(41, 75, 122, 0.35)';
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = isDark ? 'rgba(117, 200, 240, 0.55)' : 'rgba(41, 75, 122, 0.35)';
+          ctx.lineWidth = 1.2;
           ctx.stroke();
           ctx.setLineDash([]);
         }
@@ -907,7 +931,7 @@ const InteractiveLedgerNetwork = forwardRef<
               ? 'rgba(66, 214, 176, 0.55)'
               : 'rgba(19, 131, 93, 0.40)'
             : isDark
-            ? `rgba(189, 117, 233, ${(0.32 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
+            ? `rgba(189, 117, 233, ${(0.35 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
             : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
           ctx.lineWidth = isDragged ? 2 : isHovered ? 1.5 : 1;
           ctx.stroke();
@@ -918,15 +942,25 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.beginPath();
           ctx.arc(x, y, radius + 9 + 3 * starPulse, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
-            ? `rgba(129, 85, 217, ${(0.14 + 0.12 * starPulse).toFixed(3)})`
+            ? `rgba(129, 85, 217, ${(0.16 + 0.12 * starPulse).toFixed(3)})`
             : `rgba(41, 75, 122, ${(0.08 + 0.08 * starPulse).toFixed(3)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
         }
 
-        // Main node dot
-        ctx.beginPath();
+        // Main node dot with crisp contrast backing
         const currentRadius = radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight * 1.2);
+        
+        // Subtle dark contrast stroke behind node
+        if (isDark) {
+          ctx.beginPath();
+          ctx.arc(x, y, currentRadius + 1, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(8, 7, 18, 0.70)';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
         ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
 
         if (isBalanced) {
