@@ -58,8 +58,10 @@ interface StatementResponse {
   hasMore: boolean;
 }
 
-// Client-side computed SVG line chart of balance over time
-function BalanceHistoryChart({ entries }: { entries: StatementEntry[] }) {
+// Client-side computed SVG line chart of balance over time with interactive scrubbing inspector
+function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[]; loading?: boolean }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   const chartData = useMemo(() => {
     if (!entries || entries.length === 0) return null;
     const chronological = [...entries].reverse();
@@ -85,7 +87,7 @@ function BalanceHistoryChart({ entries }: { entries: StatementEntry[] }) {
           ? padLeft + (idx / (chronological.length - 1)) * usableWidth
           : padLeft + usableWidth / 2;
       const y = padTop + (1 - (val - minVal) / range) * usableHeight;
-      return { x, y, val, date: e.createdAt };
+      return { x, y, val, entry: e };
     });
 
     const pathD =
@@ -119,24 +121,100 @@ function BalanceHistoryChart({ entries }: { entries: StatementEntry[] }) {
     };
   }, [entries]);
 
+  if (loading) {
+    return (
+      <div className="bg-white border border-rule rounded p-4 space-y-3 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="h-3.5 w-28 bg-rule/50 rounded" />
+          <div className="h-3 w-16 bg-rule/40 rounded" />
+        </div>
+        <div className="h-32 bg-paper/70 border border-dashed border-rule rounded flex items-center justify-center">
+          <span className="mono-num text-[11px] text-ink-faint">Loading telemetry stream...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!chartData || chartData.coords.length === 0) return null;
 
   const { coords, pathD, minVal, maxVal, midVal, firstDate, lastDate, width, height, padLeft, padTop, usableWidth, usableHeight } = chartData;
+  const activePt = hoveredIdx !== null && coords[hoveredIdx] ? coords[hoveredIdx] : null;
 
   return (
-    <div className="bg-white border border-rule rounded p-4 space-y-2">
+    <div className="bg-white border border-rule rounded p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-ink-muted font-medium">Balance over time</span>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-ink-muted font-medium">Balance over time</span>
+          {activePt && (
+            <span className="text-[11px] mono-num text-accent bg-paper px-2 py-0.5 rounded border border-rule animate-in fade-in duration-100">
+              Point #{hoveredIdx! + 1} of {coords.length}
+            </span>
+          )}
+        </div>
         <span className="text-xs mono-num text-ink-faint">
           {coords.length} {coords.length === 1 ? 'datapoint' : 'datapoints'}
         </span>
       </div>
 
-      <div className="w-full overflow-x-auto">
+      {/* Interactive Scrubbing Ribbon */}
+      {activePt ? (
+        <div className="p-2.5 bg-paper border border-rule rounded flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
+          <div className="flex items-center space-x-2">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{
+                background:
+                  activePt.entry.status === 'REFUSED'
+                    ? 'var(--ink-faint)'
+                    : activePt.entry.direction === 'DEBIT'
+                    ? 'var(--ledger-red)'
+                    : 'var(--ledger-green)',
+              }}
+            />
+            <span className="font-semibold text-ink truncate max-w-[280px]">
+              {activePt.entry.note || activePt.entry.type}
+            </span>
+            <span className="text-ink-faint">·</span>
+            <span className="mono-num text-[11px] text-ink-muted whitespace-nowrap">
+              {new Date(activePt.entry.createdAt).toLocaleString('en-IN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-3 mono-num ml-auto">
+            <span
+              className={
+                activePt.entry.status === 'REFUSED'
+                  ? 'text-ink-faint line-through'
+                  : activePt.entry.direction === 'DEBIT'
+                  ? 'text-ledger-red font-medium'
+                  : 'text-ledger-green font-medium'
+              }
+            >
+              {activePt.entry.status === 'REFUSED'
+                ? 'REFUSED'
+                : `${activePt.entry.direction === 'DEBIT' ? '-' : '+'}₹${(
+                    Number(activePt.entry.amountPence) / 100
+                  ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+            </span>
+            <span className="text-ink-faint">→</span>
+            <span className="font-semibold text-ink bg-white px-2 py-0.5 rounded border border-rule">
+              ₹{activePt.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="w-full overflow-x-auto relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-32 overflow-visible select-none"
           preserveAspectRatio="none"
+          onMouseLeave={() => setHoveredIdx(null)}
         >
           {/* Hairline Gridlines */}
           <line
@@ -193,6 +271,20 @@ function BalanceHistoryChart({ entries }: { entries: StatementEntry[] }) {
             ₹{minVal.toFixed(0)}
           </text>
 
+          {/* Active Vertical Guideline on Hover */}
+          {activePt && (
+            <line
+              x1={activePt.x}
+              y1={padTop}
+              x2={activePt.x}
+              y2={padTop + usableHeight}
+              stroke="var(--accent)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+              opacity="0.6"
+            />
+          )}
+
           {/* Balance Path Line (thin 1.5px var(--accent)) */}
           <path
             d={pathD}
@@ -204,15 +296,39 @@ function BalanceHistoryChart({ entries }: { entries: StatementEntry[] }) {
           />
 
           {/* Data points */}
-          {coords.map((pt, i) => (
-            <circle
-              key={i}
-              cx={pt.x}
-              cy={pt.y}
-              r="2.5"
-              fill="var(--accent)"
-            />
-          ))}
+          {coords.map((pt, i) => {
+            const isHovered = hoveredIdx === i;
+            return (
+              <circle
+                key={i}
+                cx={pt.x}
+                cy={pt.y}
+                r={isHovered ? 5 : 2.5}
+                fill="var(--accent)"
+                stroke={isHovered ? '#ffffff' : 'none'}
+                strokeWidth={isHovered ? 2 : 0}
+                className="transition-all duration-100"
+              />
+            );
+          })}
+
+          {/* Interactive Scrubbing Rectangles */}
+          {coords.map((pt, i) => {
+            const sliceWidth = coords.length > 1 ? usableWidth / (coords.length - 1) : usableWidth;
+            const sliceX = Math.max(padLeft, pt.x - sliceWidth / 2);
+            return (
+              <rect
+                key={`slice-${i}`}
+                x={sliceX}
+                y={padTop}
+                width={sliceWidth}
+                height={usableHeight}
+                fill="transparent"
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredIdx(i)}
+              />
+            );
+          })}
 
           {/* X-axis Date Labels */}
           <text
@@ -442,9 +558,11 @@ export default function AccountStatementPage() {
       )}
 
       {/* Balance Over Time Line Chart (Computed client-side from entries) */}
-      {statement?.entries && statement.entries.length > 0 && (
+      {loading ? (
+        <BalanceHistoryChart loading={true} />
+      ) : statement?.entries && statement.entries.length > 0 ? (
         <BalanceHistoryChart entries={statement.entries} />
-      )}
+      ) : null}
 
       {/* Statement Table */}
       <div className="bg-white border border-rule rounded overflow-hidden">
@@ -480,11 +598,18 @@ export default function AccountStatementPage() {
             </thead>
             <tbody className="divide-y divide-rule bg-white">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-ink-muted">
-                    Loading statement ledger entries...
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-5 py-3.5"><div className="h-3.5 w-32 bg-rule/50 rounded" /></td>
+                    <td className="px-5 py-3.5"><div className="h-3.5 w-20 bg-rule/50 rounded" /></td>
+                    <td className="px-5 py-3.5 text-right"><div className="h-3.5 w-20 bg-rule/50 rounded ml-auto" /></td>
+                    <td className="px-5 py-3.5 text-center"><div className="h-3.5 w-16 bg-rule/40 rounded mx-auto" /></td>
+                    <td className="px-5 py-3.5 text-right"><div className="h-3.5 w-24 bg-rule/50 rounded ml-auto" /></td>
+                    <td className="px-5 py-3.5"><div className="h-3.5 w-28 bg-rule/40 rounded" /></td>
+                    <td className="px-5 py-3.5"><div className="h-3.5 w-48 bg-rule/30 rounded" /></td>
+                    <td className="px-5 py-3.5 text-right"><div className="h-3.5 w-14 bg-rule/40 rounded ml-auto" /></td>
+                  </tr>
+                ))
               ) : statement?.entries.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-ink-muted">

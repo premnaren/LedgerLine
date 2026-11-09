@@ -7,6 +7,8 @@ import {
   ArrowRightLeft,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowRight,
+  CheckCircle2,
   RotateCcw,
   Copy,
   Check,
@@ -262,7 +264,7 @@ export default function TransactionDrawer({
             </div>
           </div>
 
-          {/* SHA-256 Proof */}
+          {/* SHA-256 Proof & Visual Merkle-Chain Diagram */}
           <div className="border border-rule rounded p-4 space-y-3 bg-white">
             <div className="flex items-center justify-between pb-2 border-b border-rule">
               <span className="font-semibold text-ink flex items-center space-x-1.5">
@@ -270,6 +272,53 @@ export default function TransactionDrawer({
                 <span>Cryptographic seal</span>
               </span>
               <span className="mono-num text-[10px] text-ink-muted">SHA-256</span>
+            </div>
+
+            {/* Visual Hash-Chain Continuity Block Diagram */}
+            <div className="bg-paper border border-rule rounded p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-ink-muted font-semibold uppercase tracking-wider">
+                  Block pointer continuity
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-ledger-green font-medium">
+                  <CheckCircle2 className="h-3 w-3 text-ledger-green" />
+                  Verified link
+                </span>
+              </div>
+
+              <div className="grid grid-cols-11 items-center gap-1.5 text-xs">
+                {/* Parent Block */}
+                <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
+                  <div className="flex items-center space-x-1 text-[10px] text-ink-muted mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                    <span className="font-medium truncate">Parent seal</span>
+                  </div>
+                  <div className="mono-num text-[11px] text-ink font-semibold truncate select-all">
+                    {entry.prevHash ? `${entry.prevHash.slice(0, 8)}...` : 'Genesis'}
+                  </div>
+                </div>
+
+                {/* Vector Flow Connector */}
+                <div className="col-span-1 flex flex-col items-center justify-center">
+                  <ArrowRight className="h-3.5 w-3.5 text-accent" />
+                </div>
+
+                {/* Current Block */}
+                <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
+                  <div className="flex items-center space-x-1 text-[10px] text-accent mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                    <span className="font-semibold truncate">Current seal</span>
+                  </div>
+                  <div className="mono-num text-[11px] text-accent font-semibold truncate select-all">
+                    {entry.hash ? `${entry.hash.slice(0, 8)}...` : 'Unsealed'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] mono-num text-ink-faint flex items-center justify-between pt-1 border-t border-rule">
+                <span>Tamper-evident link</span>
+                <span>SHA256(prev || id || date || Δ)</span>
+              </div>
             </div>
 
             <div className="space-y-1">

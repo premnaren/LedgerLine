@@ -369,11 +369,19 @@ export default function AuditPage() {
             </thead>
             <tbody className="divide-y divide-rule bg-white">
               {loading ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-ink-muted">
-                    Loading global audit entries...
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-24 bg-rule/50 rounded" /></td>
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-20 bg-rule/50 rounded" /></td>
+                    <td className="px-4 py-3.5 text-center"><div className="h-3.5 w-16 bg-rule/40 rounded mx-auto" /></td>
+                    <td className="px-4 py-3.5 text-right"><div className="h-3.5 w-20 bg-rule/50 rounded ml-auto" /></td>
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-28 bg-rule/40 rounded" /></td>
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-28 bg-rule/40 rounded" /></td>
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-24 bg-rule/40 rounded" /></td>
+                    <td className="px-4 py-3.5"><div className="h-3.5 w-40 bg-rule/30 rounded" /></td>
+                    <td className="px-4 py-3.5 text-right"><div className="h-3.5 w-12 bg-rule/40 rounded ml-auto" /></td>
+                  </tr>
+                ))
               ) : entries.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-ink-muted">

@@ -666,11 +666,24 @@ export default function DashboardPage() {
         {/* Account Cards Grid */}
         {loading && accounts.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1, 2].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-44 bg-white border border-rule rounded p-5 animate-pulse"
-              />
+                className="h-44 bg-white border border-rule rounded p-5 flex flex-col justify-between animate-pulse"
+              >
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="h-3 w-28 bg-rule/50 rounded" />
+                    <div className="h-3 w-12 bg-rule/40 rounded" />
+                  </div>
+                  <div className="h-4 w-36 bg-rule/60 rounded mb-2" />
+                  <div className="h-7 w-44 bg-rule/50 rounded" />
+                </div>
+                <div className="pt-3 border-t border-rule flex justify-between items-center">
+                  <div className="h-3 w-28 bg-rule/40 rounded" />
+                  <div className="h-3 w-16 bg-rule/40 rounded" />
+                </div>
+              </div>
             ))}
           </div>
         ) : accounts.length === 0 ? (
