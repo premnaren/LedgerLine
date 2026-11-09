@@ -33,7 +33,7 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/prototype') {
     return null;
   }
 
