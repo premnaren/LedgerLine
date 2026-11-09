@@ -13,7 +13,6 @@ import {
   Lock,
   ArrowRight,
   Sparkles,
-  Layers,
 } from 'lucide-react';
 import { setAccessToken, setUser, getUser } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -170,21 +169,6 @@ export default function CommandPalette({
         onSelect: () => {
           onClose();
           router.push('/admin/audit');
-        },
-      },
-      {
-        id: 'prototype-viewer',
-        title: 'Figma Prototype Reviewer & Spec Suite',
-        description: 'Interactive canvas prototype with clickable hotspots, device chrome, and design tokens',
-        category: 'NAVIGATION',
-        badge: 'Design System',
-        badgeType: 'navigation',
-        keywords: ['figma', 'prototype', 'design', 'spec', 'tokens', 'review', 'hotspot'],
-        icon: <Layers className="h-4 w-4 text-accent" />,
-        iconBg: 'bg-paper text-accent border border-rule',
-        onSelect: () => {
-          onClose();
-          router.push('/prototype');
         },
       },
 
