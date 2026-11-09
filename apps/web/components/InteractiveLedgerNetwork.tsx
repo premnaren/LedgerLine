@@ -8,15 +8,26 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from 'react';
+import {
+  STAR_CATALOGUE,
+  CONSTELLATION_PRESETS,
+  ConstellationPreset,
+  StarRecord,
+  STAR_BY_ID,
+  getNextConstellationPreset,
+} from '@/lib/starCatalogue';
 
 export interface InteractiveLedgerNetworkHandle {
   addStar: () => void;
   regenerate: () => void;
   reset: () => void;
+  nextConstellation: () => void;
+  getCurrentConstellation: () => ConstellationPreset;
 }
 
-interface RuntimeNode {
-  id: number;
+interface RuntimeStarNode {
+  id: string; // Real star ID (e.g. "orion-betelgeuse")
+  star: StarRecord;
   x: number;
   y: number;
   vx: number;
@@ -25,12 +36,26 @@ interface RuntimeNode {
   baseY: number;
   targetX: number;
   targetY: number;
+  startX: number;
+  startY: number;
   radius: number;
-  isHub: boolean;
-  isBalanced: boolean;
+  baseRadius: number;
+  alpha: number;
+  targetAlpha: number;
+  startAlpha: number;
+  importance: 'major' | 'secondary' | 'supporting';
   highlight: number;
   creaseAngle: number;
   creaseDist: number;
+}
+
+interface RuntimeEdge {
+  fromId: string;
+  toId: string;
+  isSecondary: boolean;
+  alpha: number;
+  targetAlpha: number;
+  startAlpha: number;
 }
 
 interface WaterRipple {
@@ -61,14 +86,18 @@ interface StardustParticle {
   decay: number;
 }
 
-interface ShootingStar {
-  x: number;
-  y: number;
-  len: number;
-  speed: number;
-  angle: number;
-  alpha: number;
+interface CelestialComet {
   active: boolean;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  angle: number;
+  totalDist: number;
+  traveledDist: number;
+  speed: number;
+  tailLength: number;
+  alpha: number;
 }
 
 type InteractionMode = 'IDLE' | 'CRUMPLED' | 'POURING';
@@ -77,17 +106,17 @@ interface NetworkState {
   width: number;
   height: number;
   dpr: number;
-  nodes: RuntimeNode[];
-  edges: [number, number, boolean?][];
+  nodes: RuntimeStarNode[];
+  edges: RuntimeEdge[];
   stars: StarDust[];
   particles: StardustParticle[];
-  shootingStar: ShootingStar | null;
+  comet: CelestialComet | null;
   time: number;
   mouseX: number | null;
   mouseY: number | null;
-  hoveredIndex: number | null;
-  draggedIndex: number | null;
-  selectedIndex: number | null;
+  hoveredId: string | null;
+  draggedId: string | null;
+  selectedId: string | null;
   mode: InteractionMode;
   crumpleCenter: { x: number; y: number } | null;
   crumpleProgress: number;
@@ -95,15 +124,76 @@ interface NetworkState {
   isHolding: boolean;
   holdStartTime: number;
   downPos: { x: number; y: number } | null;
+  currentPresetIndex: number;
+  isTransitioning: boolean;
+  transitionStartTime: number;
+  transitionDuration: number;
+}
+
+// Cubic ease-in-out for celestial transitions
+function cubicEaseInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// Calculate visual radius and halo based on astronomical magnitude
+function calcStarRadius(mag: number, importance: string): { radius: number; haloRadius: number } {
+  let r = 5.2 - mag * 0.65;
+  if (importance === 'major') r = Math.max(r, 5.6);
+  r = Math.max(3.2, Math.min(7.2, r));
+  const halo = r * (importance === 'major' ? 2.4 : 1.8);
+  return { radius: r, haloRadius: halo };
+}
+
+// Project constellation coordinates onto canvas viewing window
+function projectPresetCoordinates(
+  preset: ConstellationPreset,
+  width: number,
+  height: number
+): Map<string, { x: number; y: number }> {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  for (const s of preset.stars) {
+    if (s.position.x < minX) minX = s.position.x;
+    if (s.position.x > maxX) maxX = s.position.x;
+    if (s.position.y < minY) minY = s.position.y;
+    if (s.position.y > maxY) maxY = s.position.y;
+  }
+
+  const spanX = Math.max(0.12, maxX - minX);
+  const spanY = Math.max(0.12, maxY - minY);
+
+  // Desktop: Anchor in left celestial field (x ~ 0.28) framing the central card
+  // Tablet/Mobile: Center across available viewport with comfortable margins
+  const isDesktop = width >= 1024;
+  const centerX = isDesktop ? width * 0.28 : width * 0.50;
+  const centerY = isDesktop ? height * 0.50 : height * 0.44;
+
+  const targetW = isDesktop ? Math.min(width * 0.40, 560) : Math.min(width * 0.76, 440);
+  const targetH = isDesktop ? Math.min(height * 0.65, 600) : Math.min(height * 0.52, 460);
+  const scale = Math.min(targetW / spanX, targetH / spanY);
+
+  const starPositions = new Map<string, { x: number; y: number }>();
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+
+  for (const s of preset.stars) {
+    const x = centerX + (s.position.x - midX) * scale;
+    const y = centerY + (s.position.y - midY) * scale;
+    starPositions.set(s.id, { x, y });
+  }
+
+  return starPositions;
 }
 
 const InteractiveLedgerNetwork = forwardRef<
   InteractiveLedgerNetworkHandle,
-  { isDark?: boolean; showInternalControls?: boolean }
->(({ isDark = true, showInternalControls = false }, ref) => {
+  { isDark?: boolean }
+>(({ isDark = true }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [, setNodeCount] = useState<number>(28);
 
   const stateRef = useRef<NetworkState>({
     width: 0,
@@ -113,13 +203,13 @@ const InteractiveLedgerNetwork = forwardRef<
     edges: [],
     stars: [],
     particles: [],
-    shootingStar: null,
+    comet: null,
     time: 0,
     mouseX: null,
     mouseY: null,
-    hoveredIndex: null,
-    draggedIndex: null,
-    selectedIndex: null,
+    hoveredId: null,
+    draggedId: null,
+    selectedId: null,
     mode: 'IDLE',
     crumpleCenter: null,
     crumpleProgress: 0,
@@ -127,30 +217,24 @@ const InteractiveLedgerNetwork = forwardRef<
     isHolding: false,
     holdStartTime: 0,
     downPos: null,
+    currentPresetIndex: 0,
+    isTransitioning: false,
+    transitionStartTime: 0,
+    transitionDuration: 1100,
   });
 
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cometTimerRef = useRef<NodeJS.Timeout | null>(null);
   const triggerWakeRef = useRef<(() => void) | null>(null);
 
-  // Helper: check if a normalized point is inside protected zones
-  // 1. Top-left logo zone: rx < 0.28 && ry < 0.16
-  // 2. Top-right controls zone: rx > 0.74 && ry < 0.16
-  // 3. Center Auth Card: rx > 0.33 && rx < 0.67 && ry > 0.16 && ry < 0.84
-  const isProtectedZone = (rx: number, ry: number) => {
-    if (rx < 0.28 && ry < 0.16) return true; // Brand badge
-    if (rx > 0.74 && ry < 0.16) return true; // Top controls
-    if (rx > 0.33 && rx < 0.67 && ry > 0.16 && ry < 0.84) return true; // Centered Auth Card
-    return false;
-  };
-
-  // Helper: generate celestial micro-star dust in background
-  const generateStars = (width: number, height: number, count = 64): StarDust[] => {
+  // Background micro-stardust field
+  const generateStars = (width: number, height: number, count = 72): StarDust[] => {
     const stars: StarDust[] = [];
     for (let i = 0; i < count; i++) {
       stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: 0.6 + Math.random() * 1.5,
+        size: 0.6 + Math.random() * 1.6,
         alpha: 0.15 + Math.random() * 0.40,
         baseAlpha: 0.15 + Math.random() * 0.40,
         twinkleSpeed: 0.015 + Math.random() * 0.025,
@@ -160,436 +244,451 @@ const InteractiveLedgerNetwork = forwardRef<
     return stars;
   };
 
-  // Helper: generate completely randomized, non-overlapping nodes avoiding protected zones
-  const generateRandomizedLayout = (width: number, height: number, count = 28) => {
-    const newNodes: RuntimeNode[] = [];
-    const minPixelDist = Math.min(width, height) * 0.09;
+  // Build runtime state from a constellation preset
+  const buildPresetNodesAndEdges = (
+    preset: ConstellationPreset,
+    width: number,
+    height: number
+  ) => {
+    const posMap = projectPresetCoordinates(preset, width, height);
+    const newNodes: RuntimeStarNode[] = [];
 
-    for (let i = 0; i < count; i++) {
-      let x = 0;
-      let y = 0;
-      let valid = false;
-      let attempts = 0;
+    preset.stars.forEach((star, idx) => {
+      const pos = posMap.get(star.id) || { x: width * 0.5, y: height * 0.5 };
+      const { radius } = calcStarRadius(star.magnitude, star.importance);
 
-      while (!valid && attempts < 100) {
-        attempts++;
-        const rx = 0.06 + Math.random() * 0.88;
-        const ry = 0.08 + Math.random() * 0.84;
-
-        if (isProtectedZone(rx, ry)) continue;
-
-        const candidateX = rx * width;
-        const candidateY = ry * height;
-
-        const tooClose = newNodes.some(
-          (n) => Math.hypot(n.targetX - candidateX, n.targetY - candidateY) < minPixelDist
-        );
-
-        if (!tooClose || attempts > 70) {
-          x = candidateX;
-          y = candidateY;
-          valid = true;
-        }
-      }
-
-      const isHub = i === 1 || i === 7 || i === 14 || i === 21;
-      const isBalanced = i === 11;
-      const radius = isHub ? 8.5 : isBalanced ? 7 : 4.5 + (i % 3) * 1.2;
-
-      // Unique crumple paper origami crease offset
-      const creaseAngle = (i / count) * Math.PI * 2 + ((i * 3) % 7) * 0.35;
-      const creaseDist = 12 + (i % 5) * 6 + ((i * 3) % 9);
+      const creaseAngle = (idx / preset.stars.length) * Math.PI * 2 + ((idx * 3) % 7) * 0.35;
+      const creaseDist = 12 + (idx % 5) * 6 + ((idx * 3) % 9);
 
       newNodes.push({
-        id: i,
-        x,
-        y,
+        id: star.id,
+        star,
+        x: pos.x,
+        y: pos.y,
         vx: 0,
         vy: 0,
-        baseX: x,
-        baseY: y,
-        targetX: x,
-        targetY: y,
+        baseX: pos.x,
+        baseY: pos.y,
+        targetX: pos.x,
+        targetY: pos.y,
+        startX: pos.x,
+        startY: pos.y,
         radius,
-        isHub,
-        isBalanced,
+        baseRadius: radius,
+        alpha: 1.0,
+        targetAlpha: 1.0,
+        startAlpha: 1.0,
+        importance: star.importance,
         highlight: 0,
         creaseAngle,
         creaseDist,
       });
-    }
+    });
 
-    // Connect to 2-3 closest nodes
-    const edges: [number, number, boolean?][] = [];
-    const edgeSet = new Set<string>();
+    const newEdges: RuntimeEdge[] = [];
+    preset.primaryEdges.forEach(([fromId, toId]) => {
+      newEdges.push({
+        fromId,
+        toId,
+        isSecondary: false,
+        alpha: 0.85,
+        targetAlpha: 0.85,
+        startAlpha: 0.85,
+      });
+    });
 
-    for (let i = 0; i < newNodes.length; i++) {
-      const dists = newNodes
-        .map((n, j) => ({
-          idx: j,
-          dist:
-            i === j ? Infinity : Math.hypot(n.targetX - newNodes[i].targetX, n.targetY - newNodes[i].targetY),
-        }))
-        .sort((a, b) => a.dist - b.dist);
+    preset.secondaryEdges.forEach(([fromId, toId]) => {
+      newEdges.push({
+        fromId,
+        toId,
+        isSecondary: true,
+        alpha: 0.45,
+        targetAlpha: 0.45,
+        startAlpha: 0.45,
+      });
+    });
 
-      const connectCount = 2 + Math.floor(Math.random() * 2);
-      for (let c = 0; c < Math.min(connectCount, dists.length); c++) {
-        const j = dists[c].idx;
-        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
-        if (!edgeSet.has(key)) {
-          edgeSet.add(key);
-          const isDashed = Math.random() < 0.14;
-          edges.push([i, j, isDashed]);
-        }
-      }
-    }
-
-    return { nodes: newNodes, edges };
+    return { nodes: newNodes, edges: newEdges };
   };
 
-  // Trigger: Add node programmatically from control group or hotkey
-  const handleAddNode = useCallback(() => {
-    const state = stateRef.current;
-    if (state.width === 0 || state.height === 0) return;
+  // Launch a cinematic comet that travels across the entire page
+  const launchComet = useCallback((width: number, height: number) => {
+    if (width <= 0 || height <= 0) return;
 
-    // Find a valid open position around the periphery
-    let px = state.width * 0.22;
-    let py = state.height * 0.45;
-    let attempts = 0;
+    // Natural diagonal angle towards bottom-right (~32-37 degrees)
+    const angle = Math.PI * 0.19 + (Math.random() - 0.5) * 0.08;
+    const startX = -140;
+    const startY = Math.random() * (height * 0.32) - 60;
 
-    while (attempts < 60) {
-      attempts++;
-      const rx = 0.08 + Math.random() * 0.84;
-      const ry = 0.10 + Math.random() * 0.80;
-      if (!isProtectedZone(rx, ry)) {
-        px = rx * state.width;
-        py = ry * state.height;
-        break;
-      }
-    }
+    // Calculate complete travel distance to clear beyond the opposite edge
+    const reqDistX = (width + 240) - startX;
+    const reqDistY = (height + 240) - startY;
+    const totalDist = Math.max(reqDistX / Math.cos(angle), reqDistY / Math.sin(angle));
 
-    const newId = state.nodes.length;
-    state.nodes.push({
-      id: newId,
-      x: px,
-      y: py,
-      vx: 0,
-      vy: 0,
-      baseX: px,
-      baseY: py,
-      targetX: px,
-      targetY: py,
-      radius: 6,
-      isHub: false,
-      isBalanced: false,
-      highlight: 1,
-      creaseAngle: Math.random() * Math.PI * 2,
-      creaseDist: 18 + Math.random() * 12,
-    });
-
-    // Expanding ripples
-    state.ripples.push(
-      { x: px, y: py, radius: 10, maxRadius: 260, alpha: 0.85 },
-      { x: px, y: py, radius: 28, maxRadius: 190, alpha: 0.65 }
-    );
-
-    // Stardust burst
-    for (let p = 0; p < 12; p++) {
-      const pAngle = Math.random() * Math.PI * 2;
-      const pSpeed = 4 + Math.random() * 7;
-      state.particles.push({
-        x: px,
-        y: py,
-        vx: Math.cos(pAngle) * pSpeed,
-        vy: Math.sin(pAngle) * pSpeed,
-        radius: 1 + Math.random() * 2,
-        alpha: 0.9,
-        decay: 0.03 + Math.random() * 0.02,
-      });
-    }
-
-    // Connect to 2 closest nodes
-    const sorted = state.nodes
-      .slice(0, -1)
-      .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
-      .sort((a, b) => a.dist - b.dist);
-
-    if (sorted.length > 0) {
-      state.edges.push([sorted[0].idx, newId]);
-      state.nodes[sorted[0].idx].highlight = 0.8;
-    }
-    if (sorted.length > 1) {
-      state.edges.push([sorted[1].idx, newId]);
-      state.nodes[sorted[1].idx].highlight = 0.6;
-    }
-
-    state.selectedIndex = newId;
-    setNodeCount(state.nodes.length);
-    if (triggerWakeRef.current) triggerWakeRef.current();
-  }, []);
-
-  // Trigger: Regenerate network layout
-  const handleRegenerate = useCallback(() => {
-    const state = stateRef.current;
-    if (state.width === 0 || state.height === 0) return;
-    state.selectedIndex = null;
-    const cx = state.width * 0.5;
-    const cy = state.height * 0.5;
-
-    // Start water pour animation with new random constellation
-    const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(
-      state.width,
-      state.height,
-      state.nodes.length
-    );
-    state.edges = newEdges;
-
-    // Fluid splash ripples
-    state.ripples.push(
-      { x: cx, y: cy, radius: 15, maxRadius: 380, alpha: 0.85 },
-      { x: cx, y: cy, radius: 35, maxRadius: 300, alpha: 0.60 }
-    );
-
-    // Stardust burst
-    for (let p = 0; p < 32; p++) {
-      const pAngle = Math.random() * Math.PI * 2;
-      const pSpeed = 7 + Math.random() * 20;
-      state.particles.push({
-        x: cx,
-        y: cy,
-        vx: Math.cos(pAngle) * pSpeed,
-        vy: Math.sin(pAngle) * pSpeed,
-        radius: 1 + Math.random() * 2.5,
-        alpha: 0.95,
-        decay: 0.02 + Math.random() * 0.02,
-      });
-    }
-
-    state.nodes.forEach((node, i) => {
-      const target = newLayout[i];
-      node.baseX = target.targetX;
-      node.baseY = target.targetY;
-      node.targetX = target.targetX;
-      node.targetY = target.targetY;
-      node.radius = target.radius;
-      node.isHub = target.isHub;
-      node.isBalanced = target.isBalanced;
-
-      const angle = Math.atan2(target.targetY - cy, target.targetX - cx) + (Math.random() - 0.5) * 0.4;
-      const splashSpeed = 16 + Math.random() * 24;
-      node.vx = Math.cos(angle) * splashSpeed;
-      node.vy = Math.sin(angle) * splashSpeed;
-      node.highlight = 1;
-    });
-
-    state.mode = 'POURING';
-    if (triggerWakeRef.current) triggerWakeRef.current();
-  }, []);
-
-  // Trigger: Reset to canonical 28-node layout
-  const handleReset = useCallback(() => {
-    const state = stateRef.current;
-    if (state.width === 0 || state.height === 0) return;
-    state.selectedIndex = null;
-
-    const { nodes: newNodes, edges: newEdges } = generateRandomizedLayout(state.width, state.height, 28);
-    state.nodes = newNodes;
-    state.edges = newEdges;
-    setNodeCount(28);
-
-    state.ripples.push({
-      x: state.width * 0.5,
-      y: state.height * 0.5,
-      radius: 15,
-      maxRadius: 300,
-      alpha: 0.75,
-    });
-
-    if (triggerWakeRef.current) triggerWakeRef.current();
-  }, []);
-
-  useImperativeHandle(ref, () => ({
-    addStar: handleAddNode,
-    regenerate: handleRegenerate,
-    reset: handleReset,
-  }));
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let animFrameId: number | null = null;
-
-    const handleResize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      const d = Math.min(window.devicePixelRatio || 1, 2);
-
-      stateRef.current.width = w;
-      stateRef.current.height = h;
-      stateRef.current.dpr = d;
-
-      canvas.width = Math.floor(w * d);
-      canvas.height = Math.floor(h * d);
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(d, d);
-
-      // Preserve existing nodes during theme switches or resize
-      if (stateRef.current.nodes.length === 0) {
-        const { nodes, edges } = generateRandomizedLayout(w, h, 28);
-        stateRef.current.nodes = nodes;
-        stateRef.current.edges = edges;
-      }
-
-      stateRef.current.stars = generateStars(w, h, 64);
-      draw();
+    stateRef.current.comet = {
+      active: true,
+      startX,
+      startY,
+      currentX: startX,
+      currentY: startY,
+      angle,
+      totalDist,
+      traveledDist: 0,
+      speed: 16 + Math.random() * 4,
+      tailLength: 150 + Math.random() * 45,
+      alpha: 0,
     };
 
-    // Transition: Crumple paper mode
-    const startCrumple = (originX: number, originY: number) => {
-      const state = stateRef.current;
-      state.mode = 'CRUMPLED';
-      state.crumpleCenter = { x: originX, y: originY };
-      state.crumpleProgress = 0;
-      canvas.style.cursor = 'grabbing';
+    triggerWakeRef.current?.();
+  }, []);
 
-      state.nodes.forEach((node) => {
-        const tx = originX + Math.cos(node.creaseAngle) * node.creaseDist;
-        const ty = originY + Math.sin(node.creaseAngle) * node.creaseDist;
-        node.targetX = tx;
-        node.targetY = ty;
-        node.vx = (tx - node.x) * 0.22 + (Math.random() - 0.5) * 8;
-        node.vy = (ty - node.y) * 0.22 + (Math.random() - 0.5) * 8;
-        node.highlight = 1;
-      });
-
-      wakeLoop();
-    };
-
-    // Transition: Pour like water on floor / supernova splash
-    const startWaterPour = (releaseX: number, releaseY: number) => {
+  // Initiate a smooth celestial transition to a target constellation preset
+  const transitionToPreset = useCallback(
+    (targetPresetIndex: number) => {
       const state = stateRef.current;
       const { width, height } = state;
-      state.mode = 'POURING';
-      canvas.style.cursor = 'grab';
+      if (width <= 0 || height <= 0) return;
 
-      // Expanding ripples
-      state.ripples.push(
-        { x: releaseX, y: releaseY, radius: 10, maxRadius: 360, alpha: 0.75 },
-        { x: releaseX, y: releaseY, radius: 25, maxRadius: 260, alpha: 0.55 },
-        { x: releaseX, y: releaseY, radius: 45, maxRadius: 200, alpha: 0.40 }
-      );
+      const targetPreset = CONSTELLATION_PRESETS[targetPresetIndex];
+      const targetPosMap = projectPresetCoordinates(targetPreset, width, height);
+      const now = performance.now();
 
-      // Stardust particle burst
-      for (let p = 0; p < 28; p++) {
-        const pAngle = Math.random() * Math.PI * 2;
-        const pSpeed = 6 + Math.random() * 18;
-        state.particles.push({
-          x: releaseX,
-          y: releaseY,
-          vx: Math.cos(pAngle) * pSpeed,
-          vy: Math.sin(pAngle) * pSpeed,
-          radius: 1 + Math.random() * 2,
-          alpha: 0.95,
-          decay: 0.02 + Math.random() * 0.02,
+      state.isTransitioning = true;
+      state.transitionStartTime = now;
+      state.currentPresetIndex = targetPresetIndex;
+
+      // Existing nodes mapping
+      const currentNodes = state.nodes;
+      const targetStars = targetPreset.stars;
+
+      const updatedNodes: RuntimeStarNode[] = [];
+      const usedTargetIds = new Set<string>();
+
+      // 1. Re-use existing nodes
+      for (let i = 0; i < currentNodes.length; i++) {
+        const node = currentNodes[i];
+        if (i < targetStars.length) {
+          const targetStar = targetStars[i];
+          usedTargetIds.add(targetStar.id);
+          const targetPos = targetPosMap.get(targetStar.id) || {
+            x: width * 0.5,
+            y: height * 0.5,
+          };
+          const { radius } = calcStarRadius(targetStar.magnitude, targetStar.importance);
+
+          node.id = targetStar.id;
+          node.star = targetStar;
+          node.startX = node.x;
+          node.startY = node.y;
+          node.targetX = targetPos.x;
+          node.targetY = targetPos.y;
+          node.baseX = targetPos.x;
+          node.baseY = targetPos.y;
+          node.baseRadius = radius;
+          node.startAlpha = node.alpha;
+          node.targetAlpha = 1.0;
+          node.importance = targetStar.importance;
+          updatedNodes.push(node);
+        } else {
+          // Surplus node: fade out and dissolve
+          node.startX = node.x;
+          node.startY = node.y;
+          node.startAlpha = node.alpha;
+          node.targetAlpha = 0;
+          updatedNodes.push(node);
+        }
+      }
+
+      // 2. Introduce new nodes if target has more stars
+      for (let j = currentNodes.length; j < targetStars.length; j++) {
+        const targetStar = targetStars[j];
+        const targetPos = targetPosMap.get(targetStar.id) || {
+          x: width * 0.5,
+          y: height * 0.5,
+        };
+        const { radius } = calcStarRadius(targetStar.magnitude, targetStar.importance);
+
+        const spawnX = targetPos.x + (Math.random() - 0.5) * 60;
+        const spawnY = targetPos.y + (Math.random() - 0.5) * 60;
+
+        const creaseAngle = (j / targetStars.length) * Math.PI * 2;
+        const creaseDist = 14 + (j % 5) * 6;
+
+        updatedNodes.push({
+          id: targetStar.id,
+          star: targetStar,
+          x: spawnX,
+          y: spawnY,
+          vx: 0,
+          vy: 0,
+          baseX: targetPos.x,
+          baseY: targetPos.y,
+          targetX: targetPos.x,
+          targetY: targetPos.y,
+          startX: spawnX,
+          startY: spawnY,
+          radius,
+          baseRadius: radius,
+          alpha: 0,
+          targetAlpha: 1.0,
+          startAlpha: 0,
+          importance: targetStar.importance,
+          highlight: 0,
+          creaseAngle,
+          creaseDist,
         });
       }
 
-      // Generate brand new completely randomized destinations across open space
-      const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(
-        width,
-        height,
-        state.nodes.length
-      );
-      state.edges = newEdges;
+      state.nodes = updatedNodes;
 
-      // Fluid outward splash velocities
-      state.nodes.forEach((node, i) => {
-        const target = newLayout[i];
-        node.baseX = target.targetX;
-        node.baseY = target.targetY;
-        node.targetX = target.targetX;
-        node.targetY = target.targetY;
-        node.radius = target.radius;
-        node.isHub = target.isHub;
-        node.isBalanced = target.isBalanced;
+      // 3. Morph edges: old edges fade out, new edges fade in
+      const newEdges: RuntimeEdge[] = [];
 
-        const angle = Math.atan2(target.targetY - releaseY, target.targetX - releaseX) + (Math.random() - 0.5) * 0.4;
-        const splashSpeed = 16 + Math.random() * 22;
-
-        node.vx = Math.cos(angle) * splashSpeed;
-        node.vy = Math.sin(angle) * splashSpeed;
-        node.highlight = 1;
+      // Fade out current edges
+      state.edges.forEach((edge) => {
+        edge.startAlpha = edge.alpha;
+        edge.targetAlpha = 0;
+        newEdges.push(edge);
       });
 
-      wakeLoop();
+      // Add target primary edges
+      targetPreset.primaryEdges.forEach(([fromId, toId]) => {
+        newEdges.push({
+          fromId,
+          toId,
+          isSecondary: false,
+          alpha: 0,
+          startAlpha: 0,
+          targetAlpha: 0.85,
+        });
+      });
+
+      // Add target secondary edges
+      targetPreset.secondaryEdges.forEach(([fromId, toId]) => {
+        newEdges.push({
+          fromId,
+          toId,
+          isSecondary: true,
+          alpha: 0,
+          startAlpha: 0,
+          targetAlpha: 0.45,
+        });
+      });
+
+      state.edges = newEdges;
+      triggerWakeRef.current?.();
+    },
+    []
+  );
+
+  // Transition to next preset
+  const handleNextConstellation = useCallback(() => {
+    const { nextIndex } = getNextConstellationPreset(stateRef.current.currentPresetIndex);
+    transitionToPreset(nextIndex);
+  }, [transitionToPreset]);
+
+  // Reset current constellation to original positions
+  const handleReset = useCallback(() => {
+    const state = stateRef.current;
+    const currentPreset = CONSTELLATION_PRESETS[state.currentPresetIndex];
+    const posMap = projectPresetCoordinates(currentPreset, state.width, state.height);
+
+    state.nodes.forEach((node) => {
+      const pos = posMap.get(node.id);
+      if (pos) {
+        node.targetX = pos.x;
+        node.targetY = pos.y;
+        node.baseX = pos.x;
+        node.baseY = pos.y;
+        node.vx = 0;
+        node.vy = 0;
+      }
+    });
+
+    triggerWakeRef.current?.();
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      addStar: () => {
+        // Create an ethereal supporting star near mouse or left field
+        const state = stateRef.current;
+        const x = state.mouseX ?? state.width * 0.28;
+        const y = state.mouseY ?? state.height * 0.45;
+        state.ripples.push({
+          x,
+          y,
+          radius: 4,
+          maxRadius: 65,
+          alpha: 0.9,
+        });
+        triggerWakeRef.current?.();
+      },
+      regenerate: handleNextConstellation,
+      reset: handleReset,
+      nextConstellation: handleNextConstellation,
+      getCurrentConstellation: () => CONSTELLATION_PRESETS[stateRef.current.currentPresetIndex],
+    }),
+    [handleNextConstellation, handleReset]
+  );
+
+  // Canvas main rendering and interaction loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    let animFrameId: number | null = null;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const handleResize = () => {
+      const width = container.clientWidth || window.innerWidth;
+      const height = container.clientHeight || window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const state = stateRef.current;
+      state.width = width;
+      state.height = height;
+      state.dpr = dpr;
+
+      if (state.stars.length === 0) {
+        state.stars = generateStars(width, height, 72);
+      }
+
+      // Initialize with Orion if uninitialized
+      if (state.nodes.length === 0) {
+        const initial = buildPresetNodesAndEdges(
+          CONSTELLATION_PRESETS[0],
+          width,
+          height
+        );
+        state.nodes = initial.nodes;
+        state.edges = initial.edges;
+      } else {
+        // Reposition current nodes to match updated dimensions
+        const preset = CONSTELLATION_PRESETS[state.currentPresetIndex];
+        const posMap = projectPresetCoordinates(preset, width, height);
+        state.nodes.forEach((n) => {
+          const p = posMap.get(n.id);
+          if (p) {
+            n.baseX = p.x;
+            n.baseY = p.y;
+            n.targetX = p.x;
+            n.targetY = p.y;
+          }
+        });
+      }
+
+      triggerWake();
     };
 
-    const updatePhysics = () => {
+    // Physics & transition updates
+    const updatePhysics = (): boolean => {
       const state = stateRef.current;
-      const { nodes, mouseX, mouseY, mode, crumpleCenter, width, height, stars } = state;
+      const { width, height, mode, crumpleCenter } = state;
       let isSettled = true;
 
       state.time += 1;
 
-      // Update cosmic micro-star twinkle in dark mode
-      if (isDark) {
-        stars.forEach((star) => {
-          star.phase += star.twinkleSpeed;
-          star.alpha = star.baseAlpha * (0.65 + 0.35 * Math.sin(star.phase));
+      // 1. Constellation transition progress
+      if (state.isTransitioning) {
+        const now = performance.now();
+        const elapsed = now - state.transitionStartTime;
+        const progress = Math.min(1.0, elapsed / state.transitionDuration);
+        const ease = cubicEaseInOut(progress);
+
+        state.nodes.forEach((node) => {
+          node.x = node.startX + (node.targetX - node.startX) * ease;
+          node.y = node.startY + (node.targetY - node.startY) * ease;
+          node.alpha = node.startAlpha + (node.targetAlpha - node.startAlpha) * ease;
         });
+
+        state.edges.forEach((edge) => {
+          edge.alpha = edge.startAlpha + (edge.targetAlpha - edge.startAlpha) * ease;
+        });
+
+        if (progress >= 1.0) {
+          state.isTransitioning = false;
+          // Clean up dissolved nodes and edges
+          state.nodes = state.nodes.filter((n) => n.targetAlpha > 0);
+          state.edges = state.edges.filter((e) => e.targetAlpha > 0);
+        } else {
+          isSettled = false;
+        }
       }
 
-      // Update stardust particles
+      // 2. Comet movement across entire page
+      if (state.comet && state.comet.active) {
+        const c = state.comet;
+        c.traveledDist += c.speed;
+        const progress = c.traveledDist / c.totalDist;
+
+        c.currentX = c.startX + Math.cos(c.angle) * c.traveledDist;
+        c.currentY = c.startY + Math.sin(c.angle) * c.traveledDist;
+
+        // Opacity profile: stays brilliant across whole journey, fades at extreme ends
+        if (progress < 0.08) {
+          c.alpha = (progress / 0.08) * 0.92;
+        } else if (progress <= 0.88) {
+          c.alpha = 0.92;
+        } else {
+          c.alpha = Math.max(0, ((1.0 - progress) / 0.12) * 0.92);
+        }
+
+        // Shed trailing stardust wake
+        if (state.time % 3 === 0 && c.alpha > 0.2) {
+          state.particles.push({
+            x: c.currentX - Math.cos(c.angle) * 18 + (Math.random() - 0.5) * 6,
+            y: c.currentY - Math.sin(c.angle) * 18 + (Math.random() - 0.5) * 6,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8,
+            radius: 0.8 + Math.random() * 1.2,
+            alpha: c.alpha * 0.65,
+            decay: 0.035,
+          });
+        }
+
+        if (c.traveledDist >= c.totalDist) {
+          c.active = false;
+          state.comet = null;
+        } else {
+          isSettled = false;
+        }
+      }
+
+      // 3. Stardust particles update
       for (let p = state.particles.length - 1; p >= 0; p--) {
         const pt = state.particles[p];
         pt.x += pt.vx;
         pt.y += pt.vy;
-        pt.vx *= 0.90;
-        pt.vy *= 0.90;
+        pt.vx *= 0.92;
+        pt.vy *= 0.92;
         pt.alpha -= pt.decay;
-        if (pt.alpha <= 0.02) {
+        if (pt.alpha <= 0.015) {
           state.particles.splice(p, 1);
         } else {
           isSettled = false;
         }
       }
 
-      // Update shooting star streak
-      if (state.shootingStar && state.shootingStar.active) {
-        const ss = state.shootingStar;
-        ss.x += Math.cos(ss.angle) * ss.speed;
-        ss.y += Math.sin(ss.angle) * ss.speed;
-        ss.alpha *= 0.96;
-        if (ss.alpha < 0.02 || ss.x > width + 50 || ss.y > height + 50) {
-          ss.active = false;
-          state.shootingStar = null;
-        } else {
-          isSettled = false;
-        }
-      } else if (isDark && !prefersReducedMotion && Math.random() < 0.0015) {
-        state.shootingStar = {
-          x: Math.random() * (width * 0.6),
-          y: Math.random() * (height * 0.35),
-          len: 65 + Math.random() * 45,
-          speed: 13 + Math.random() * 7,
-          angle: Math.PI / 6 + (Math.random() - 0.5) * 0.2,
-          alpha: 0.55,
-          active: true,
-        };
-        isSettled = false;
-      }
-
-      // Update water splash ripples
+      // 4. Water splash ripples update
       for (let r = state.ripples.length - 1; r >= 0; r--) {
         const rip = state.ripples[r];
         rip.radius += 4.5;
-        rip.alpha *= 0.94;
+        rip.alpha *= 0.93;
         if (rip.alpha < 0.015 || rip.radius > rip.maxRadius) {
           state.ripples.splice(r, 1);
         } else {
@@ -597,118 +696,45 @@ const InteractiveLedgerNetwork = forwardRef<
         }
       }
 
+      // 5. Origami crumple mode
       if (mode === 'CRUMPLED') {
-        isSettled = false;
-        state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
+        if (state.crumpleProgress < 1) {
+          state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
+          isSettled = false;
+        }
 
-        const cx = mouseX !== null ? mouseX : crumpleCenter?.x || width / 2;
-        const cy = mouseY !== null ? mouseY : crumpleCenter?.y || height / 2;
-
-        nodes.forEach((node) => {
-          const tx = cx + Math.cos(node.creaseAngle) * node.creaseDist;
-          const ty = cy + Math.sin(node.creaseAngle) * node.creaseDist;
-
-          node.vx += (tx - node.x) * 0.28;
-          node.vy += (ty - node.y) * 0.28;
-          node.vx *= 0.65;
-          node.vy *= 0.65;
-
-          node.x += node.vx;
-          node.y += node.vy;
-          node.highlight = 1;
-        });
-      } else if (mode === 'POURING') {
-        let maxSpeed = 0;
-        let maxDist = 0;
-
-        nodes.forEach((node) => {
-          node.x += node.vx;
-          node.y += node.vy;
-
-          node.vx *= 0.88;
-          node.vy *= 0.88;
+        if (crumpleCenter) {
+          const cx = crumpleCenter.x;
+          const cy = crumpleCenter.y;
+          for (let i = 0; i < state.nodes.length; i++) {
+            const node = state.nodes[i];
+            const foldTargetX = cx + Math.cos(node.creaseAngle) * node.creaseDist;
+            const foldTargetY = cy + Math.sin(node.creaseAngle) * node.creaseDist;
+            node.x += (foldTargetX - node.x) * 0.22;
+            node.y += (foldTargetY - node.y) * 0.22;
+          }
+        }
+      } else if (!state.isTransitioning) {
+        // Standard spring physics towards target
+        for (let i = 0; i < state.nodes.length; i++) {
+          const node = state.nodes[i];
+          if (node.id === state.draggedId) continue;
 
           const dx = node.targetX - node.x;
           const dy = node.targetY - node.y;
-          node.vx += dx * 0.052;
-          node.vy += dy * 0.052;
+          node.vx = (node.vx + dx * 0.08) * 0.78;
+          node.vy = (node.vy + dy * 0.08) * 0.78;
+          node.x += node.vx;
+          node.y += node.vy;
 
-          node.x = Math.max(20, Math.min(width - 20, node.x));
-          node.y = Math.max(20, Math.min(height - 20, node.y));
-
-          node.highlight *= 0.96;
-
-          const speed = Math.hypot(node.vx, node.vy);
-          const dist = Math.hypot(dx, dy);
-          if (speed > maxSpeed) maxSpeed = speed;
-          if (dist > maxDist) maxDist = dist;
-        });
-
-        if (
-          maxSpeed < 0.15 &&
-          maxDist < 1.2 &&
-          state.ripples.length === 0 &&
-          state.particles.length === 0
-        ) {
-          state.mode = 'IDLE';
-          nodes.forEach((n) => {
-            n.x = n.targetX;
-            n.y = n.targetY;
-            n.baseX = n.targetX;
-            n.baseY = n.targetY;
-            n.vx = 0;
-            n.vy = 0;
-            n.highlight = 0;
-          });
-        } else {
-          isSettled = false;
-        }
-      } else {
-        // IDLE MODE: ambient cursor response & single-node dragging
-        const INFLUENCE_RADIUS = 150;
-        const MAX_DISPLACEMENT = 12;
-
-        for (let i = 0; i < nodes.length; i++) {
-          const node = nodes[i];
-
-          if (state.draggedIndex === i && mouseX !== null && mouseY !== null) {
-            node.x = mouseX;
-            node.y = mouseY;
-            node.targetX = mouseX;
-            node.targetY = mouseY;
-            node.baseX = mouseX;
-            node.baseY = mouseY;
-            node.highlight = 1;
+          if (Math.abs(node.vx) > 0.05 || Math.abs(node.vy) > 0.05) {
             isSettled = false;
-            continue;
           }
 
-          let targetX = node.baseX;
-          let targetY = node.baseY;
-          let targetHighlight = 0;
-
-          if (!prefersReducedMotion && mouseX !== null && mouseY !== null && state.draggedIndex === null) {
-            const dx = node.x - mouseX;
-            const dy = node.y - mouseY;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < INFLUENCE_RADIUS && dist > 0) {
-              const force = Math.pow(1 - dist / INFLUENCE_RADIUS, 1.6);
-              targetX = node.baseX + (dx / dist) * force * MAX_DISPLACEMENT;
-              targetY = node.baseY + (dy / dist) * force * MAX_DISPLACEMENT;
-              targetHighlight = force;
-            }
-          }
-
-          node.x += (targetX - node.x) * 0.08;
-          node.y += (targetY - node.y) * 0.08;
-          node.highlight += (targetHighlight - node.highlight) * 0.12;
-
-          if (
-            Math.abs(node.x - targetX) > 0.05 ||
-            Math.abs(node.y - targetY) > 0.05 ||
-            Math.abs(node.highlight - targetHighlight) > 0.01
-          ) {
+          // Gentle hover highlight
+          const targetHighlight = node.id === state.hoveredId || node.id === state.selectedId ? 1 : 0;
+          node.highlight += (targetHighlight - node.highlight) * 0.18;
+          if (Math.abs(node.highlight - targetHighlight) > 0.01) {
             isSettled = false;
           }
         }
@@ -717,55 +743,94 @@ const InteractiveLedgerNetwork = forwardRef<
       return isSettled;
     };
 
+    // Canvas drawing procedure
     const draw = () => {
       const {
         width,
         height,
         nodes,
         edges,
-        hoveredIndex,
-        draggedIndex,
-        selectedIndex,
+        hoveredId,
+        draggedId,
+        selectedId,
         mode,
         ripples,
         stars,
         particles,
-        shootingStar,
+        comet,
         time,
         isHolding,
         crumpleCenter,
       } = stateRef.current;
+
       ctx.clearRect(0, 0, width, height);
 
-      // Cosmic Design System color tokens (Dark Cosmic & Light Cosmic)
-      const primaryLine = isDark ? 'rgba(129, 85, 217,' : 'rgba(41, 75, 122,';
-      const nodeFill = isDark ? '#648EFF' : '#294B7A';
-      const nodeBorder = isDark ? '#F7F4FF' : '#FFFFFF';
-      const greenAnchor = isDark ? '#42D6B0' : '#13835D'; // Verified status
-
-      // 1. Draw celestial background micro-star dust (Dark mode)
+      // 1. Draw background micro-stardust (Dark theme)
       if (isDark) {
-        stars.forEach((star) => {
+        stars.forEach((s) => {
+          const twinkle = Math.sin(time * s.twinkleSpeed + s.phase) * 0.35;
+          const a = Math.max(0.08, Math.min(0.85, s.baseAlpha + twinkle));
           ctx.beginPath();
-          ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(247, 244, 255, ${star.alpha.toFixed(3)})`;
+          ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(235, 230, 255, ${a.toFixed(3)})`;
           ctx.fill();
         });
       }
 
-      // 2. Draw shooting star streak
-      if (shootingStar && shootingStar.active) {
-        const tailX = shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.len;
-        const tailY = shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.len;
-        const grad = ctx.createLinearGradient(tailX, tailY, shootingStar.x, shootingStar.y);
-        grad.addColorStop(0, 'rgba(189, 117, 233, 0)');
-        grad.addColorStop(1, `rgba(255, 255, 255, ${shootingStar.alpha.toFixed(3)})`);
+      // 2. Draw cinematic comet across entire visible page
+      if (comet && comet.active && comet.alpha > 0.02) {
+        const { currentX, currentY, angle, tailLength, alpha } = comet;
+        const tailX = currentX - Math.cos(angle) * tailLength;
+        const tailY = currentY - Math.sin(angle) * tailLength;
+
+        // Tapered luminous tail gradient
+        const grad = ctx.createLinearGradient(tailX, tailY, currentX, currentY);
+        grad.addColorStop(0, 'rgba(129, 85, 217, 0)');
+        grad.addColorStop(0.35, `rgba(189, 117, 233, ${(alpha * 0.32).toFixed(3)})`);
+        grad.addColorStop(0.70, `rgba(100, 142, 255, ${(alpha * 0.65).toFixed(3)})`);
+        grad.addColorStop(0.92, `rgba(220, 240, 255, ${(alpha * 0.90).toFixed(3)})`);
+        grad.addColorStop(1.0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
+
+        // Outer soft glow line
         ctx.beginPath();
         ctx.moveTo(tailX, tailY);
-        ctx.lineTo(shootingStar.x, shootingStar.y);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.4;
+        ctx.lineTo(currentX, currentY);
+        ctx.strokeStyle = `rgba(189, 117, 233, ${(alpha * 0.28).toFixed(3)})`;
+        ctx.lineWidth = 5.5;
         ctx.stroke();
+
+        // Core bright comet line
+        ctx.beginPath();
+        ctx.moveTo(tailX, tailY);
+        ctx.lineTo(currentX, currentY);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+
+        // Nucleus Head Bloom
+        const headBloom = ctx.createRadialGradient(
+          currentX,
+          currentY,
+          0,
+          currentX,
+          currentY,
+          16
+        );
+        headBloom.addColorStop(0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
+        headBloom.addColorStop(0.25, `rgba(100, 142, 255, ${(alpha * 0.70).toFixed(3)})`);
+        headBloom.addColorStop(0.65, `rgba(189, 117, 233, ${(alpha * 0.25).toFixed(3)})`);
+        headBloom.addColorStop(1.0, 'rgba(189, 117, 233, 0)');
+
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, 16, 0, Math.PI * 2);
+        ctx.fillStyle = headBloom;
+        ctx.fill();
+
+        // Intense center star point
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, 2.6, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
       }
 
       // 3. Draw stardust particles
@@ -778,76 +843,43 @@ const InteractiveLedgerNetwork = forwardRef<
         ctx.fill();
       });
 
-      // 4. Draw expanding water ripples (pour & node creation)
+      // 4. Draw water splash ripples
       ripples.forEach((rip) => {
         ctx.beginPath();
         ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
         ctx.strokeStyle = isDark
-          ? `rgba(129, 85, 217, ${rip.alpha.toFixed(3)})`
+          ? `rgba(189, 117, 233, ${rip.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${rip.alpha.toFixed(3)})`;
-        ctx.lineWidth = Math.max(1, 2.2 * rip.alpha);
+        ctx.lineWidth = 1.6;
         ctx.stroke();
-
-        if (rip.alpha > 0.35) {
-          ctx.beginPath();
-          ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
-          ctx.fillStyle = isDark
-            ? `rgba(189, 117, 233, ${(rip.alpha * 0.05).toFixed(3)})`
-            : `rgba(41, 75, 122, ${(rip.alpha * 0.05).toFixed(3)})`;
-          ctx.fill();
-        }
       });
 
-      // 5. Draw crumpled paper origami crease facets
-      if (mode === 'CRUMPLED' && nodes.length > 3) {
-        ctx.beginPath();
-        for (let i = 0; i < Math.min(12, nodes.length - 2); i += 2) {
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[i + 1].x, nodes[i + 1].y);
-          ctx.lineTo(nodes[i + 2].x, nodes[i + 2].y);
-          ctx.closePath();
-        }
-        ctx.fillStyle = isDark ? 'rgba(129, 85, 217, 0.08)' : 'rgba(41, 75, 122, 0.08)';
-        ctx.fill();
-        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.35)' : 'rgba(32, 61, 101, 0.30)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      // Node lookup map for fast edge rendering
+      const nodeMap = new Map<string, RuntimeStarNode>();
+      nodes.forEach((n) => nodeMap.set(n.id, n));
 
-      // 6. Draw connection lines with adaptive high-contrast outlines
-      for (let i = 0; i < edges.length; i++) {
-        const [aIdx, bIdx, isDashed] = edges[i];
-        const a = nodes[aIdx];
-        const b = nodes[bIdx];
+      // 5. Draw curated constellation edges
+      for (let e = 0; e < edges.length; e++) {
+        const edge = edges[e];
+        if (edge.alpha <= 0.02) continue;
+
+        const a = nodeMap.get(edge.fromId);
+        const b = nodeMap.get(edge.toId);
         if (!a || !b) continue;
 
-        const isHovered = hoveredIndex === aIdx || hoveredIndex === bIdx;
-        const isSelectedEdge = selectedIndex === aIdx || selectedIndex === bIdx;
-        const maxHighlight = Math.max(a.highlight, b.highlight);
+        const isHoveredEdge = a.id === hoveredId || b.id === hoveredId;
+        const isSelectedEdge = a.id === selectedId || b.id === selectedId;
 
-        // Check if edge is in the upper-right planetary horizon
-        const isNearPlanet = (a.x > width * 0.48 && a.y < height * 0.58) || (b.x > width * 0.48 && b.y < height * 0.58);
+        const baseAlpha = edge.isSecondary ? 0.35 : 0.65;
+        const effAlpha = edge.alpha * (isHoveredEdge || isSelectedEdge ? 0.95 : baseAlpha);
+        const lineWidth = edge.isSecondary ? 1.0 : isSelectedEdge ? 2.2 : isHoveredEdge ? 2.0 : 1.4;
 
-        const baseAlpha = isNearPlanet ? 0.45 : 0.28;
-        const alpha =
-          mode === 'CRUMPLED'
-            ? 0.60
-            : isSelectedEdge
-            ? 0.95
-            : isHovered
-            ? 0.90
-            : isDark
-            ? baseAlpha + maxHighlight * 0.45
-            : 0.32 + maxHighlight * 0.45;
-
-        const lineWidth = isDashed ? 1 : isSelectedEdge ? 2.4 : isHovered ? 2.2 : 1.4 + maxHighlight * 0.55;
-
-        // Pass 1: Subtle shadow contrast pass for lines near the bright planet rim
-        if (isDark && (isNearPlanet || isHovered || isSelectedEdge)) {
+        // Shadow contrast pass over bright regions
+        if (isDark && (isHoveredEdge || isSelectedEdge)) {
           ctx.beginPath();
-          ctx.strokeStyle = 'rgba(8, 7, 18, 0.70)';
-          ctx.lineWidth = lineWidth + 1.4;
-          if (isDashed && mode !== 'CRUMPLED') {
+          ctx.strokeStyle = 'rgba(8, 7, 18, 0.75)';
+          ctx.lineWidth = lineWidth + 1.6;
+          if (edge.isSecondary && mode !== 'CRUMPLED') {
             ctx.setLineDash([4, 4]);
           } else {
             ctx.setLineDash([]);
@@ -857,23 +889,22 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.stroke();
         }
 
-        // Pass 2: Primary luminous line
+        // Primary luminous constellation edge
         ctx.beginPath();
         ctx.strokeStyle = isSelectedEdge
           ? isDark
-            ? 'rgba(189, 117, 233, 0.98)'
-            : 'rgba(41, 75, 122, 0.90)'
-          : isHovered
+            ? `rgba(189, 117, 233, ${effAlpha.toFixed(3)})`
+            : `rgba(41, 75, 122, ${effAlpha.toFixed(3)})`
+          : isHoveredEdge
           ? isDark
-            ? 'rgba(100, 142, 255, 0.95)'
-            : 'rgba(32, 61, 101, 0.85)'
-          : isNearPlanet && isDark
-          ? `rgba(189, 117, 233, ${alpha.toFixed(3)})`
-          : `${primaryLine} ${alpha.toFixed(3)})`;
+            ? `rgba(100, 142, 255, ${effAlpha.toFixed(3)})`
+            : `rgba(32, 61, 101, ${effAlpha.toFixed(3)})`
+          : isDark
+          ? `rgba(142, 105, 230, ${effAlpha.toFixed(3)})`
+          : `rgba(41, 75, 122, ${effAlpha.toFixed(3)})`;
 
         ctx.lineWidth = lineWidth;
-
-        if (isDashed && mode !== 'CRUMPLED') {
+        if (edge.isSecondary && mode !== 'CRUMPLED') {
           ctx.setLineDash([4, 4]);
         } else {
           ctx.setLineDash([]);
@@ -886,34 +917,32 @@ const InteractiveLedgerNetwork = forwardRef<
 
       ctx.setLineDash([]);
 
-      // 7. Draw nodes (constellation stars)
+      // 6. Draw real astronomical stars
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
-        const { x, y, radius, isHub, isBalanced, highlight } = node;
-        const isHovered = hoveredIndex === i;
-        const isSelected = selectedIndex === i;
-        const isDragged = draggedIndex === i;
+        if (node.alpha <= 0.02) continue;
 
-        // Gentle breathing pulse for celestial hub stars
-        const starPulse = Math.sin(time * 0.035 + node.id) * 0.5 + 0.5;
+        const { x, y, radius, importance, highlight } = node;
+        const isHovered = hoveredId === node.id;
+        const isSelected = selectedId === node.id;
+        const isDragged = draggedId === node.id;
 
-        // Distinctive celestial orbital rings for selected node
+        const starPulse = Math.sin(time * 0.04 + i) * 0.5 + 0.5;
+
+        // Selected star concentric orbital rings
         if (isSelected) {
-          // Inner orbital ring
           ctx.beginPath();
           ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
           ctx.strokeStyle = isDark ? 'rgba(100, 142, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
           ctx.lineWidth = 1.6;
           ctx.stroke();
 
-          // Middle orbital ring (Magenta Glow)
           ctx.beginPath();
           ctx.arc(x, y, radius + 13, 0, Math.PI * 2);
           ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.80)' : 'rgba(124, 58, 237, 0.50)';
           ctx.lineWidth = 1.4;
           ctx.stroke();
 
-          // Outer subtle orbital ring (Soft Cyan dashed)
           ctx.beginPath();
           ctx.setLineDash([3, 4]);
           ctx.arc(x, y, radius + 19, 0, Math.PI * 2);
@@ -923,141 +952,133 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.setLineDash([]);
         }
 
-        // Outer concentric halo for hubs or active nodes
-        if (isHub || isHovered || isDragged || highlight > 0.05 || mode === 'CRUMPLED') {
-          const haloRadius = radius + (isDragged ? 8 : isHovered ? 6 : 4 + highlight * 3 + (isHub ? 2.5 * starPulse : 0));
+        // Outer halo bloom for major stars or active state
+        if (importance === 'major' || isHovered || isDragged || highlight > 0.05) {
+          const haloR = radius + (isDragged ? 8 : isHovered ? 6 : 4 + (importance === 'major' ? 3 * starPulse : 0));
           ctx.beginPath();
-          ctx.arc(x, y, haloRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = isBalanced
-            ? isDark
-              ? 'rgba(66, 214, 176, 0.55)'
-              : 'rgba(19, 131, 93, 0.40)'
-            : isDark
-            ? `rgba(189, 117, 233, ${(0.35 + 0.20 * starPulse + (isDragged ? 0.3 : 0)).toFixed(3)})`
-            : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
-          ctx.lineWidth = isDragged ? 2 : isHovered ? 1.5 : 1;
-          ctx.stroke();
-        }
-
-        // Soft atmospheric star aura for major hubs
-        if (isHub && !isHovered && !isSelected && mode !== 'CRUMPLED') {
-          ctx.beginPath();
-          ctx.arc(x, y, radius + 9 + 3 * starPulse, 0, Math.PI * 2);
+          ctx.arc(x, y, haloR, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
-            ? `rgba(129, 85, 217, ${(0.16 + 0.12 * starPulse).toFixed(3)})`
-            : `rgba(41, 75, 122, ${(0.08 + 0.08 * starPulse).toFixed(3)})`;
-          ctx.lineWidth = 1;
+            ? `rgba(189, 117, 233, ${(0.35 + 0.20 * starPulse).toFixed(3)})`
+            : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
+          ctx.lineWidth = isDragged ? 2 : isHovered ? 1.6 : 1;
           ctx.stroke();
         }
 
-        // Main node dot with crisp contrast backing
-        const currentRadius = radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight * 1.2);
-        
-        // Subtle dark contrast stroke behind node
+        // Dark contrast stroke behind star
         if (isDark) {
           ctx.beginPath();
-          ctx.arc(x, y, currentRadius + 1, 0, Math.PI * 2);
-          ctx.strokeStyle = 'rgba(8, 7, 18, 0.70)';
-          ctx.lineWidth = 1.2;
+          ctx.arc(x, y, radius + 1.2, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(8, 7, 18, 0.85)';
+          ctx.lineWidth = 1.4;
           ctx.stroke();
         }
 
+        // Main star body
         ctx.beginPath();
-        ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
+        const curRadius = radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight);
+        ctx.arc(x, y, curRadius, 0, Math.PI * 2);
 
-        if (isBalanced) {
-          ctx.fillStyle = greenAnchor;
-          ctx.fill();
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        } else if (isHub) {
-          ctx.fillStyle = isDark ? '#100D20' : '#FFFFFF';
-          ctx.fill();
-          ctx.strokeStyle = isHovered || isSelected ? (isDark ? '#BD75E9' : '#203D65') : isDark ? '#8155D9' : '#294B7A';
-          ctx.lineWidth = 2.2;
-          ctx.stroke();
+        // Color coding: red supergiant warmth vs electric blue/white
+        const isWarmSupergiant =
+          node.id === 'orion-betelgeuse' ||
+          node.id === 'sco-antares' ||
+          node.id === 'tau-aldebaran';
 
-          // Inner solid core
-          ctx.beginPath();
-          ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = isDark ? '#648EFF' : '#294B7A';
-          ctx.fill();
+        if (isWarmSupergiant) {
+          ctx.fillStyle = isSelected
+            ? '#FF7A59'
+            : isHovered
+            ? '#FFA07A'
+            : isDark
+            ? '#F48C42'
+            : '#D9531E';
         } else {
           ctx.fillStyle = isSelected
-            ? isDark
-              ? '#BD75E9'
-              : '#203D65'
+            ? '#BD75E9'
             : isHovered
-            ? isDark
-              ? '#FFFFFF'
-              : '#0B1220'
-            : nodeFill;
-          ctx.fill();
-          ctx.strokeStyle = isSelected ? '#FFFFFF' : nodeBorder;
-          ctx.lineWidth = isSelected ? 1.8 : 1.2;
-          ctx.stroke();
+            ? '#FFFFFF'
+            : importance === 'major'
+            ? '#9DC4FF'
+            : isDark
+            ? '#648EFF'
+            : '#294B7A';
         }
+        ctx.fill();
+
+        ctx.strokeStyle = isSelected ? '#FFFFFF' : isDark ? '#EBE6FF' : '#17142B';
+        ctx.lineWidth = isSelected ? 1.8 : 1.2;
+        ctx.stroke();
       }
 
-      // Contextual node micro-badge for discoverability without toolbar clutter
-      const activeIdx = hoveredIndex !== null ? hoveredIndex : selectedIndex;
-      if (activeIdx !== null && activeIdx >= 0 && activeIdx < nodes.length && mode === 'IDLE') {
-        const activeNode = nodes[activeIdx];
-        const isSel = selectedIndex === activeIdx;
-        const label = isSel
-          ? `Star #${activeNode.id + 1} · Active ledger node`
-          : `Star #${activeNode.id + 1} · Drag to move`;
+      // 7. Contextual astronomical identity tooltip for hovered or selected star
+      const activeId = hoveredId || selectedId;
+      if (activeId && nodeMap.has(activeId) && mode === 'IDLE') {
+        const activeNode = nodeMap.get(activeId)!;
+        const star = activeNode.star;
 
         ctx.save();
-        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        const textWidth = ctx.measureText(label).width;
-        const padX = 9;
-        const boxW = textWidth + padX * 2;
-        const boxH = 22;
-        const boxX = Math.min(Math.max(activeNode.x - boxW / 2, 12), width - boxW - 12);
-        const boxY = activeNode.y - activeNode.radius - 30 < 12
-          ? activeNode.y + activeNode.radius + 14
-          : activeNode.y - activeNode.radius - 30;
+        ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const titleWidth = ctx.measureText(star.name).width;
 
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const magSign = star.magnitude >= 0 ? '+' : '';
+        const subtitle = `${star.constellationName} · ${star.designation} (mag ${magSign}${star.magnitude.toFixed(2)})`;
+        const subWidth = ctx.measureText(subtitle).width;
+
+        const padX = 10;
+        const boxW = Math.max(titleWidth, subWidth) + padX * 2;
+        const boxH = 38;
+        const boxX = Math.min(Math.max(activeNode.x - boxW / 2, 14), width - boxW - 14);
+        const boxY = activeNode.y - activeNode.radius - 46 < 14
+          ? activeNode.y + activeNode.radius + 14
+          : activeNode.y - activeNode.radius - 46;
+
+        // Frosted glass card backing
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(boxX, boxY, boxW, boxH, 11);
+          ctx.roundRect(boxX, boxY, boxW, boxH, 8);
         } else {
           ctx.rect(boxX, boxY, boxW, boxH);
         }
-        ctx.fillStyle = isDark ? 'rgba(25, 23, 43, 0.90)' : 'rgba(255, 255, 255, 0.92)';
+        ctx.fillStyle = isDark ? 'rgba(25, 23, 43, 0.94)' : 'rgba(255, 255, 255, 0.96)';
         ctx.fill();
-        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.50)' : 'rgba(41, 75, 122, 0.35)';
+        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.55)' : 'rgba(41, 75, 122, 0.35)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
+        // Title: Real star name
+        ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         ctx.fillStyle = isDark ? '#F7F4FF' : '#17142B';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2);
+        ctx.textAlign = 'left';
+        ctx.fillText(star.name, boxX + padX, boxY + 16);
+
+        // Subtitle: Constellation & Designation
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillStyle = isDark ? '#BD75E9' : '#294B7A';
+        ctx.fillText(subtitle, boxX + padX, boxY + 30);
+
         ctx.restore();
       }
 
-      // Subtle contextual hint while holding to crumple
+      // 8. Hint while holding empty network space to crumple & transition
       if (isHolding && crumpleCenter) {
         ctx.save();
         ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        const label = 'Holding: Crumpling origami core... release to pour';
+        const label = 'Holding: Compressing celestial core... release to transition';
         const textWidth = ctx.measureText(label).width;
-        const padX = 10;
+        const padX = 12;
         const boxW = textWidth + padX * 2;
-        const boxH = 24;
+        const boxH = 26;
         const boxX = Math.min(Math.max(crumpleCenter.x - boxW / 2, 12), width - boxW - 12);
-        const boxY = Math.max(crumpleCenter.y - 45, 16);
+        const boxY = Math.max(crumpleCenter.y - 48, 16);
 
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(boxX, boxY, boxW, boxH, 12);
+          ctx.roundRect(boxX, boxY, boxW, boxH, 13);
         } else {
           ctx.rect(boxX, boxY, boxW, boxH);
         }
-        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.92)' : 'rgba(41, 75, 122, 0.90)';
+        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.95)' : 'rgba(41, 75, 122, 0.92)';
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
@@ -1075,6 +1096,8 @@ const InteractiveLedgerNetwork = forwardRef<
         !isSettled ||
         stateRef.current.mode !== 'IDLE' ||
         stateRef.current.mouseX !== null ||
+        stateRef.current.comet?.active ||
+        stateRef.current.isTransitioning ||
         (isDark && !prefersReducedMotion)
       ) {
         animFrameId = requestAnimationFrame(loop);
@@ -1083,53 +1106,52 @@ const InteractiveLedgerNetwork = forwardRef<
       }
     };
 
-    const wakeLoop = () => {
+    const triggerWake = () => {
       if (animFrameId === null && !prefersReducedMotion) {
         animFrameId = requestAnimationFrame(loop);
       }
     };
 
-    triggerWakeRef.current = wakeLoop;
+    triggerWakeRef.current = triggerWake;
 
-    const findNodeIndexAt = (px: number, py: number): number | null => {
+    const findNodeIdAt = (px: number, py: number): string | null => {
       const { nodes } = stateRef.current;
       for (let i = nodes.length - 1; i >= 0; i--) {
-        const d = Math.hypot(nodes[i].x - px, nodes[i].y - py);
-        if (d <= nodes[i].radius + 14) {
-          return i;
+        const node = nodes[i];
+        const d = Math.hypot(node.x - px, node.y - py);
+        if (d <= node.radius + 15) {
+          return node.id;
         }
       }
       return null;
     };
 
-    // Mouse & Touch events
+    // Pointer event listeners
     const handlePointerDown = (px: number, py: number) => {
       const state = stateRef.current;
       state.downPos = { x: px, y: py };
-      state.isHolding = true;
-      state.holdStartTime = Date.now();
+      const hitId = findNodeIdAt(px, py);
 
-      const hitIdx = findNodeIndexAt(px, py);
-
-      if (hitIdx !== null) {
-        state.draggedIndex = hitIdx;
-        state.selectedIndex = hitIdx;
-        canvas.style.cursor = 'grabbing';
-        if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (hitId) {
+        state.draggedId = hitId;
+        state.selectedId = hitId;
+        state.isHolding = false;
       } else {
-        state.draggedIndex = null;
+        // Pressing on empty space starts hold-to-crumple timer
+        state.isHolding = true;
+        state.holdStartTime = performance.now();
+        state.crumpleCenter = { x: px, y: py };
+
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         holdTimerRef.current = setTimeout(() => {
-          if (
-            stateRef.current.isHolding &&
-            stateRef.current.draggedIndex === null &&
-            stateRef.current.mode === 'IDLE'
-          ) {
-            startCrumple(px, py);
+          if (state.isHolding) {
+            state.mode = 'CRUMPLED';
+            state.crumpleProgress = 0;
+            triggerWake();
           }
-        }, 350);
+        }, 340);
       }
-      wakeLoop();
+      triggerWake();
     };
 
     const handlePointerMove = (px: number, py: number) => {
@@ -1137,34 +1159,33 @@ const InteractiveLedgerNetwork = forwardRef<
       state.mouseX = px;
       state.mouseY = py;
 
-      if (state.mode === 'CRUMPLED') {
-        state.crumpleCenter = { x: px, y: py };
-        canvas.style.cursor = 'grabbing';
-      } else if (state.draggedIndex !== null) {
-        const node = state.nodes[state.draggedIndex];
-        if (node) {
-          node.x = px;
-          node.y = py;
-          node.baseX = px;
-          node.baseY = py;
-          node.targetX = px;
-          node.targetY = py;
-          node.vx = 0;
-          node.vy = 0;
-          node.highlight = 1;
-        }
-        canvas.style.cursor = 'grabbing';
-      } else if (state.isHolding && state.downPos) {
-        const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        if (dist > 14) {
+      // Cancel hold if dragged significantly
+      if (state.isHolding && state.downPos) {
+        const moveDist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
+        if (moveDist > 12) {
+          state.isHolding = false;
           if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         }
-      } else {
-        const hovered = findNodeIndexAt(px, py);
-        state.hoveredIndex = hovered;
-        canvas.style.cursor = hovered !== null ? 'grab' : 'crosshair';
       }
-      wakeLoop();
+
+      if (state.draggedId) {
+        const draggedNode = state.nodes.find((n) => n.id === state.draggedId);
+        if (draggedNode) {
+          draggedNode.x = px;
+          draggedNode.y = py;
+          draggedNode.targetX = px;
+          draggedNode.targetY = py;
+          draggedNode.vx = 0;
+          draggedNode.vy = 0;
+        }
+        triggerWake();
+      } else {
+        const hitId = findNodeIdAt(px, py);
+        if (hitId !== state.hoveredId) {
+          state.hoveredId = hitId;
+          triggerWake();
+        }
+      }
     };
 
     const handlePointerUp = (px: number, py: number) => {
@@ -1172,102 +1193,29 @@ const InteractiveLedgerNetwork = forwardRef<
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
       if (state.mode === 'CRUMPLED') {
-        startWaterPour(px, py);
-      } else if (state.draggedIndex !== null) {
-        const node = state.nodes[state.draggedIndex];
-        if (node) {
-          node.x = px;
-          node.y = py;
-          node.baseX = px;
-          node.baseY = py;
-          node.targetX = px;
-          node.targetY = py;
-          node.vx = 0;
-          node.vy = 0;
-          node.highlight = 0.4;
-        }
-        canvas.style.cursor = 'grab';
-      } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
-        const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
+        // Holding empty network space and releasing triggers transition into next preset!
+        state.mode = 'IDLE';
+        state.isHolding = false;
 
-        if (dist < 14 && state.draggedIndex === null) {
-          const rx = px / state.width;
-          const ry = py / state.height;
+        const cx = state.crumpleCenter?.x ?? px;
+        const cy = state.crumpleCenter?.y ?? py;
 
-          if (!isProtectedZone(rx, ry)) {
-            const newId = state.nodes.length;
-            state.nodes.push({
-              id: newId,
-              x: px,
-              y: py,
-              vx: 0,
-              vy: 0,
-              baseX: px,
-              baseY: py,
-              targetX: px,
-              targetY: py,
-              radius: 5.5,
-              isHub: false,
-              isBalanced: false,
-              highlight: 1,
-              creaseAngle: Math.random() * Math.PI * 2,
-              creaseDist: 16 + Math.random() * 12,
-            });
+        state.ripples.push({
+          x: cx,
+          y: cy,
+          radius: 10,
+          maxRadius: 180,
+          alpha: 0.95,
+        });
 
-            state.ripples.push(
-              { x: px, y: py, radius: 8, maxRadius: 240, alpha: 0.8 },
-              { x: px, y: py, radius: 24, maxRadius: 180, alpha: 0.6 },
-              { x: px, y: py, radius: 42, maxRadius: 120, alpha: 0.4 }
-            );
-
-            for (let p = 0; p < 8; p++) {
-              const pAngle = Math.random() * Math.PI * 2;
-              const pSpeed = 3 + Math.random() * 6;
-              state.particles.push({
-                x: px,
-                y: py,
-                vx: Math.cos(pAngle) * pSpeed,
-                vy: Math.sin(pAngle) * pSpeed,
-                radius: 1 + Math.random() * 1.5,
-                alpha: 0.85,
-                decay: 0.03 + Math.random() * 0.02,
-              });
-            }
-
-            const sorted = state.nodes
-              .slice(0, -1)
-              .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
-              .sort((a, b) => a.dist - b.dist);
-
-            if (sorted.length > 0) {
-              state.edges.push([sorted[0].idx, newId]);
-              const n1 = state.nodes[sorted[0].idx];
-              const angle1 = Math.atan2(n1.y - py, n1.x - px);
-              n1.vx += Math.cos(angle1) * 2.8;
-              n1.vy += Math.sin(angle1) * 2.8;
-              n1.highlight = 0.8;
-            }
-            if (sorted.length > 1) {
-              state.edges.push([sorted[1].idx, newId]);
-              const n2 = state.nodes[sorted[1].idx];
-              const angle2 = Math.atan2(n2.y - py, n2.x - px);
-              n2.vx += Math.cos(angle2) * 2.2;
-              n2.vy += Math.sin(angle2) * 2.2;
-              n2.highlight = 0.6;
-            }
-
-            state.selectedIndex = newId;
-            setNodeCount(state.nodes.length);
-          } else {
-            state.selectedIndex = null;
-          }
-        }
+        // Trigger transition to next preset
+        handleNextConstellation();
+      } else {
+        state.isHolding = false;
+        state.draggedId = null;
       }
 
-      state.isHolding = false;
-      state.draggedIndex = null;
-      state.downPos = null;
-      wakeLoop();
+      triggerWake();
     };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -1287,36 +1235,25 @@ const InteractiveLedgerNetwork = forwardRef<
 
     const onMouseLeave = () => {
       const state = stateRef.current;
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-      if (state.mode === 'CRUMPLED' && state.crumpleCenter) {
-        startWaterPour(state.crumpleCenter.x, state.crumpleCenter.y);
-      }
       state.mouseX = null;
       state.mouseY = null;
-      state.hoveredIndex = null;
-      state.draggedIndex = null;
+      state.hoveredId = null;
+      state.draggedId = null;
       state.isHolding = false;
-      wakeLoop();
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      triggerWake();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.target !== canvas && e.target !== containerRef.current) return;
-      if (e.key === 'a' || e.key === 'A') {
-        handleAddNode();
-      } else if (e.key === 'r' || e.key === 'R') {
-        handleRegenerate();
-      } else if (e.key === 'Escape') {
-        stateRef.current.selectedIndex = null;
-        wakeLoop();
-      } else if (e.key === ' ' || e.key === 'c' || e.key === 'C') {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
         e.preventDefault();
-        const state = stateRef.current;
-        if (state.mode === 'IDLE') {
-          startCrumple(state.width * 0.5, state.height * 0.5);
-          setTimeout(() => {
-            startWaterPour(state.width * 0.5, state.height * 0.5);
-          }, 450);
-        }
+        handleNextConstellation();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        handleReset();
       }
     };
 
@@ -1355,9 +1292,20 @@ const InteractiveLedgerNetwork = forwardRef<
     window.addEventListener('touchmove', onTouchMove, { passive: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
 
+    // Periodic comet scheduler (first comet at 3.5s, recurring every 24s)
+    const scheduleNextComet = (delayMs: number) => {
+      cometTimerRef.current = setTimeout(() => {
+        launchComet(stateRef.current.width, stateRef.current.height);
+        scheduleNextComet(22000 + Math.random() * 8000);
+      }, delayMs);
+    };
+
+    scheduleNextComet(3500);
+
     return () => {
       if (animFrameId !== null) cancelAnimationFrame(animFrameId);
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (cometTimerRef.current) clearTimeout(cometTimerRef.current);
       window.removeEventListener('resize', handleResize);
       canvas.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
@@ -1369,14 +1317,14 @@ const InteractiveLedgerNetwork = forwardRef<
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isDark, handleAddNode, handleRegenerate]);
+  }, [isDark, handleNextConstellation, handleReset, launchComet]);
 
   return (
     <div
       ref={containerRef}
       tabIndex={0}
       className="fixed inset-0 w-full h-full overflow-hidden select-none pointer-events-auto z-10 focus:outline-none"
-      aria-label="Interactive LedgerLine constellation graph. Click to create star, drag to reposition, hold to flow, or press A to add and R to regenerate."
+      aria-label="Interactive LedgerLine constellation graph. Features 72 real stars across 15 astronomical constellations. Drag to reposition, hold to crumple and transition."
     >
       <canvas
         ref={canvasRef}

@@ -8,14 +8,14 @@ interface CosmicPlanetarySystemProps {
 
 export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetarySystemProps) {
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none select-none z-0">
+    <div className="overflow-hidden fixed inset-0 z-0 w-full h-full pointer-events-none select-none">
       {isDark ? (
         <div className="absolute inset-0 w-full h-full">
           {/* User-supplied High-Fidelity Cosmic Planetary Wallpaper */}
           <img
             src="/cosmic-bg.jpg"
             alt="Cosmic Planetary System"
-            className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700"
+            className="object-cover object-center absolute inset-0 w-full h-full transition-opacity duration-700"
           />
 
           {/* Deep space radial vignette to ensure maximum authentication card legibility and depth */}
