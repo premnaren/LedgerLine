@@ -293,7 +293,7 @@ export default function StressLabPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-ink-muted mt-1.5 font-medium">
+            <p className="mt-2 text-xs font-medium text-ink-muted">
               Fires simultaneously in parallel against the locked accounts.
             </p>
           </div>
@@ -333,7 +333,7 @@ export default function StressLabPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-ink-muted mt-1.5 font-medium">
+            <p className="mt-2 text-xs font-medium text-ink-muted">
               Exact paise integer math: <span className="mono-num">{amountPence}</span> paise.
             </p>
           </div>

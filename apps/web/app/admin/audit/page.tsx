@@ -193,12 +193,12 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="pb-12 mx-auto space-y-6 max-w-7xl">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
+      <div className="flex flex-col gap-4 pb-4 border-b sm:flex-row sm:items-center sm:justify-between border-rule">
         <div>
           <div className="flex items-center space-x-2">
-            <BookOpen className="h-5 w-5 text-accent" />
+            <BookOpen className="w-5 h-5 text-accent" />
             <h1 className="text-xl font-bold tracking-tight text-ink">
               Auditor &amp; compliance ledger
             </h1>
@@ -211,7 +211,7 @@ export default function AuditPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => fetchAuditEntries()}
-            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable"
+            className="p-2 rounded border transition border-rule text-ink-muted hover:text-ink hover:bg-rule/30 pressable"
             title="Refresh"
             aria-label="Refresh audit records"
           >
@@ -232,7 +232,7 @@ export default function AuditPage() {
 
       {error && (
         <div className="p-3.5 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red text-xs">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <p>{error}</p>
         </div>
       )}
@@ -240,7 +240,7 @@ export default function AuditPage() {
       {reversalSuccess && (
         <div className="p-3.5 bg-paper border border-ledger-green rounded flex items-center justify-between text-ledger-green text-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <p>{reversalSuccess}</p>
           </div>
           <button
@@ -255,12 +255,12 @@ export default function AuditPage() {
       {exportNotice && (
         <div className="p-3.5 bg-paper border border-ledger-green rounded flex items-center justify-between text-ledger-green text-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <p>{exportNotice}</p>
           </div>
           <button
             onClick={() => setExportNotice(null)}
-            className="hover:underline text-xs"
+            className="text-xs hover:underline"
           >
             Dismiss
           </button>
@@ -268,16 +268,16 @@ export default function AuditPage() {
       )}
 
       {/* Filter Bar: border border-rule rounded, "Apply Filters" is the single primary filled button */}
-      <div className="bg-white border border-rule rounded p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+      <div className="p-4 space-y-3 bg-white rounded border border-rule">
+        <div className="grid grid-cols-1 gap-3 items-end sm:grid-cols-4">
           <div>
-            <label className="block text-xs text-ink-muted font-medium mb-1">
+            <label className="block mb-1 text-xs font-medium text-ink-muted">
               Account filter
             </label>
             <select
               value={selectedAccount}
               onChange={(e) => setSelectedAccount(e.target.value)}
-              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
             >
               <option value="">All accounts</option>
               {accounts.map((acc) => (
@@ -289,34 +289,34 @@ export default function AuditPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-ink-muted font-medium mb-1">
+            <label className="block mb-1 text-xs font-medium text-ink-muted">
               Start date
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
             >
             </input>
           </div>
 
           <div>
-            <label className="block text-xs text-ink-muted font-medium mb-1">
+            <label className="block mb-1 text-xs font-medium text-ink-muted">
               End date
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
             />
           </div>
 
           <div>
             <button
               onClick={() => fetchAuditEntries()}
-              className="w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition"
+              className="flex justify-center items-center px-4 py-2 w-full text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95"
             >
               <Search className="mr-1.5 h-3.5 w-3.5" />
               <span>Apply filters</span>
@@ -325,14 +325,14 @@ export default function AuditPage() {
         </div>
 
         {hasActiveFilters && (
-          <div className="pt-2 border-t border-rule flex items-center justify-between text-xs">
+          <div className="flex justify-between items-center pt-2 text-xs border-t border-rule">
             <span className="text-ink-muted">
               Active filters applied. Showing filtered audit subset.
             </span>
             <button
               type="button"
               onClick={handleClearFilters}
-              className="text-xs text-accent hover:underline font-semibold"
+              className="text-xs font-semibold text-accent hover:underline"
             >
               Clear filters
             </button>
@@ -341,33 +341,33 @@ export default function AuditPage() {
       </div>
 
       {/* Metric Cards Summary Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-rule rounded p-4">
-          <span className="text-xs text-ink-muted font-medium block">Total entries</span>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="p-4 bg-white rounded border border-rule">
+          <span className="block text-xs font-medium text-ink-muted">Total entries</span>
           <div className="mono-num text-xl font-bold text-ink mt-0.5">
             {loading ? '—' : entries.length}
           </div>
           <span className="text-xs text-ink-muted mt-0.5 block">Audit log count</span>
         </div>
 
-        <div className="bg-white border border-rule rounded p-4">
-          <span className="text-xs text-ink-muted font-medium block">Posted records</span>
+        <div className="p-4 bg-white rounded border border-rule">
+          <span className="block text-xs font-medium text-ink-muted">Posted records</span>
           <div className="mono-num text-xl font-bold text-ledger-green mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'POSTED').length}
           </div>
           <span className="text-xs text-ink-muted mt-0.5 block">Committed</span>
         </div>
 
-        <div className="bg-white border border-rule rounded p-4">
-          <span className="text-xs text-ink-muted font-medium block">Refused attempts</span>
+        <div className="p-4 bg-white rounded border border-rule">
+          <span className="block text-xs font-medium text-ink-muted">Refused attempts</span>
           <div className="mono-num text-xl font-bold text-ledger-red mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'REFUSED').length}
           </div>
           <span className="text-xs text-ink-muted mt-0.5 block">Refused</span>
         </div>
 
-        <div className="bg-white border border-rule rounded p-4">
-          <span className="text-xs text-ink-muted font-medium block">Cryptographic seal</span>
+        <div className="p-4 bg-white rounded border border-rule">
+          <span className="block text-xs font-medium text-ink-muted">Cryptographic seal</span>
           <div className="mono-num text-xl font-bold text-ink mt-0.5 flex items-center space-x-1.5">
             <span>100%</span>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
@@ -377,41 +377,41 @@ export default function AuditPage() {
       </div>
 
       {/* Audit Table */}
-      <div className="bg-white border border-rule rounded overflow-hidden">
+      <div className="overflow-hidden bg-white rounded border border-rule">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-rule text-xs">
-            <thead className="sticky top-0 bg-paper text-ink font-semibold border-b border-rule-strong z-10">
+          <table className="min-w-full text-xs divide-y divide-rule">
+            <thead className="sticky top-0 z-10 font-semibold border-b bg-paper text-ink border-rule-strong">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Date &amp; time
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Type
                 </th>
-                <th scope="col" className="px-4 py-3 text-center font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-center">
                   Status
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-right">
                   Amount
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Debit account
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Credit account
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Initiated by
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Note
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                <th scope="col" className="px-4 py-3 font-semibold text-right">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-rule bg-white">
+            <tbody className="bg-white divide-y divide-rule">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
@@ -456,12 +456,12 @@ export default function AuditPage() {
                         {dateStr}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap mono-num text-ink font-semibold">
+                      <td className="px-4 py-3 font-semibold whitespace-nowrap mono-num text-ink">
                         {entry.type}
                       </td>
 
                       {/* Status Column: 6px colored dot + plain text */}
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <span
                           className="inline-flex items-center gap-1.5 font-semibold"
                           style={{
@@ -480,7 +480,7 @@ export default function AuditPage() {
 
                       <td
                         className={`px-4 py-3 whitespace-nowrap text-right mono-num font-semibold ${
-                          !isPosted ? 'text-ink-muted line-through' : 'text-ink'
+                          !isPosted ? 'line-through text-ink-muted' : 'text-ink'
                         }`}
                       >
                         {formatPaiseToRupees(entry.amountPence)}
@@ -498,11 +498,11 @@ export default function AuditPage() {
                         {entry.initiatedByEmail}
                       </td>
 
-                      <td className="px-4 py-3 text-ink-muted max-w-xs truncate">
+                      <td className="px-4 py-3 max-w-xs truncate text-ink-muted">
                         {entry.note || '—'}
                       </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
                         {user?.role === 'ADMIN' && isPosted && entry.type !== 'ADJUSTMENT' ? (
                           <button
                             onClick={(e) => {
@@ -511,14 +511,14 @@ export default function AuditPage() {
                               setReversingEntry(entry);
                               setReversalError(null);
                             }}
-                            className="inline-flex items-center px-2 py-1 border border-rule rounded text-xs text-ink-muted hover:text-ink hover:bg-rule/30 transition"
+                            className="inline-flex items-center px-2 py-1 text-xs rounded border transition border-rule text-ink-muted hover:text-ink hover:bg-rule/30"
                             title="Execute compensating-entry reversal"
                           >
-                            <RotateCcw className="mr-1 h-3 w-3" />
+                            <RotateCcw className="mr-1 w-3 h-3" />
                             Reverse
                           </button>
                         ) : entry.type === 'ADJUSTMENT' ? (
-                          <span className="text-ink-muted mono-num text-xs">Compensating leg</span>
+                          <span className="text-xs text-ink-muted mono-num">Compensating leg</span>
                         ) : (
                           <span className="text-ink-muted">—</span>
                         )}
