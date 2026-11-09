@@ -29,6 +29,36 @@ interface WaterRipple {
   alpha: number;
 }
 
+interface StarDust {
+  x: number;
+  y: number;
+  size: number;
+  alpha: number;
+  baseAlpha: number;
+  twinkleSpeed: number;
+  phase: number;
+}
+
+interface StardustParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  alpha: number;
+  decay: number;
+}
+
+interface ShootingStar {
+  x: number;
+  y: number;
+  len: number;
+  speed: number;
+  angle: number;
+  alpha: number;
+  active: boolean;
+}
+
 type InteractionMode = 'IDLE' | 'CRUMPLED' | 'POURING';
 
 interface NetworkState {
@@ -37,6 +67,10 @@ interface NetworkState {
   dpr: number;
   nodes: RuntimeNode[];
   edges: [number, number, boolean?][];
+  stars: StarDust[];
+  particles: StardustParticle[];
+  shootingStar: ShootingStar | null;
+  time: number;
   mouseX: number | null;
   mouseY: number | null;
   hoveredIndex: number | null;
@@ -59,6 +93,10 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     dpr: 1,
     nodes: [],
     edges: [],
+    stars: [],
+    particles: [],
+    shootingStar: null,
+    time: 0,
     mouseX: null,
     mouseY: null,
     hoveredIndex: null,
@@ -81,6 +119,23 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     if (rx < 0.38 && ry < 0.22) return true; // Logo & LedgerLine
     if (rx < 0.58 && ry > 0.70) return true; // Headline
     return false;
+  };
+
+  // Helper: generate celestial micro-star dust in background
+  const generateStars = (width: number, height: number, count = 56): StarDust[] => {
+    const stars: StarDust[] = [];
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: 0.6 + Math.random() * 1.4,
+        alpha: 0.15 + Math.random() * 0.35,
+        baseAlpha: 0.15 + Math.random() * 0.35,
+        twinkleSpeed: 0.015 + Math.random() * 0.025,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+    return stars;
   };
 
   // Helper: generate completely randomized, non-overlapping nodes avoiding protected zones
@@ -199,6 +254,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         stateRef.current.nodes = nodes;
         stateRef.current.edges = edges;
       }
+
+      stateRef.current.stars = generateStars(w, h, 56);
       draw();
     };
 
@@ -224,7 +281,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       wakeLoop();
     };
 
-    // Transition: Pour like water on floor
+    // Transition: Pour like water on floor / supernova splash
     const startWaterPour = (releaseX: number, releaseY: number) => {
       const state = stateRef.current;
       const { width, height } = state;
@@ -238,11 +295,26 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         { x: releaseX, y: releaseY, radius: 45, maxRadius: 180, alpha: 0.40 }
       );
 
-      // 2. Generate brand new completely randomized destinations across open canvas
+      // 2. Stardust particle burst
+      for (let p = 0; p < 24; p++) {
+        const pAngle = Math.random() * Math.PI * 2;
+        const pSpeed = 6 + Math.random() * 18;
+        state.particles.push({
+          x: releaseX,
+          y: releaseY,
+          vx: Math.cos(pAngle) * pSpeed,
+          vy: Math.sin(pAngle) * pSpeed,
+          radius: 1 + Math.random() * 2,
+          alpha: 0.95,
+          decay: 0.02 + Math.random() * 0.02,
+        });
+      }
+
+      // 3. Generate brand new completely randomized destinations across open canvas
       const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(width, height, state.nodes.length);
       state.edges = newEdges;
 
-      // 3. Fluid outward splash velocities (like water splashing onto the floor)
+      // 4. Fluid outward splash velocities
       state.nodes.forEach((node, i) => {
         const target = newLayout[i];
         node.baseX = target.targetX;
@@ -267,15 +339,66 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
     const updatePhysics = () => {
       const state = stateRef.current;
-      const { nodes, mouseX, mouseY, mode, crumpleCenter, width, height } = state;
+      const { nodes, mouseX, mouseY, mode, crumpleCenter, width, height, stars } = state;
       let isSettled = true;
+
+      state.time += 1;
+
+      // Update cosmic micro-star twinkle in dark mode
+      if (isDark) {
+        stars.forEach((star) => {
+          star.phase += star.twinkleSpeed;
+          star.alpha = star.baseAlpha * (0.65 + 0.35 * Math.sin(star.phase));
+        });
+      }
+
+      // Update stardust particles
+      for (let p = state.particles.length - 1; p >= 0; p--) {
+        const pt = state.particles[p];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.vx *= 0.90;
+        pt.vy *= 0.90;
+        pt.alpha -= pt.decay;
+        if (pt.alpha <= 0.02) {
+          state.particles.splice(p, 1);
+        } else {
+          isSettled = false;
+        }
+      }
+
+      // Update shooting star streak
+      if (state.shootingStar && state.shootingStar.active) {
+        const ss = state.shootingStar;
+        ss.x += Math.cos(ss.angle) * ss.speed;
+        ss.y += Math.sin(ss.angle) * ss.speed;
+        ss.alpha *= 0.96;
+        if (ss.alpha < 0.02 || ss.x > width + 50 || ss.y > height + 50) {
+          ss.active = false;
+          state.shootingStar = null;
+        } else {
+          isSettled = false;
+        }
+      } else if (isDark && !prefersReducedMotion && Math.random() < 0.0015) {
+        // Subtle, rare shooting star gliding across the night sky
+        state.shootingStar = {
+          x: Math.random() * (width * 0.6),
+          y: Math.random() * (height * 0.35),
+          len: 65 + Math.random() * 45,
+          speed: 13 + Math.random() * 7,
+          angle: Math.PI / 6 + (Math.random() - 0.5) * 0.2,
+          alpha: 0.50,
+          active: true,
+        };
+        isSettled = false;
+      }
 
       // Update water splash ripples
       for (let r = state.ripples.length - 1; r >= 0; r--) {
         const rip = state.ripples[r];
-        rip.radius += 5.5;
+        rip.radius += 4.5;
         rip.alpha *= 0.94;
-        if (rip.alpha < 0.02 || rip.radius > rip.maxRadius) {
+        if (rip.alpha < 0.015 || rip.radius > rip.maxRadius) {
           state.ripples.splice(r, 1);
         } else {
           isSettled = false;
@@ -335,7 +458,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
           if (dist > maxDist) maxDist = dist;
         });
 
-        if (maxSpeed < 0.15 && maxDist < 1.2 && state.ripples.length === 0) {
+        if (maxSpeed < 0.15 && maxDist < 1.2 && state.ripples.length === 0 && state.particles.length === 0) {
           state.mode = 'IDLE';
           nodes.forEach((n) => {
             n.x = n.targetX;
@@ -404,7 +527,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
     };
 
     const draw = () => {
-      const { width, height, nodes, edges, hoveredIndex, mode, ripples } = stateRef.current;
+      const { width, height, nodes, edges, hoveredIndex, mode, ripples, stars, particles, shootingStar, time } =
+        stateRef.current;
       ctx.clearRect(0, 0, width, height);
 
       // Institutional Blue color tokens
@@ -413,7 +537,42 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const nodeBorder = isDark ? '#E8EEF7' : '#FFFFFF';
       const greenAnchor = isDark ? '#36C995' : '#13835D';
 
-      // 1. Draw expanding water ripples (pour & node creation)
+      // 1. Draw celestial background micro-star dust (Dark mode only)
+      if (isDark) {
+        stars.forEach((star) => {
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(232, 238, 247, ${star.alpha.toFixed(3)})`;
+          ctx.fill();
+        });
+      }
+
+      // 2. Draw shooting star / delicate ledger streak
+      if (shootingStar && shootingStar.active) {
+        const tailX = shootingStar.x - Math.cos(shootingStar.angle) * shootingStar.len;
+        const tailY = shootingStar.y - Math.sin(shootingStar.angle) * shootingStar.len;
+        const grad = ctx.createLinearGradient(tailX, tailY, shootingStar.x, shootingStar.y);
+        grad.addColorStop(0, 'rgba(120, 166, 246, 0)');
+        grad.addColorStop(1, `rgba(255, 255, 255, ${shootingStar.alpha.toFixed(3)})`);
+        ctx.beginPath();
+        ctx.moveTo(tailX, tailY);
+        ctx.lineTo(shootingStar.x, shootingStar.y);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+      }
+
+      // 3. Draw stardust particles
+      particles.forEach((pt) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+        ctx.fillStyle = isDark
+          ? `rgba(145, 183, 255, ${pt.alpha.toFixed(3)})`
+          : `rgba(41, 75, 122, ${pt.alpha.toFixed(3)})`;
+        ctx.fill();
+      });
+
+      // 4. Draw expanding water ripples (pour & node creation)
       ripples.forEach((rip) => {
         ctx.beginPath();
         ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
@@ -433,7 +592,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         }
       });
 
-      // 2. Draw crumpled paper origami crease facets
+      // 5. Draw crumpled paper origami crease facets
       if (mode === 'CRUMPLED' && nodes.length > 3) {
         ctx.beginPath();
         for (let i = 0; i < Math.min(12, nodes.length - 2); i += 2) {
@@ -449,7 +608,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         ctx.stroke();
       }
 
-      // 3. Draw connection lines
+      // 6. Draw connection lines
       for (let i = 0; i < edges.length; i++) {
         const [aIdx, bIdx, isDashed] = edges[i];
         const a = nodes[aIdx];
@@ -490,15 +649,18 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
       ctx.setLineDash([]);
 
-      // 4. Draw nodes
+      // 7. Draw nodes (constellation stars)
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const { x, y, radius, isHub, isBalanced, highlight } = node;
         const isHovered = hoveredIndex === i;
 
+        // Gentle breathing pulse for celestial hub stars
+        const starPulse = Math.sin(time * 0.035 + node.id) * 0.5 + 0.5;
+
         // Outer concentric halo for hubs or active nodes
         if (isHub || isHovered || highlight > 0.05 || mode === 'CRUMPLED') {
-          const haloRadius = radius + (isHovered ? 6 : 4 + highlight * 3);
+          const haloRadius = radius + (isHovered ? 6 : 4 + highlight * 3 + (isHub ? 2.5 * starPulse : 0));
           ctx.beginPath();
           ctx.arc(x, y, haloRadius, 0, Math.PI * 2);
           ctx.strokeStyle = isBalanced
@@ -506,9 +668,20 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               ? 'rgba(54, 201, 149, 0.45)'
               : 'rgba(19, 131, 93, 0.35)'
             : isDark
-            ? 'rgba(120, 166, 246, 0.30)'
-            : 'rgba(41, 75, 122, 0.25)';
+            ? `rgba(120, 166, 246, ${(0.25 + 0.2 * starPulse).toFixed(3)})`
+            : `rgba(41, 75, 122, ${(0.2 + 0.15 * starPulse).toFixed(3)})`;
           ctx.lineWidth = isHovered ? 1.5 : 1;
+          ctx.stroke();
+        }
+
+        // Soft atmospheric star aura for major hubs
+        if (isHub && !isHovered && mode !== 'CRUMPLED') {
+          ctx.beginPath();
+          ctx.arc(x, y, radius + 8 + 3 * starPulse, 0, Math.PI * 2);
+          ctx.strokeStyle = isDark
+            ? `rgba(120, 166, 246, ${(0.10 + 0.12 * starPulse).toFixed(3)})`
+            : `rgba(41, 75, 122, ${(0.08 + 0.08 * starPulse).toFixed(3)})`;
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
 
@@ -554,7 +727,12 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const isSettled = updatePhysics();
       draw();
 
-      if (!isSettled || stateRef.current.mode !== 'IDLE' || stateRef.current.mouseX !== null) {
+      if (
+        !isSettled ||
+        stateRef.current.mode !== 'IDLE' ||
+        stateRef.current.mouseX !== null ||
+        (isDark && !prefersReducedMotion)
+      ) {
         animFrameId = requestAnimationFrame(loop);
       } else {
         animFrameId = null;
@@ -591,14 +769,10 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         // Holding an existing node: drag and place wherever wanted!
         state.draggedIndex = hitIdx;
         canvas.style.cursor = 'grabbing';
-        // Clear any crumple timer so dragging an existing node NEVER triggers folding
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
       } else {
         // Pressing on empty space:
         state.draggedIndex = null;
-        // Start hold timer for paper crumple/fold (350ms)
-        // Releasing before 350ms -> single click, creates node with water ripple!
-        // Holding >= 350ms -> click-and-hold, folds into paper cluster!
         if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         holdTimerRef.current = setTimeout(() => {
           if (
@@ -622,7 +796,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         state.crumpleCenter = { x: px, y: py };
         canvas.style.cursor = 'grabbing';
       } else if (state.draggedIndex !== null) {
-        // Holding and moving a node: directly update coordinates so it moves wherever wanted
         const node = state.nodes[state.draggedIndex];
         if (node) {
           node.x = px;
@@ -638,7 +811,6 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
         canvas.style.cursor = 'grabbing';
       } else if (state.isHolding && state.downPos) {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        // If moved significantly before 350ms, cancel fold timer
         if (dist > 14) {
           if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         }
@@ -675,7 +847,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
 
-        // One click on empty space: create a node with water effect!
+        // One click on empty space: create a node with water effect & sparkle!
         if (dist < 14 && state.draggedIndex === null) {
           const rx = px / state.width;
           const ry = py / state.height;
@@ -706,6 +878,21 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               { x: px, y: py, radius: 24, maxRadius: 180, alpha: 0.6 },
               { x: px, y: py, radius: 42, maxRadius: 120, alpha: 0.4 }
             );
+
+            // Sparkling stardust on node spawn
+            for (let p = 0; p < 8; p++) {
+              const pAngle = Math.random() * Math.PI * 2;
+              const pSpeed = 3 + Math.random() * 6;
+              state.particles.push({
+                x: px,
+                y: py,
+                vx: Math.cos(pAngle) * pSpeed,
+                vy: Math.sin(pAngle) * pSpeed,
+                radius: 1 + Math.random() * 1.5,
+                alpha: 0.85,
+                decay: 0.03 + Math.random() * 0.02,
+              });
+            }
 
             // Connect to 2 closest nodes
             const sorted = state.nodes
@@ -821,11 +1008,11 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
   }, [isDark]);
 
   return (
-    <div className="overflow-hidden absolute inset-0 w-full h-full pointer-events-auto select-none">
+    <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-        aria-label="Playful interactive double-entry network. Click and hold to crumple the paper pattern, drag it around, and release to pour like water on the floor."
+        aria-label="Playful interactive double-entry constellation network. Click and hold to crumple the paper pattern, drag it around, and release to pour like water on the floor."
       />
     </div>
   );

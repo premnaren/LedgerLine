@@ -147,30 +147,37 @@ export default function LoginPage() {
 
   return (
     <div className={`min-h-screen w-full flex flex-col lg:flex-row bg-[#F5F7FA] dark:bg-[#0B1220] text-ink dark:text-white transition-colors duration-300 relative ${isDark ? 'dark' : ''}`}>
-      {/* Floating Theme Switcher */}
+      {/* Floating Theme Switcher with Lunar Halo */}
       <div className="fixed top-5 right-5 sm:top-6 sm:right-8 z-50">
-        <ThemeToggle isDark={isDark} onToggle={handleToggleTheme} />
+        <div className="relative">
+          {isDark && (
+            <div className="absolute inset-0 rounded-full bg-primary/25 blur-md pointer-events-none animate-pulse" />
+          )}
+          <ThemeToggle isDark={isDark} onToggle={handleToggleTheme} />
+        </div>
       </div>
 
       {/* ============================================================ */}
       {/* Left Column: Visual Interactive Ledger Network (Desktop)     */}
       {/* ============================================================ */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F0F3F7] dark:bg-[#0B1220] border-r border-[#DCE2E9] dark:border-[#29384D] flex-col justify-end p-10 xl:p-14 overflow-hidden select-none transition-colors duration-300">
-        {/* Interactive Connected-Node Network Canvas with Paper Crumple & Water Pour Physics */}
+        {/* Interactive Connected-Node Network Canvas with Celestial Constellation & Physics */}
         <InteractiveLedgerNetwork isDark={isDark} />
 
-        {/* Top-Left Corner: Brand Identity (Pinned securely to top-left without pattern overlap) */}
-        <div className="absolute top-8 left-8 sm:top-10 sm:left-10 z-20 flex items-center space-x-3 pointer-events-none select-none">
-          <div className="flex justify-center items-center w-10 h-10 bg-surface/90 backdrop-blur-md rounded-xl border border-rule text-primary shadow-xs pointer-events-auto transition">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div className="pointer-events-auto px-2.5 py-1 rounded-lg backdrop-blur-xs bg-surface/60 border border-rule/30">
-            <span className="text-lg font-bold tracking-tight text-ink transition">
-              Ledger<span className="text-primary">Line</span>
-            </span>
-            <span className="block text-[11px] font-mono text-ink-muted transition">
-              Double-entry core engine
-            </span>
+        {/* Top-Left Corner: Unified Brand Identity Badge */}
+        <div className="absolute top-8 left-8 sm:top-10 sm:left-10 z-20 pointer-events-auto select-none">
+          <div className="flex items-center space-x-3 px-3.5 py-2.5 rounded-2xl bg-surface/85 dark:bg-[#111C2E]/85 backdrop-blur-md border border-rule dark:border-[#29384D] shadow-xs transition hover:border-primary/40">
+            <div className="flex justify-center items-center w-8 h-8 rounded-lg bg-primary/10 text-primary shrink-0">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-base font-bold tracking-tight text-ink dark:text-white leading-none block">
+                Ledger<span className="text-primary dark:text-[#78A6F6]">Line</span>
+              </span>
+              <span className="block text-[10px] font-mono text-ink-muted dark:text-[#9AA9BD] mt-0.5 leading-none">
+                Double-entry core engine
+              </span>
+            </div>
           </div>
         </div>
 
@@ -326,7 +333,7 @@ export default function LoginPage() {
                         setEmail(e.target.value);
                         setActiveRole(null);
                       }}
-                      className="pr-3 pl-9 w-full h-10 text-xs bg-surface rounded-lg border mono-num border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
+                      className="pr-3 pl-9 w-full h-10 text-xs bg-surface rounded-lg border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                       placeholder="name@company.com"
                     />
                   </div>
