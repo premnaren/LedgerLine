@@ -45,7 +45,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 55m 10s',
     declination: '+07° 24′ 25″',
     magnitude: 0.42,
-    position: { x: 0.38, y: 0.22 },
+    position: { x: 0.68, y: 0.24 },
     importance: 'major',
   },
   {
@@ -57,7 +57,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 25m 08s',
     declination: '+06° 20′ 59″',
     magnitude: 1.64,
-    position: { x: 0.20, y: 0.20 },
+    position: { x: 0.32, y: 0.22 },
     importance: 'secondary',
   },
   {
@@ -69,7 +69,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 40m 45s',
     declination: '−01° 56′ 34″',
     magnitude: 1.74,
-    position: { x: 0.34, y: 0.44 },
+    position: { x: 0.58, y: 0.49 },
     importance: 'secondary',
   },
   {
@@ -81,7 +81,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 36m 13s',
     declination: '−01° 12′ 07″',
     magnitude: 1.69,
-    position: { x: 0.29, y: 0.46 },
+    position: { x: 0.5, y: 0.51 },
     importance: 'secondary',
   },
   {
@@ -93,7 +93,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 32m 00s',
     declination: '−00° 17′ 57″',
     magnitude: 2.25,
-    position: { x: 0.24, y: 0.48 },
+    position: { x: 0.42, y: 0.53 },
     importance: 'secondary',
   },
   {
@@ -105,7 +105,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 47m 45s',
     declination: '−09° 40′ 11″',
     magnitude: 2.07,
-    position: { x: 0.36, y: 0.72 },
+    position: { x: 0.66, y: 0.8 },
     importance: 'secondary',
   },
   {
@@ -117,7 +117,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 14m 32s',
     declination: '−08° 12′ 06″',
     magnitude: 0.18,
-    position: { x: 0.18, y: 0.70 },
+    position: { x: 0.28, y: 0.78 },
     importance: 'major',
   },
 
@@ -131,7 +131,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '11h 03m 44s',
     declination: '+61° 45′ 03″',
     magnitude: 1.79,
-    position: { x: 0.42, y: 0.24 },
+    position: { x: 0.82, y: 0.32 },
     importance: 'secondary',
   },
   {
@@ -143,7 +143,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '11h 01m 50s',
     declination: '+56° 22′ 57″',
     magnitude: 2.37,
-    position: { x: 0.40, y: 0.44 },
+    position: { x: 0.78, y: 0.58 },
     importance: 'secondary',
   },
   {
@@ -155,7 +155,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '11h 53m 50s',
     declination: '+53° 41′ 41″',
     magnitude: 2.44,
-    position: { x: 0.29, y: 0.48 },
+    position: { x: 0.54, y: 0.62 },
     importance: 'secondary',
   },
   {
@@ -167,7 +167,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 15m 25s',
     declination: '+57° 01′ 57″',
     magnitude: 3.31,
-    position: { x: 0.30, y: 0.28 },
+    position: { x: 0.56, y: 0.38 },
     importance: 'supporting',
   },
   {
@@ -179,7 +179,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 54m 02s',
     declination: '+55° 57′ 35″',
     magnitude: 1.77,
-    position: { x: 0.22, y: 0.36 },
+    position: { x: 0.4, y: 0.48 },
     importance: 'secondary',
   },
   {
@@ -191,7 +191,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '13h 23m 56s',
     declination: '+54° 55′ 31″',
     magnitude: 2.23,
-    position: { x: 0.16, y: 0.50 },
+    position: { x: 0.28, y: 0.64 },
     importance: 'secondary',
   },
   {
@@ -203,7 +203,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '13h 47m 32s',
     declination: '+49° 18′ 48″',
     magnitude: 1.86,
-    position: { x: 0.12, y: 0.68 },
+    position: { x: 0.18, y: 0.84 },
     importance: 'secondary',
   },
 
@@ -217,7 +217,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 09m 11s',
     declination: '+59° 08′ 59″',
     magnitude: 2.28,
-    position: { x: 0.14, y: 0.36 },
+    position: { x: 0.18, y: 0.46 },
     importance: 'secondary',
   },
   {
@@ -229,7 +229,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 40m 30s',
     declination: '+56° 32′ 14″',
     magnitude: 2.24,
-    position: { x: 0.22, y: 0.56 },
+    position: { x: 0.34, y: 0.68 },
     importance: 'secondary',
   },
   {
@@ -241,7 +241,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 56m 42s',
     declination: '+60° 43′ 00″',
     magnitude: 2.15,
-    position: { x: 0.30, y: 0.30 },
+    position: { x: 0.52, y: 0.38 },
     importance: 'secondary',
   },
   {
@@ -253,7 +253,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '01h 25m 49s',
     declination: '+60° 14′ 07″',
     magnitude: 2.68,
-    position: { x: 0.38, y: 0.54 },
+    position: { x: 0.7, y: 0.66 },
     importance: 'secondary',
   },
   {
@@ -265,7 +265,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '01h 54m 23s',
     declination: '+63° 40′ 12″',
     magnitude: 3.35,
-    position: { x: 0.46, y: 0.35 },
+    position: { x: 0.86, y: 0.44 },
     importance: 'supporting',
   },
 
@@ -279,7 +279,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '20h 41m 26s',
     declination: '+45° 16′ 49″',
     magnitude: 1.25,
-    position: { x: 0.30, y: 0.18 },
+    position: { x: 0.5, y: 0.18 },
     importance: 'major',
   },
   {
@@ -291,7 +291,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '20h 22m 14s',
     declination: '+40° 15′ 24″',
     magnitude: 2.23,
-    position: { x: 0.30, y: 0.44 },
+    position: { x: 0.5, y: 0.5 },
     importance: 'secondary',
   },
   {
@@ -303,7 +303,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '19h 30m 43s',
     declination: '+27° 57′ 35″',
     magnitude: 3.05,
-    position: { x: 0.30, y: 0.76 },
+    position: { x: 0.5, y: 0.86 },
     importance: 'supporting',
   },
   {
@@ -315,7 +315,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '19h 44m 58s',
     declination: '+45° 07′ 51″',
     magnitude: 2.86,
-    position: { x: 0.15, y: 0.42 },
+    position: { x: 0.22, y: 0.48 },
     importance: 'secondary',
   },
   {
@@ -327,7 +327,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '20h 46m 12s',
     declination: '+33° 58′ 13″',
     magnitude: 2.48,
-    position: { x: 0.45, y: 0.48 },
+    position: { x: 0.78, y: 0.52 },
     importance: 'secondary',
   },
 
@@ -341,7 +341,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '18h 36m 56s',
     declination: '+38° 47′ 01″',
     magnitude: 0.03,
-    position: { x: 0.28, y: 0.20 },
+    position: { x: 0.5, y: 0.22 },
     importance: 'major',
   },
   {
@@ -353,7 +353,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '18h 44m 46s',
     declination: '+37° 36′ 18″',
     magnitude: 4.34,
-    position: { x: 0.34, y: 0.38 },
+    position: { x: 0.58, y: 0.44 },
     importance: 'supporting',
   },
   {
@@ -365,7 +365,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '18h 50m 04s',
     declination: '+33° 21′ 45″',
     magnitude: 3.52,
-    position: { x: 0.24, y: 0.60 },
+    position: { x: 0.42, y: 0.74 },
     importance: 'supporting',
   },
   {
@@ -377,7 +377,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '18h 58m 56s',
     declination: '+32° 41′ 22″',
     magnitude: 3.25,
-    position: { x: 0.36, y: 0.64 },
+    position: { x: 0.6, y: 0.78 },
     importance: 'supporting',
   },
 
@@ -391,7 +391,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '16h 05m 26s',
     declination: '−19° 48′ 20″',
     magnitude: 2.56,
-    position: { x: 0.16, y: 0.20 },
+    position: { x: 0.24, y: 0.26 },
     importance: 'secondary',
   },
   {
@@ -403,7 +403,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '16h 00m 20s',
     declination: '−22° 37′ 18″',
     magnitude: 2.29,
-    position: { x: 0.20, y: 0.27 },
+    position: { x: 0.3, y: 0.36 },
     importance: 'secondary',
   },
   {
@@ -415,7 +415,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '16h 29m 24s',
     declination: '−26° 25′ 55″',
     magnitude: 1.06,
-    position: { x: 0.26, y: 0.38 },
+    position: { x: 0.42, y: 0.48 },
     importance: 'major',
   },
   {
@@ -427,7 +427,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '17h 37m 19s',
     declination: '−42° 59′ 52″',
     magnitude: 1.86,
-    position: { x: 0.28, y: 0.62 },
+    position: { x: 0.48, y: 0.76 },
     importance: 'secondary',
   },
   {
@@ -439,7 +439,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '17h 33m 36s',
     declination: '−37° 06′ 14″',
     magnitude: 1.62,
-    position: { x: 0.38, y: 0.70 },
+    position: { x: 0.68, y: 0.82 },
     importance: 'secondary',
   },
 
@@ -453,7 +453,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '09h 52m 45s',
     declination: '+26° 00′ 25″',
     magnitude: 3.88,
-    position: { x: 0.22, y: 0.22 },
+    position: { x: 0.3, y: 0.32 },
     importance: 'supporting',
   },
   {
@@ -465,7 +465,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '10h 19m 58s',
     declination: '+19° 50′ 30″',
     magnitude: 2.01,
-    position: { x: 0.30, y: 0.32 },
+    position: { x: 0.42, y: 0.44 },
     importance: 'secondary',
   },
   {
@@ -477,7 +477,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '10h 08m 22s',
     declination: '+11° 58′ 02″',
     magnitude: 1.36,
-    position: { x: 0.24, y: 0.54 },
+    position: { x: 0.32, y: 0.72 },
     importance: 'major',
   },
   {
@@ -489,7 +489,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '11h 14m 06s',
     declination: '+20° 31′ 25″',
     magnitude: 2.56,
-    position: { x: 0.42, y: 0.36 },
+    position: { x: 0.64, y: 0.5 },
     importance: 'secondary',
   },
   {
@@ -501,7 +501,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '11h 49m 03s',
     declination: '+14° 34′ 19″',
     magnitude: 2.14,
-    position: { x: 0.48, y: 0.56 },
+    position: { x: 0.82, y: 0.7 },
     importance: 'secondary',
   },
 
@@ -515,7 +515,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '03h 47m 29s',
     declination: '+24° 06′ 18″',
     magnitude: 2.87,
-    position: { x: 0.14, y: 0.30 },
+    position: { x: 0.24, y: 0.4 },
     importance: 'secondary',
   },
   {
@@ -527,7 +527,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '04h 28m 36s',
     declination: '+19° 10′ 49″',
     magnitude: 3.53,
-    position: { x: 0.28, y: 0.42 },
+    position: { x: 0.5, y: 0.52 },
     importance: 'supporting',
   },
   {
@@ -539,7 +539,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '04h 35m 55s',
     declination: '+16° 30′ 33″',
     magnitude: 0.85,
-    position: { x: 0.32, y: 0.56 },
+    position: { x: 0.58, y: 0.7 },
     importance: 'major',
   },
   {
@@ -551,7 +551,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '05h 26m 17s',
     declination: '+28° 36′ 27″',
     magnitude: 1.65,
-    position: { x: 0.44, y: 0.24 },
+    position: { x: 0.76, y: 0.28 },
     importance: 'secondary',
   },
 
@@ -565,7 +565,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '07h 34m 36s',
     declination: '+31° 53′ 18″',
     magnitude: 1.58,
-    position: { x: 0.24, y: 0.18 },
+    position: { x: 0.38, y: 0.26 },
     importance: 'secondary',
   },
   {
@@ -577,7 +577,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '07h 45m 18s',
     declination: '+28° 01′ 34″',
     magnitude: 1.14,
-    position: { x: 0.36, y: 0.22 },
+    position: { x: 0.6, y: 0.3 },
     importance: 'major',
   },
   {
@@ -589,7 +589,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '06h 43m 55s',
     declination: '+25° 07′ 52″',
     magnitude: 3.06,
-    position: { x: 0.20, y: 0.44 },
+    position: { x: 0.32, y: 0.58 },
     importance: 'supporting',
   },
   {
@@ -601,7 +601,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '07h 20m 07s',
     declination: '+21° 58′ 56″',
     magnitude: 3.53,
-    position: { x: 0.34, y: 0.46 },
+    position: { x: 0.56, y: 0.62 },
     importance: 'supporting',
   },
   {
@@ -613,7 +613,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '06h 37m 42s',
     declination: '+16° 23′ 57″',
     magnitude: 1.93,
-    position: { x: 0.28, y: 0.70 },
+    position: { x: 0.46, y: 0.88 },
     importance: 'secondary',
   },
 
@@ -627,7 +627,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '06h 45m 08s',
     declination: '−16° 42′ 58″',
     magnitude: -1.46,
-    position: { x: 0.26, y: 0.22 },
+    position: { x: 0.44, y: 0.32 },
     importance: 'major',
   },
   {
@@ -639,7 +639,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '06h 22m 41s',
     declination: '−17° 57′ 21″',
     magnitude: 1.98,
-    position: { x: 0.16, y: 0.32 },
+    position: { x: 0.26, y: 0.48 },
     importance: 'secondary',
   },
   {
@@ -651,7 +651,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '07h 08m 23s',
     declination: '−26° 23′ 35″',
     magnitude: 1.83,
-    position: { x: 0.34, y: 0.52 },
+    position: { x: 0.58, y: 0.7 },
     importance: 'secondary',
   },
   {
@@ -663,7 +663,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '06h 58m 37s',
     declination: '−28° 58′ 19″',
     magnitude: 1.50,
-    position: { x: 0.24, y: 0.68 },
+    position: { x: 0.42, y: 0.88 },
     importance: 'major',
   },
   {
@@ -675,7 +675,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '07h 24m 05s',
     declination: '−29° 18′ 11″',
     magnitude: 2.45,
-    position: { x: 0.40, y: 0.70 },
+    position: { x: 0.72, y: 0.88 },
     importance: 'secondary',
   },
 
@@ -689,7 +689,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '23h 03m 46s',
     declination: '+28° 04′ 58″',
     magnitude: 2.44,
-    position: { x: 0.20, y: 0.24 },
+    position: { x: 0.36, y: 0.32 },
     importance: 'secondary',
   },
   {
@@ -701,7 +701,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '23h 04m 45s',
     declination: '+15° 12′ 19″',
     magnitude: 2.49,
-    position: { x: 0.20, y: 0.56 },
+    position: { x: 0.36, y: 0.74 },
     importance: 'secondary',
   },
   {
@@ -713,7 +713,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 13m 14s',
     declination: '+15° 11′ 01″',
     magnitude: 2.84,
-    position: { x: 0.46, y: 0.56 },
+    position: { x: 0.78, y: 0.74 },
     importance: 'secondary',
   },
   {
@@ -725,7 +725,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '21h 44m 11s',
     declination: '+09° 52′ 50″',
     magnitude: 2.38,
-    position: { x: 0.10, y: 0.74 },
+    position: { x: 0.18, y: 0.88 },
     importance: 'secondary',
   },
 
@@ -739,7 +739,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 08m 23s',
     declination: '+29° 05′ 25″',
     magnitude: 2.07,
-    position: { x: 0.16, y: 0.60 },
+    position: { x: 0.22, y: 0.8 },
     importance: 'secondary',
   },
   {
@@ -751,7 +751,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '00h 39m 19s',
     declination: '+30° 51′ 40″',
     magnitude: 3.27,
-    position: { x: 0.25, y: 0.46 },
+    position: { x: 0.4, y: 0.6 },
     importance: 'supporting',
   },
   {
@@ -763,7 +763,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '01h 09m 43s',
     declination: '+35° 37′ 14″',
     magnitude: 2.07,
-    position: { x: 0.35, y: 0.36 },
+    position: { x: 0.58, y: 0.44 },
     importance: 'secondary',
   },
   {
@@ -775,7 +775,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '02h 03m 53s',
     declination: '+42° 19′ 47″',
     magnitude: 2.10,
-    position: { x: 0.46, y: 0.22 },
+    position: { x: 0.78, y: 0.26 },
     importance: 'secondary',
   },
 
@@ -789,7 +789,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '03h 24m 19s',
     declination: '+49° 51′ 40″',
     magnitude: 1.79,
-    position: { x: 0.30, y: 0.22 },
+    position: { x: 0.5, y: 0.32 },
     importance: 'secondary',
   },
   {
@@ -801,7 +801,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '03h 08m 10s',
     declination: '+40° 57′ 20″',
     magnitude: 2.09,
-    position: { x: 0.18, y: 0.38 },
+    position: { x: 0.3, y: 0.54 },
     importance: 'secondary',
   },
   {
@@ -813,7 +813,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '03h 54m 07s',
     declination: '+31° 53′ 01″',
     magnitude: 2.84,
-    position: { x: 0.38, y: 0.50 },
+    position: { x: 0.64, y: 0.7 },
     importance: 'secondary',
   },
   {
@@ -825,7 +825,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '03h 58m 57s',
     declination: '+35° 47′ 27″',
     magnitude: 3.98,
-    position: { x: 0.44, y: 0.62 },
+    position: { x: 0.76, y: 0.86 },
     importance: 'supporting',
   },
 
@@ -839,7 +839,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '19h 46m 15s',
     declination: '+10° 36′ 47″',
     magnitude: 2.72,
-    position: { x: 0.22, y: 0.28 },
+    position: { x: 0.36, y: 0.42 },
     importance: 'secondary',
   },
   {
@@ -851,7 +851,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '19h 50m 47s',
     declination: '+08° 52′ 06″',
     magnitude: 0.77,
-    position: { x: 0.28, y: 0.40 },
+    position: { x: 0.5, y: 0.56 },
     importance: 'major',
   },
   {
@@ -863,7 +863,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '19h 55m 18s',
     declination: '+06° 24′ 24″',
     magnitude: 3.71,
-    position: { x: 0.34, y: 0.52 },
+    position: { x: 0.64, y: 0.7 },
     importance: 'supporting',
   },
 
@@ -877,7 +877,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 31m 09s',
     declination: '−57° 06′ 47″',
     magnitude: 1.64,
-    position: { x: 0.28, y: 0.20 },
+    position: { x: 0.5, y: 0.24 },
     importance: 'secondary',
   },
   {
@@ -889,7 +889,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 26m 35s',
     declination: '−63° 05′ 56″',
     magnitude: 0.77,
-    position: { x: 0.28, y: 0.70 },
+    position: { x: 0.5, y: 0.82 },
     importance: 'major',
   },
   {
@@ -901,7 +901,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 47m 43s',
     declination: '−59° 41′ 19″',
     magnitude: 1.25,
-    position: { x: 0.40, y: 0.44 },
+    position: { x: 0.68, y: 0.52 },
     importance: 'major',
   },
   {
@@ -913,7 +913,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 15m 08s',
     declination: '−58° 44′ 56″',
     magnitude: 2.79,
-    position: { x: 0.16, y: 0.46 },
+    position: { x: 0.32, y: 0.54 },
     importance: 'secondary',
   },
   {
@@ -925,7 +925,7 @@ export const STAR_CATALOGUE: StarRecord[] = [
     rightAscension: '12h 21m 21s',
     declination: '−60° 24′ 04″',
     magnitude: 3.59,
-    position: { x: 0.23, y: 0.54 },
+    position: { x: 0.42, y: 0.66 },
     importance: 'supporting',
   },
 ];

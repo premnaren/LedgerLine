@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primaryEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#648EFF" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.8" />
+      <stop offset="60%" stop-color="#8155D9" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8155D9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141126" />
+      <stop offset="100%" stop-color="#080712" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Cosmic Background -->
+  <rect width="500" height="500" fill="url(#spaceBg)" />
+
+  <!-- Constellation Header Metadata -->
+  <text x="250" y="38" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" letter-spacing="1">ANDROMEDA</text>
+  <text x="250" y="56" fill="#BD75E9" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">The Chained Maiden · Andromeda</text>
+
+  <!-- Constellation Stick-Figure Edges -->
+  <g id="edges">
+    <line x1="110" y1="400" x2="200" y2="300" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="200" y1="300" x2="290" y2="220" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="290" y1="220" x2="390" y2="130" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="110" y1="400" x2="290" y2="220" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+  </g>
+
+  <!-- Astronomical Star Nodes -->
+  <g id="stars">
+    <!-- Star: Alpheratz (Alpha Andromedae) Mag: 2.07 -->
+    <g id="alpheratz">
+      <circle cx="110" cy="400" r="11.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="110" cy="400" r="5.3" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="110" y="386.7" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Alpheratz</text>
+    </g>
+    <!-- Star: Delta Andromedae (Delta Andromedae) Mag: 3.27 -->
+    <g id="delta">
+      <circle cx="200" cy="300" r="9.9" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="200" cy="300" r="4.5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="200" y="287.5" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Delta Andromedae</text>
+    </g>
+    <!-- Star: Mirach (Beta Andromedae) Mag: 2.07 -->
+    <g id="mirach">
+      <circle cx="290" cy="220" r="11.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="290" cy="220" r="5.3" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="290" y="206.7" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Mirach</text>
+    </g>
+    <!-- Star: Almach (Gamma Andromedae) Mag: 2.1 -->
+    <g id="almach">
+      <circle cx="390" cy="130" r="11.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="390" cy="130" r="5.3" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="390" y="116.7" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Almach</text>
+    </g>
+  </g>
+</svg>

@@ -22,6 +22,8 @@ import {
   X,
   Building,
   ShieldCheck,
+  Sparkles,
+  RotateCw,
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -167,17 +169,62 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 4: Navigation Bar (Minimal Clean Inline Header)        */}
       {/* ============================================================ */}
-      <header className="flex z-30 justify-between items-center px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 w-full max-w-7xl pointer-events-auto">
+      <header className="flex z-30 justify-between items-center px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 w-full max-w-7xl pointer-events-none">
         {/* Left: Clean inline LedgerLine Brand without box or border */}
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2.5 pointer-events-auto">
           <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#648EFF] dark:text-[#BD75E9]" />
           <span className="text-lg sm:text-xl font-bold tracking-tight text-[#17142B] dark:text-[#F7F4FF]">
             Ledger<span className="text-[#648EFF] dark:text-[#BD75E9]">Line</span>
           </span>
         </div>
 
-        {/* Right: Clean Theme Toggle */}
-        <div className="flex items-center">
+        {/* Right: Constellation Controls & Theme Toggle */}
+        <div className="flex items-center space-x-2 pointer-events-auto">
+          {/* Quick Action Pill: Add Star */}
+          <button
+            type="button"
+            onClick={() => networkRef.current?.addStar()}
+            title="Create a new celestial star node (or single-click empty canvas)"
+            className={`hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 backdrop-blur-md active:scale-95 ${
+              isDark
+                ? 'bg-[#19172B]/80 hover:bg-[#8155D9]/25 text-[#F7F4FF] border-[#34304D] hover:border-[#BD75E9]'
+                : 'bg-white/80 hover:bg-[#8155D9]/15 text-[#17142B] border-[#DED9EA] hover:border-[#8155D9]'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#BD75E9]" />
+            <span>Add Star</span>
+          </button>
+
+          {/* Quick Action Pill: Cycle Pattern */}
+          <button
+            type="button"
+            onClick={() => networkRef.current?.nextConstellation()}
+            title="Cycle through 15 authentic astronomical constellation patterns (or hold canvas to fold)"
+            className={`hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 backdrop-blur-md active:scale-95 ${
+              isDark
+                ? 'bg-[#19172B]/80 hover:bg-[#8155D9]/25 text-[#F7F4FF] border-[#34304D] hover:border-[#BD75E9]'
+                : 'bg-white/80 hover:bg-[#8155D9]/15 text-[#17142B] border-[#DED9EA] hover:border-[#8155D9]'
+            }`}
+          >
+            <RotateCw className="w-3.5 h-3.5 text-[#648EFF] dark:text-[#BD75E9]" />
+            <span>Cycle Pattern</span>
+          </button>
+
+          {/* Quick Action Pill: Reset */}
+          <button
+            type="button"
+            onClick={() => networkRef.current?.reset()}
+            title="Reset active constellation layout"
+            className={`hidden md:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 backdrop-blur-md active:scale-95 ${
+              isDark
+                ? 'bg-[#19172B]/80 hover:bg-white/10 text-[#C0BAD5] border-[#34304D]'
+                : 'bg-white/80 hover:bg-black/5 text-[#55516D] border-[#DED9EA]'
+            }`}
+          >
+            <span>Reset</span>
+          </button>
+
+          {/* Clean Theme Toggle */}
           <ThemeToggle isDark={isDark} onToggle={handleToggleTheme} />
         </div>
       </header>
@@ -185,10 +232,10 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 5: Left-Aligned Compact Authentication Card            */}
       {/* ============================================================ */}
-      <main className="flex z-20 items-center justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-6 sm:py-10 my-auto pointer-events-auto flex-1">
+      <main className="flex z-20 items-center justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-6 sm:py-10 my-auto pointer-events-none flex-1">
         {/* Compact Authentication Card */}
         <div
-          className={`w-full max-w-[380px] sm:max-w-[395px] rounded-2xl p-5 sm:p-6 space-y-4 sm:space-y-4.5 transition-all duration-300 ${
+          className={`w-full max-w-[380px] sm:max-w-[395px] rounded-2xl p-5 sm:p-6 space-y-4 sm:space-y-4.5 transition-all duration-300 pointer-events-auto ${
             isDark
               ? 'bg-[#19172B]/85 backdrop-blur-2xl border border-[#34304D] shadow-2xl shadow-black/80 ring-1 ring-white/10'
               : 'bg-white/90 backdrop-blur-2xl border border-[#DED9EA] shadow-2xl shadow-[#8155D9]/15 ring-1 ring-black/5'
@@ -692,8 +739,8 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 6: Balanced Footer                                     */}
       {/* ============================================================ */}
-      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#55516D] dark:text-[#C0BAD5] z-30 pointer-events-auto">
-        <div className="font-medium">
+      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#55516D] dark:text-[#C0BAD5] z-30 pointer-events-none">
+        <div className="font-medium pointer-events-auto">
           LedgerLine &copy; 2026 &middot; Double-entry core engine
         </div>
       </footer>

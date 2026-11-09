@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primaryEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#648EFF" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.8" />
+      <stop offset="60%" stop-color="#8155D9" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8155D9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141126" />
+      <stop offset="100%" stop-color="#080712" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Cosmic Background -->
+  <rect width="500" height="500" fill="url(#spaceBg)" />
+
+  <!-- Constellation Header Metadata -->
+  <text x="250" y="38" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" letter-spacing="1">SCORPIUS</text>
+  <text x="250" y="56" fill="#BD75E9" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">The Scorpion · Scorpius</text>
+
+  <!-- Constellation Stick-Figure Edges -->
+  <g id="edges">
+    <line x1="120" y1="130" x2="150" y2="180" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="150" y1="180" x2="210" y2="240" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="210" y1="240" x2="240" y2="380" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="240" y1="380" x2="340" y2="410" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="120" y1="130" x2="210" y2="240" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+  </g>
+
+  <!-- Astronomical Star Nodes -->
+  <g id="stars">
+    <!-- Star: Acrab (Beta Scorpii) Mag: 2.56 -->
+    <g id="acrab">
+      <circle cx="120" cy="130" r="11.0" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="120" cy="130" r="5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="120" y="117" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Acrab</text>
+    </g>
+    <!-- Star: Dschubba (Delta Scorpii) Mag: 2.29 -->
+    <g id="dschubba">
+      <circle cx="150" cy="180" r="11.4" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="150" cy="180" r="5.2" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="150" y="166.8" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Dschubba</text>
+    </g>
+    <!-- Star: Antares (Alpha Scorpii) Mag: 1.06 -->
+    <g id="antares">
+      <circle cx="210" cy="240" r="15.4" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="210" cy="240" r="7" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="210" y="225" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Antares</text>
+    </g>
+    <!-- Star: Sargas (Theta Scorpii) Mag: 1.86 -->
+    <g id="sargas">
+      <circle cx="240" cy="380" r="11.9" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="240" cy="380" r="5.4" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="240" y="366.6" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Sargas</text>
+    </g>
+    <!-- Star: Shaula (Lambda Scorpii) Mag: 1.62 -->
+    <g id="shaula">
+      <circle cx="340" cy="410" r="12.3" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="340" cy="410" r="5.6" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="340" y="396.4" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Shaula</text>
+    </g>
+  </g>
+</svg>

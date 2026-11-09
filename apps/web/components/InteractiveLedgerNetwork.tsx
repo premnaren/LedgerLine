@@ -508,29 +508,153 @@ const InteractiveLedgerNetwork = forwardRef<
     triggerWakeRef.current?.();
   }, []);
 
+  // Dynamic astronomical star creator
+  const createStarAt = useCallback((px: number, py: number) => {
+    const state = stateRef.current;
+    if (state.width === 0 || state.height === 0) return;
+
+    const starCount = state.nodes.length + 1;
+    const uniqueSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    const celestialNames = [
+      { name: 'Nova Centauri', desig: 'V1369 Cen', mag: 2.1 },
+      { name: 'Stellina Borealis', desig: 'HD 189733', mag: 2.4 },
+      { name: 'Proxima Nova', desig: 'Alpha Proxima', mag: 1.9 },
+      { name: 'Alphecca Minor', desig: 'Alpha Coronae', mag: 2.2 },
+      { name: 'Sirius Minor', desig: 'Beta Canis Nova', mag: 2.5 },
+      { name: 'Arcturus Nova', desig: 'Alpha Boötis Nova', mag: 1.8 },
+      { name: 'Deneb Nova', desig: 'Alpha Cygni Nova', mag: 2.0 },
+      { name: 'Capella Nova', desig: 'Alpha Aurigae Nova', mag: 2.3 },
+      { name: 'Mira Nova', desig: 'Omicron Ceti Nova', mag: 2.6 },
+      { name: 'Spica Minor', desig: 'Alpha Virginis Nova', mag: 2.1 },
+    ];
+    const template = celestialNames[(starCount - 1) % celestialNames.length];
+    const starId = `custom-star-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    const newStarRecord: StarRecord = {
+      id: starId,
+      name: `${template.name} ${uniqueSuffix}`,
+      constellation: 'custom',
+      constellationName: 'Celestial Ledger',
+      designation: template.desig,
+      rightAscension: `${(Math.floor(Math.random() * 24)).toString().padStart(2, '0')}h ${(Math.floor(Math.random() * 60)).toString().padStart(2, '0')}m`,
+      declination: `+${(Math.floor(Math.random() * 80)).toString().padStart(2, '0')}° ${(Math.floor(Math.random() * 60)).toString().padStart(2, '0')}′`,
+      magnitude: template.mag,
+      position: {
+        x: px / state.width,
+        y: py / state.height,
+      },
+      importance: 'secondary',
+    };
+
+    const { radius } = calcStarRadius(newStarRecord.magnitude, 'secondary');
+
+    const newNode: RuntimeStarNode = {
+      id: starId,
+      star: newStarRecord,
+      x: px,
+      y: py,
+      vx: 0,
+      vy: 0,
+      baseX: px,
+      baseY: py,
+      targetX: px,
+      targetY: py,
+      startX: px,
+      startY: py,
+      radius,
+      baseRadius: radius,
+      alpha: 1.0,
+      targetAlpha: 1.0,
+      startAlpha: 1.0,
+      importance: 'secondary',
+      highlight: 1.0,
+      creaseAngle: Math.random() * Math.PI * 2,
+      creaseDist: 20 + Math.random() * 60,
+    };
+
+    state.nodes.push(newNode);
+
+    // Connect to the nearest existing stars
+    if (state.nodes.length > 1) {
+      const otherNodes = state.nodes.filter((n) => n.id !== starId);
+      otherNodes.sort((a, b) => {
+        const distA = Math.hypot(a.x - px, a.y - py);
+        const distB = Math.hypot(b.x - px, b.y - py);
+        return distA - distB;
+      });
+
+      // Connect primary edge to nearest star
+      const nearest = otherNodes[0];
+      state.edges.push({
+        fromId: starId,
+        toId: nearest.id,
+        isSecondary: false,
+        alpha: 0.85,
+        targetAlpha: 0.85,
+        startAlpha: 0.85,
+      });
+
+      // Optionally connect secondary edge to 2nd nearest star if within 450px
+      if (otherNodes.length > 1) {
+        const secondNearest = otherNodes[1];
+        const dist2 = Math.hypot(secondNearest.x - px, secondNearest.y - py);
+        if (dist2 < 450) {
+          state.edges.push({
+            fromId: starId,
+            toId: secondNearest.id,
+            isSecondary: true,
+            alpha: 0.45,
+            targetAlpha: 0.45,
+            startAlpha: 0.45,
+          });
+        }
+      }
+    }
+
+    // Celestial birth ripple
+    state.ripples.push({
+      x: px,
+      y: py,
+      radius: 6,
+      maxRadius: 110,
+      alpha: 1.0,
+    });
+
+    // Stardust burst particles
+    for (let i = 0; i < 16; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 1.0 + Math.random() * 2.8;
+      state.particles.push({
+        x: px,
+        y: py,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        radius: 1.2 + Math.random() * 1.6,
+        alpha: 0.95,
+        decay: 0.024,
+      });
+    }
+
+    state.selectedId = starId;
+    triggerWakeRef.current?.();
+  }, []);
+
   useImperativeHandle(
     ref,
     () => ({
       addStar: () => {
-        // Create an ethereal supporting star near mouse or right field
         const state = stateRef.current;
-        const x = state.mouseX ?? state.width * 0.68;
-        const y = state.mouseY ?? state.height * 0.45;
-        state.ripples.push({
-          x,
-          y,
-          radius: 4,
-          maxRadius: 65,
-          alpha: 0.9,
-        });
-        triggerWakeRef.current?.();
+        const x = state.mouseX ?? (state.width >= 1024 ? state.width * 0.68 : state.width * 0.5) + (Math.random() - 0.5) * 140;
+        const y = state.mouseY ?? state.height * 0.48 + (Math.random() - 0.5) * 140;
+        createStarAt(x, y);
       },
       regenerate: handleNextConstellation,
       reset: handleReset,
       nextConstellation: handleNextConstellation,
       getCurrentConstellation: () => CONSTELLATION_PRESETS[stateRef.current.currentPresetIndex],
     }),
-    [handleNextConstellation, handleReset]
+    [createStarAt, handleNextConstellation, handleReset]
   );
 
   // Canvas main rendering and interaction loop
@@ -1061,10 +1185,10 @@ const InteractiveLedgerNetwork = forwardRef<
       }
 
       // 8. Hint while holding empty network space to crumple & transition
-      if (isHolding && crumpleCenter) {
+      if (mode === 'CRUMPLED' && crumpleCenter) {
         ctx.save();
         ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        const label = 'Holding: Compressing celestial core... release to transition';
+        const label = 'Celestial core compressed — release to reveal new constellation';
         const textWidth = ctx.measureText(label).width;
         const padX = 12;
         const boxW = textWidth + padX * 2;
@@ -1119,7 +1243,7 @@ const InteractiveLedgerNetwork = forwardRef<
       for (let i = nodes.length - 1; i >= 0; i--) {
         const node = nodes[i];
         const d = Math.hypot(node.x - px, node.y - py);
-        if (d <= node.radius + 15) {
+        if (d <= node.radius + 18) {
           return node.id;
         }
       }
@@ -1136,6 +1260,7 @@ const InteractiveLedgerNetwork = forwardRef<
         state.draggedId = hitId;
         state.selectedId = hitId;
         state.isHolding = false;
+        canvas.style.cursor = 'grabbing';
       } else {
         // Pressing on empty space starts hold-to-crumple timer
         state.isHolding = true;
@@ -1147,9 +1272,10 @@ const InteractiveLedgerNetwork = forwardRef<
           if (state.isHolding) {
             state.mode = 'CRUMPLED';
             state.crumpleProgress = 0;
+            canvas.style.cursor = 'wait';
             triggerWake();
           }
-        }, 340);
+        }, 300);
       }
       triggerWake();
     };
@@ -1159,10 +1285,10 @@ const InteractiveLedgerNetwork = forwardRef<
       state.mouseX = px;
       state.mouseY = py;
 
-      // Cancel hold if dragged significantly
+      // Cancel hold if moved significantly before crumple triggers
       if (state.isHolding && state.downPos) {
         const moveDist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        if (moveDist > 12) {
+        if (moveDist > 10) {
           state.isHolding = false;
           if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
         }
@@ -1175,15 +1301,25 @@ const InteractiveLedgerNetwork = forwardRef<
           draggedNode.y = py;
           draggedNode.targetX = px;
           draggedNode.targetY = py;
+          draggedNode.baseX = px;
+          draggedNode.baseY = py;
           draggedNode.vx = 0;
           draggedNode.vy = 0;
         }
+        canvas.style.cursor = 'grabbing';
         triggerWake();
       } else {
         const hitId = findNodeIdAt(px, py);
         if (hitId !== state.hoveredId) {
           state.hoveredId = hitId;
           triggerWake();
+        }
+        if (hitId) {
+          canvas.style.cursor = 'grab';
+        } else if (state.mode === 'CRUMPLED') {
+          canvas.style.cursor = 'wait';
+        } else {
+          canvas.style.cursor = 'crosshair';
         }
       }
     };
@@ -1210,11 +1346,21 @@ const InteractiveLedgerNetwork = forwardRef<
 
         // Trigger transition to next preset
         handleNextConstellation();
+      } else if (!state.draggedId && state.downPos) {
+        // Check if this was a quick click on empty space (not a drag, not a long hold)
+        const moveDist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
+        const holdDuration = performance.now() - state.holdStartTime;
+        if (moveDist < 10 && holdDuration < 320) {
+          createStarAt(px, py);
+        }
+        state.isHolding = false;
       } else {
         state.isHolding = false;
         state.draggedId = null;
       }
 
+      const hitId = findNodeIdAt(px, py);
+      canvas.style.cursor = hitId ? 'grab' : 'crosshair';
       triggerWake();
     };
 
@@ -1317,7 +1463,7 @@ const InteractiveLedgerNetwork = forwardRef<
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isDark, handleNextConstellation, handleReset, launchComet]);
+  }, [isDark, handleNextConstellation, handleReset, launchComet, createStarAt]);
 
   return (
     <div
@@ -1328,7 +1474,7 @@ const InteractiveLedgerNetwork = forwardRef<
     >
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 w-full h-full pointer-events-auto cursor-crosshair"
       />
     </div>
   );

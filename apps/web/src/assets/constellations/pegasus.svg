@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primaryEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#648EFF" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.8" />
+      <stop offset="60%" stop-color="#8155D9" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8155D9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141126" />
+      <stop offset="100%" stop-color="#080712" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Cosmic Background -->
+  <rect width="500" height="500" fill="url(#spaceBg)" />
+
+  <!-- Constellation Header Metadata -->
+  <text x="250" y="38" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" letter-spacing="1">PEGASUS</text>
+  <text x="250" y="56" fill="#BD75E9" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">The Winged Horse (Great Square) · Pegasus</text>
+
+  <!-- Constellation Stick-Figure Edges -->
+  <g id="edges">
+    <line x1="180" y1="160" x2="180" y2="370" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="180" y1="370" x2="390" y2="370" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="180" y1="370" x2="90" y2="440" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="180" y1="160" x2="390" y2="370" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+    <line x1="180" y1="160" x2="90" y2="440" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+  </g>
+
+  <!-- Astronomical Star Nodes -->
+  <g id="stars">
+    <!-- Star: Scheat (Beta Pegasi) Mag: 2.44 -->
+    <g id="scheat">
+      <circle cx="180" cy="160" r="11.0" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="180" cy="160" r="5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="180" y="147" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Scheat</text>
+    </g>
+    <!-- Star: Markab (Alpha Pegasi) Mag: 2.49 -->
+    <g id="markab">
+      <circle cx="180" cy="370" r="11.0" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="180" cy="370" r="5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="180" y="357" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Markab</text>
+    </g>
+    <!-- Star: Algenib (Gamma Pegasi) Mag: 2.84 -->
+    <g id="algenib">
+      <circle cx="390" cy="370" r="10.6" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="390" cy="370" r="4.8" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="390" y="357.2" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Algenib</text>
+    </g>
+    <!-- Star: Enif (Epsilon Pegasi) Mag: 2.38 -->
+    <g id="enif">
+      <circle cx="90" cy="440" r="11.2" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="90" cy="440" r="5.1" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="90" y="426.9" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Enif</text>
+    </g>
+  </g>
+</svg>

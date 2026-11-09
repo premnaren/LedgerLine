@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primaryEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#648EFF" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.8" />
+      <stop offset="60%" stop-color="#8155D9" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8155D9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141126" />
+      <stop offset="100%" stop-color="#080712" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Cosmic Background -->
+  <rect width="500" height="500" fill="url(#spaceBg)" />
+
+  <!-- Constellation Header Metadata -->
+  <text x="250" y="38" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" letter-spacing="1">CANIS MAJOR</text>
+  <text x="250" y="56" fill="#BD75E9" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">The Greater Dog · Canis Major</text>
+
+  <!-- Constellation Stick-Figure Edges -->
+  <g id="edges">
+    <line x1="130" y1="240" x2="220" y2="160" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="220" y1="160" x2="290" y2="350" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="290" y1="350" x2="210" y2="440" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="290" y1="350" x2="360" y2="440" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="130" y1="240" x2="210" y2="440" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+    <line x1="210" y1="440" x2="360" y2="440" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+  </g>
+
+  <!-- Astronomical Star Nodes -->
+  <g id="stars">
+    <!-- Star: Sirius (Alpha Canis Majoris) Mag: -1.46 -->
+    <g id="sirius">
+      <circle cx="220" cy="160" r="18.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="220" cy="160" r="8.5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="220" y="143.5" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Sirius</text>
+    </g>
+    <!-- Star: Mirzam (Beta Canis Majoris) Mag: 1.98 -->
+    <g id="mirzam">
+      <circle cx="130" cy="240" r="11.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="130" cy="240" r="5.3" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="130" y="226.7" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Mirzam</text>
+    </g>
+    <!-- Star: Wezen (Delta Canis Majoris) Mag: 1.83 -->
+    <g id="wezen">
+      <circle cx="290" cy="350" r="11.9" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="290" cy="350" r="5.4" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="290" y="336.6" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Wezen</text>
+    </g>
+    <!-- Star: Adhara (Epsilon Canis Majoris) Mag: 1.5 -->
+    <g id="adhara">
+      <circle cx="210" cy="440" r="12.5" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="210" cy="440" r="5.7" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="210" y="426.3" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Adhara</text>
+    </g>
+    <!-- Star: Aludra (Eta Canis Majoris) Mag: 2.45 -->
+    <g id="aludra">
+      <circle cx="360" cy="440" r="11.0" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="360" cy="440" r="5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="360" y="427" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Aludra</text>
+    </g>
+  </g>
+</svg>

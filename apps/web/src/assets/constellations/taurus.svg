@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primaryEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#648EFF" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BD75E9" stop-opacity="0.8" />
+      <stop offset="60%" stop-color="#8155D9" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8155D9" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spaceBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141126" />
+      <stop offset="100%" stop-color="#080712" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Cosmic Background -->
+  <rect width="500" height="500" fill="url(#spaceBg)" />
+
+  <!-- Constellation Header Metadata -->
+  <text x="250" y="38" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" letter-spacing="1">TAURUS</text>
+  <text x="250" y="56" fill="#BD75E9" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">The Bull · Taurus</text>
+
+  <!-- Constellation Stick-Figure Edges -->
+  <g id="edges">
+    <line x1="120" y1="200" x2="250" y2="260" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="250" y1="260" x2="290" y2="350" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="250" y1="260" x2="380" y2="140" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="290" y1="350" x2="380" y2="140" stroke="url(#primaryEdge)" stroke-width="2" stroke-linecap="round" />
+    <line x1="120" y1="200" x2="290" y2="350" stroke="rgba(189, 117, 233, 0.45)" stroke-width="1.2" stroke-dasharray="4,4" stroke-linecap="round" />
+  </g>
+
+  <!-- Astronomical Star Nodes -->
+  <g id="stars">
+    <!-- Star: Alcyone (Eta Tauri) Mag: 2.87 -->
+    <g id="alcyone">
+      <circle cx="120" cy="200" r="10.6" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="120" cy="200" r="4.8" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="120" y="187.2" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Alcyone</text>
+    </g>
+    <!-- Star: Ain (Epsilon Tauri) Mag: 3.53 -->
+    <g id="ain">
+      <circle cx="250" cy="260" r="9.7" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="250" cy="260" r="4.4" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="250" y="247.6" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Ain</text>
+    </g>
+    <!-- Star: Aldebaran (Alpha Tauri) Mag: 0.85 -->
+    <g id="aldebaran">
+      <circle cx="290" cy="350" r="15.8" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="290" cy="350" r="7.2" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="290" y="334.8" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Aldebaran</text>
+    </g>
+    <!-- Star: Elnath (Beta Tauri) Mag: 1.65 -->
+    <g id="elnath">
+      <circle cx="380" cy="140" r="12.1" fill="url(#haloGlow)" opacity="0.65" />
+      <circle cx="380" cy="140" r="5.5" fill="#FFFFFF" stroke="#BD75E9" stroke-width="1.5" />
+      <text x="380" y="126.5" fill="#F7F4FF" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Elnath</text>
+    </g>
+  </g>
+</svg>
