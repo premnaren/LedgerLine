@@ -481,11 +481,162 @@ const InteractiveLedgerNetwork = forwardRef<
     []
   );
 
-  // Transition to next preset
+  // Fluid water pour splash transition into next constellation preset
+  const startWaterPour = useCallback((releaseX: number, releaseY: number) => {
+    const state = stateRef.current;
+    const { width, height } = state;
+    state.mode = 'POURING';
+    state.isHolding = false;
+    state.crumpleCenter = null;
+
+    // 1. Expanding multi-ring water splash ripples
+    state.ripples.push(
+      { x: releaseX, y: releaseY, radius: 10, maxRadius: 320, alpha: 0.85 },
+      { x: releaseX, y: releaseY, radius: 25, maxRadius: 240, alpha: 0.65 },
+      { x: releaseX, y: releaseY, radius: 45, maxRadius: 180, alpha: 0.45 }
+    );
+
+    // 2. Stardust burst particles from pour center
+    for (let i = 0; i < 22; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 2.0 + Math.random() * 4.2;
+      state.particles.push({
+        x: releaseX,
+        y: releaseY,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        radius: 1.2 + Math.random() * 1.8,
+        alpha: 1.0,
+        decay: 0.024,
+      });
+    }
+
+    // 3. Select next constellation preset
+    const { nextIndex, preset: targetPreset } = getNextConstellationPreset(state.currentPresetIndex);
+    state.currentPresetIndex = nextIndex;
+
+    const targetPosMap = projectPresetCoordinates(targetPreset, width, height);
+    const targetStars = targetPreset.stars;
+
+    // 4. Fluid outward splash velocities (like water splashing onto the cosmic canvas)
+    const currentNodes = state.nodes;
+    const updatedNodes: RuntimeStarNode[] = [];
+
+    // Reuse existing nodes
+    for (let i = 0; i < currentNodes.length; i++) {
+      const node = currentNodes[i];
+      if (i < targetStars.length) {
+        const targetStar = targetStars[i];
+        const targetPos = targetPosMap.get(targetStar.id) || {
+          x: width * 0.5,
+          y: height * 0.5,
+        };
+        const { radius } = calcStarRadius(targetStar.magnitude, targetStar.importance);
+
+        node.id = targetStar.id;
+        node.star = targetStar;
+        node.baseX = targetPos.x;
+        node.baseY = targetPos.y;
+        node.targetX = targetPos.x;
+        node.targetY = targetPos.y;
+        node.baseRadius = radius;
+        node.alpha = 1.0;
+        node.targetAlpha = 1.0;
+        node.importance = targetStar.importance;
+
+        // Outward radial splash vector from pour origin towards target with fluid turbulence
+        const angle = Math.atan2(targetPos.y - releaseY, targetPos.x - releaseX) + (Math.random() - 0.5) * 0.45;
+        const splashSpeed = 16 + Math.random() * 20;
+        node.vx = Math.cos(angle) * splashSpeed;
+        node.vy = Math.sin(angle) * splashSpeed;
+        node.highlight = 1.0;
+
+        updatedNodes.push(node);
+      } else {
+        // Surplus stars dissolve outward with momentum
+        const angle = Math.random() * Math.PI * 2;
+        node.vx = Math.cos(angle) * (6 + Math.random() * 6);
+        node.vy = Math.sin(angle) * (6 + Math.random() * 6);
+        node.targetAlpha = 0;
+        updatedNodes.push(node);
+      }
+    }
+
+    // Introduce additional nodes if target preset has more stars
+    for (let j = currentNodes.length; j < targetStars.length; j++) {
+      const targetStar = targetStars[j];
+      const targetPos = targetPosMap.get(targetStar.id) || {
+        x: width * 0.5,
+        y: height * 0.5,
+      };
+      const { radius } = calcStarRadius(targetStar.magnitude, targetStar.importance);
+      const angle = Math.atan2(targetPos.y - releaseY, targetPos.x - releaseX) + (Math.random() - 0.5) * 0.45;
+      const splashSpeed = 16 + Math.random() * 20;
+
+      const creaseAngle = (j / targetStars.length) * Math.PI * 2;
+      const creaseDist = 14 + (j % 5) * 6;
+
+      updatedNodes.push({
+        id: targetStar.id,
+        star: targetStar,
+        x: releaseX + (Math.random() - 0.5) * 16,
+        y: releaseY + (Math.random() - 0.5) * 16,
+        vx: Math.cos(angle) * splashSpeed,
+        vy: Math.sin(angle) * splashSpeed,
+        baseX: targetPos.x,
+        baseY: targetPos.y,
+        targetX: targetPos.x,
+        targetY: targetPos.y,
+        startX: releaseX,
+        startY: releaseY,
+        radius,
+        baseRadius: radius,
+        alpha: 1.0,
+        targetAlpha: 1.0,
+        startAlpha: 1.0,
+        importance: targetStar.importance,
+        highlight: 1.0,
+        creaseAngle,
+        creaseDist,
+      });
+    }
+
+    state.nodes = updatedNodes;
+
+    // 5. Update edges to target preset asterism
+    const newEdges: RuntimeEdge[] = [];
+    targetPreset.primaryEdges.forEach(([fromId, toId]) => {
+      newEdges.push({
+        fromId,
+        toId,
+        isSecondary: false,
+        alpha: 0.85,
+        startAlpha: 0.85,
+        targetAlpha: 0.85,
+      });
+    });
+    targetPreset.secondaryEdges.forEach(([fromId, toId]) => {
+      newEdges.push({
+        fromId,
+        toId,
+        isSecondary: true,
+        alpha: 0.45,
+        startAlpha: 0.45,
+        targetAlpha: 0.45,
+      });
+    });
+    state.edges = newEdges;
+
+    triggerWakeRef.current?.();
+  }, []);
+
+  // Transition to next preset with fluid outward splash
   const handleNextConstellation = useCallback(() => {
-    const { nextIndex } = getNextConstellationPreset(stateRef.current.currentPresetIndex);
-    transitionToPreset(nextIndex);
-  }, [transitionToPreset]);
+    const state = stateRef.current;
+    const cx = state.mouseX ?? (state.width >= 1024 ? state.width * 0.68 : state.width * 0.5);
+    const cy = state.mouseY ?? state.height * 0.48;
+    startWaterPour(cx, cy);
+  }, [startWaterPour]);
 
   // Reset current constellation to original positions
   const handleReset = useCallback(() => {
@@ -820,45 +971,131 @@ const InteractiveLedgerNetwork = forwardRef<
         }
       }
 
-      // 5. Origami crumple mode
-      if (mode === 'CRUMPLED') {
-        if (state.crumpleProgress < 1) {
-          state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
-          isSettled = false;
+      // 5. Liquid pouring mode (fluid outward splash settling into constellation)
+      if (mode === 'POURING') {
+        let maxSpeed = 0;
+        let maxDist = 0;
+
+        for (let i = state.nodes.length - 1; i >= 0; i--) {
+          const node = state.nodes[i];
+          if (node.targetAlpha === 0) {
+            node.x += node.vx;
+            node.y += node.vy;
+            node.vx *= 0.90;
+            node.vy *= 0.90;
+            node.alpha -= 0.04;
+            if (node.alpha <= 0.02) {
+              state.nodes.splice(i, 1);
+            }
+            isSettled = false;
+            continue;
+          }
+
+          // Viscous laminar fluid motion
+          node.x += node.vx;
+          node.y += node.vy;
+
+          // Viscous liquid damping (pours smoothly like water)
+          node.vx *= 0.88;
+          node.vy *= 0.88;
+
+          // Elastic surface tension pull towards settled constellation star target
+          const dx = node.targetX - node.x;
+          const dy = node.targetY - node.y;
+          node.vx += dx * 0.055;
+          node.vy += dy * 0.055;
+
+          node.highlight *= 0.95;
+
+          const speed = Math.hypot(node.vx, node.vy);
+          const dist = Math.hypot(dx, dy);
+          if (speed > maxSpeed) maxSpeed = speed;
+          if (dist > maxDist) maxDist = dist;
         }
 
-        if (crumpleCenter) {
-          const cx = crumpleCenter.x;
-          const cy = crumpleCenter.y;
-          for (let i = 0; i < state.nodes.length; i++) {
-            const node = state.nodes[i];
-            const foldTargetX = cx + Math.cos(node.creaseAngle) * node.creaseDist;
-            const foldTargetY = cy + Math.sin(node.creaseAngle) * node.creaseDist;
-            node.x += (foldTargetX - node.x) * 0.22;
-            node.y += (foldTargetY - node.y) * 0.22;
-          }
+        if (maxSpeed < 0.25 && maxDist < 1.5 && state.ripples.length === 0) {
+          state.mode = 'IDLE';
+          state.nodes.forEach((n) => {
+            n.x = n.targetX;
+            n.y = n.targetY;
+            n.baseX = n.targetX;
+            n.baseY = n.targetY;
+            n.vx = 0;
+            n.vy = 0;
+            n.highlight = 0;
+          });
+        } else {
+          isSettled = false;
         }
-      } else if (!state.isTransitioning) {
-        // Standard spring physics towards target
+      }
+      // 6. Origami crumple mode (held pattern moves fluidly with cursor)
+      else if (mode === 'CRUMPLED') {
+        isSettled = false;
+        if (state.crumpleProgress < 1) {
+          state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
+        }
+
+        // Entire crumpled cluster tracks the cursor smoothly while held!
+        const cx = state.mouseX !== null ? state.mouseX : (crumpleCenter?.x || width * 0.68);
+        const cy = state.mouseY !== null ? state.mouseY : (crumpleCenter?.y || height * 0.5);
+
+        for (let i = 0; i < state.nodes.length; i++) {
+          const node = state.nodes[i];
+          const foldTargetX = cx + Math.cos(node.creaseAngle) * node.creaseDist;
+          const foldTargetY = cy + Math.sin(node.creaseAngle) * node.creaseDist;
+
+          node.vx += (foldTargetX - node.x) * 0.28;
+          node.vy += (foldTargetY - node.y) * 0.28;
+          node.vx *= 0.65;
+          node.vy *= 0.65;
+
+          node.x += node.vx;
+          node.y += node.vy;
+          node.highlight = 1;
+        }
+      }
+      // 7. IDLE mode: ambient fluid cursor reaction & elastic spring physics
+      else if (mode === 'IDLE' && !state.isTransitioning) {
+        const INFLUENCE_RADIUS = 160;
+        const MAX_DISPLACEMENT = 16;
+
         for (let i = 0; i < state.nodes.length; i++) {
           const node = state.nodes[i];
           if (node.id === state.draggedId) continue;
 
-          const dx = node.targetX - node.x;
-          const dy = node.targetY - node.y;
-          node.vx = (node.vx + dx * 0.08) * 0.78;
-          node.vy = (node.vy + dy * 0.08) * 0.78;
+          let targetX = node.baseX;
+          let targetY = node.baseY;
+          let targetHighlight = node.id === state.hoveredId || node.id === state.selectedId ? 1 : 0;
+
+          // Fluid ambient cursor reaction: stars gently part and flow around moving cursor
+          if (!prefersReducedMotion && state.mouseX !== null && state.mouseY !== null && state.draggedId === null) {
+            const dx = node.x - state.mouseX;
+            const dy = node.y - state.mouseY;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < INFLUENCE_RADIUS && dist > 0) {
+              const force = Math.pow(1 - dist / INFLUENCE_RADIUS, 1.6);
+              targetX = node.baseX + (dx / dist) * force * MAX_DISPLACEMENT;
+              targetY = node.baseY + (dy / dist) * force * MAX_DISPLACEMENT;
+              targetHighlight = Math.max(targetHighlight, force * 0.85);
+            }
+          }
+
+          // Elastic spring with fluid inertia
+          const dx = targetX - node.x;
+          const dy = targetY - node.y;
+          node.vx = (node.vx + dx * 0.075) * 0.80;
+          node.vy = (node.vy + dy * 0.075) * 0.80;
           node.x += node.vx;
           node.y += node.vy;
 
-          if (Math.abs(node.vx) > 0.05 || Math.abs(node.vy) > 0.05) {
-            isSettled = false;
-          }
+          node.highlight += (targetHighlight - node.highlight) * 0.15;
 
-          // Gentle hover highlight
-          const targetHighlight = node.id === state.hoveredId || node.id === state.selectedId ? 1 : 0;
-          node.highlight += (targetHighlight - node.highlight) * 0.18;
-          if (Math.abs(node.highlight - targetHighlight) > 0.01) {
+          if (
+            Math.abs(node.vx) > 0.04 ||
+            Math.abs(node.vy) > 0.04 ||
+            Math.abs(node.highlight - targetHighlight) > 0.01
+          ) {
             isSettled = false;
           }
         }
@@ -885,6 +1122,8 @@ const InteractiveLedgerNetwork = forwardRef<
         time,
         isHolding,
         crumpleCenter,
+        mouseX,
+        mouseY,
       } = stateRef.current;
 
       ctx.clearRect(0, 0, width, height);
@@ -1185,24 +1424,27 @@ const InteractiveLedgerNetwork = forwardRef<
       }
 
       // 8. Hint while holding empty network space to crumple & transition
-      if (mode === 'CRUMPLED' && crumpleCenter) {
+      if (mode === 'CRUMPLED') {
+        const cx = mouseX !== null ? mouseX : (crumpleCenter?.x || width * 0.68);
+        const cy = mouseY !== null ? mouseY : (crumpleCenter?.y || height * 0.5);
+
         ctx.save();
         ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        const label = 'Celestial core compressed — release to reveal new constellation';
+        const label = 'Celestial core compressed — drag to reposition · release to pour constellation';
         const textWidth = ctx.measureText(label).width;
-        const padX = 12;
+        const padX = 14;
         const boxW = textWidth + padX * 2;
-        const boxH = 26;
-        const boxX = Math.min(Math.max(crumpleCenter.x - boxW / 2, 12), width - boxW - 12);
-        const boxY = Math.max(crumpleCenter.y - 48, 16);
+        const boxH = 28;
+        const boxX = Math.min(Math.max(cx - boxW / 2, 14), width - boxW - 14);
+        const boxY = Math.max(cy - 52, 16);
 
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(boxX, boxY, boxW, boxH, 13);
+          ctx.roundRect(boxX, boxY, boxW, boxH, 14);
         } else {
           ctx.rect(boxX, boxY, boxW, boxH);
         }
-        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.95)' : 'rgba(41, 75, 122, 0.92)';
+        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.95)' : 'rgba(41, 75, 122, 0.94)';
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
@@ -1254,6 +1496,8 @@ const InteractiveLedgerNetwork = forwardRef<
     const handlePointerDown = (px: number, py: number) => {
       const state = stateRef.current;
       state.downPos = { x: px, y: py };
+      state.mouseX = px;
+      state.mouseY = py;
       const hitId = findNodeIdAt(px, py);
 
       if (hitId) {
@@ -1272,10 +1516,10 @@ const InteractiveLedgerNetwork = forwardRef<
           if (state.isHolding) {
             state.mode = 'CRUMPLED';
             state.crumpleProgress = 0;
-            canvas.style.cursor = 'wait';
+            canvas.style.cursor = 'grabbing';
             triggerWake();
           }
-        }, 300);
+        }, 260);
       }
       triggerWake();
     };
@@ -1285,26 +1529,48 @@ const InteractiveLedgerNetwork = forwardRef<
       state.mouseX = px;
       state.mouseY = py;
 
-      // Cancel hold if moved significantly before crumple triggers
-      if (state.isHolding && state.downPos) {
-        const moveDist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        if (moveDist > 10) {
-          state.isHolding = false;
-          if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-        }
+      // 1. If currently crumpled, the held pattern follows cursor smoothly!
+      if (state.mode === 'CRUMPLED') {
+        state.crumpleCenter = { x: px, y: py };
+        canvas.style.cursor = 'grabbing';
+        triggerWake();
+        return;
       }
 
+      // 2. If holding before timer triggers, track the cursor
+      if (state.isHolding) {
+        state.crumpleCenter = { x: px, y: py };
+      }
+
+      // 3. If dragging a specific star
       if (state.draggedId) {
         const draggedNode = state.nodes.find((n) => n.id === state.draggedId);
         if (draggedNode) {
+          draggedNode.vx = (px - draggedNode.x) * 0.4;
+          draggedNode.vy = (py - draggedNode.y) * 0.4;
           draggedNode.x = px;
           draggedNode.y = py;
           draggedNode.targetX = px;
           draggedNode.targetY = py;
           draggedNode.baseX = px;
           draggedNode.baseY = py;
-          draggedNode.vx = 0;
-          draggedNode.vy = 0;
+
+          // Gentle elastic rubber-band pull on connected neighbors
+          state.edges.forEach((edge) => {
+            if (edge.fromId === draggedNode.id || edge.toId === draggedNode.id) {
+              const neighborId = edge.fromId === draggedNode.id ? edge.toId : edge.fromId;
+              const neighbor = state.nodes.find((n) => n.id === neighborId);
+              if (neighbor && neighbor.id !== state.draggedId) {
+                const ndx = px - neighbor.x;
+                const ndy = py - neighbor.y;
+                const ndist = Math.hypot(ndx, ndy);
+                if (ndist > 60) {
+                  neighbor.vx += (ndx / ndist) * 0.35;
+                  neighbor.vy += (ndy / ndist) * 0.35;
+                }
+              }
+            }
+          });
         }
         canvas.style.cursor = 'grabbing';
         triggerWake();
@@ -1316,11 +1582,11 @@ const InteractiveLedgerNetwork = forwardRef<
         }
         if (hitId) {
           canvas.style.cursor = 'grab';
-        } else if (state.mode === 'CRUMPLED') {
-          canvas.style.cursor = 'wait';
         } else {
           canvas.style.cursor = 'crosshair';
         }
+        // Always wake loop so fluid ambient reaction to cursor renders!
+        triggerWake();
       }
     };
 
@@ -1329,28 +1595,15 @@ const InteractiveLedgerNetwork = forwardRef<
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
       if (state.mode === 'CRUMPLED') {
-        // Holding empty network space and releasing triggers transition into next preset!
-        state.mode = 'IDLE';
-        state.isHolding = false;
-
-        const cx = state.crumpleCenter?.x ?? px;
-        const cy = state.crumpleCenter?.y ?? py;
-
-        state.ripples.push({
-          x: cx,
-          y: cy,
-          radius: 10,
-          maxRadius: 180,
-          alpha: 0.95,
-        });
-
-        // Trigger transition to next preset
-        handleNextConstellation();
-      } else if (!state.draggedId && state.downPos) {
-        // Check if this was a quick click on empty space (not a drag, not a long hold)
+        // Holding empty network space and releasing triggers fluid water pour splash!
+        const releaseX = state.mouseX !== null ? state.mouseX : (state.crumpleCenter?.x ?? px);
+        const releaseY = state.mouseY !== null ? state.mouseY : (state.crumpleCenter?.y ?? py);
+        startWaterPour(releaseX, releaseY);
+      } else if (!state.draggedId && state.downPos && state.mode === 'IDLE') {
+        // Quick click on empty space: create star with ripple!
         const moveDist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
         const holdDuration = performance.now() - state.holdStartTime;
-        if (moveDist < 10 && holdDuration < 320) {
+        if (moveDist < 14 && holdDuration < 280) {
           createStarAt(px, py);
         }
         state.isHolding = false;
@@ -1359,6 +1612,8 @@ const InteractiveLedgerNetwork = forwardRef<
         state.draggedId = null;
       }
 
+      state.isHolding = false;
+      state.draggedId = null;
       const hitId = findNodeIdAt(px, py);
       canvas.style.cursor = hitId ? 'grab' : 'crosshair';
       triggerWake();
@@ -1381,12 +1636,17 @@ const InteractiveLedgerNetwork = forwardRef<
 
     const onMouseLeave = () => {
       const state = stateRef.current;
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (state.mode === 'CRUMPLED') {
+        const cx = state.crumpleCenter?.x ?? (state.width * 0.68);
+        const cy = state.crumpleCenter?.y ?? (state.height * 0.5);
+        startWaterPour(cx, cy);
+      }
       state.mouseX = null;
       state.mouseY = null;
       state.hoveredId = null;
       state.draggedId = null;
       state.isHolding = false;
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
       triggerWake();
     };
 
@@ -1463,7 +1723,7 @@ const InteractiveLedgerNetwork = forwardRef<
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isDark, handleNextConstellation, handleReset, launchComet, createStarAt]);
+  }, [isDark, handleNextConstellation, handleReset, launchComet, createStarAt, startWaterPour]);
 
   return (
     <div
