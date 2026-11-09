@@ -587,16 +587,28 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
       const hitIdx = findNodeIndexAt(px, py);
 
-      // Start hold timer for paper crumple (190ms)
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = setTimeout(() => {
-        if (stateRef.current.isHolding) {
-          startCrumple(px, py);
-        }
-      }, 190);
-
       if (hitIdx !== null) {
+        // Holding an existing node: drag and place wherever wanted!
         state.draggedIndex = hitIdx;
+        canvas.style.cursor = 'grabbing';
+        // Clear any crumple timer so dragging an existing node NEVER triggers folding
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      } else {
+        // Pressing on empty space:
+        state.draggedIndex = null;
+        // Start hold timer for paper crumple/fold (350ms)
+        // Releasing before 350ms -> single click, creates node with water ripple!
+        // Holding >= 350ms -> click-and-hold, folds into paper cluster!
+        if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = setTimeout(() => {
+          if (
+            stateRef.current.isHolding &&
+            stateRef.current.draggedIndex === null &&
+            stateRef.current.mode === 'IDLE'
+          ) {
+            startCrumple(px, py);
+          }
+        }, 350);
       }
       wakeLoop();
     };
@@ -609,12 +621,26 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       if (state.mode === 'CRUMPLED') {
         state.crumpleCenter = { x: px, y: py };
         canvas.style.cursor = 'grabbing';
+      } else if (state.draggedIndex !== null) {
+        // Holding and moving a node: directly update coordinates so it moves wherever wanted
+        const node = state.nodes[state.draggedIndex];
+        if (node) {
+          node.x = px;
+          node.y = py;
+          node.baseX = px;
+          node.baseY = py;
+          node.targetX = px;
+          node.targetY = py;
+          node.vx = 0;
+          node.vy = 0;
+          node.highlight = 1;
+        }
+        canvas.style.cursor = 'grabbing';
       } else if (state.isHolding && state.downPos) {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        // If moved significantly before hold timer fired, cancel crumple timer and drag single node
-        if (dist > 10 && state.draggedIndex !== null && state.mode === 'IDLE') {
+        // If moved significantly before 350ms, cancel fold timer
+        if (dist > 14) {
           if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-          canvas.style.cursor = 'grabbing';
         }
       } else {
         const hovered = findNodeIndexAt(px, py);
@@ -629,14 +655,28 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
       if (state.mode === 'CRUMPLED') {
-        // Release the crumpled ball: water pour splash!
+        // Released after folding: water pour splash & randomized new shape!
         startWaterPour(px, py);
+      } else if (state.draggedIndex !== null) {
+        // User was moving a node: place it permanently right where released!
+        const node = state.nodes[state.draggedIndex];
+        if (node) {
+          node.x = px;
+          node.y = py;
+          node.baseX = px;
+          node.baseY = py;
+          node.targetX = px;
+          node.targetY = py;
+          node.vx = 0;
+          node.vy = 0;
+          node.highlight = 0.4;
+        }
+        canvas.style.cursor = 'grab';
       } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
         const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
-        const elapsed = Date.now() - state.holdStartTime;
 
-        // Quick click on empty canvas: spawn new point
-        if (dist < 6 && elapsed < 200 && state.draggedIndex === null) {
+        // One click on empty space: create a node with water effect!
+        if (dist < 14 && state.draggedIndex === null) {
           const rx = px / state.width;
           const ry = py / state.height;
 
