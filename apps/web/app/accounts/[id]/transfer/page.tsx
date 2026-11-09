@@ -306,13 +306,13 @@ export default function TransferPage() {
 
       {/* Result Panel (Success Confirmation): Comprehensive proof with direct statement linkage */}
       {result && (
-        <div className="p-5 bg-white border border-rule border-l-4 border-l-ledger-green rounded space-y-4">
+        <div className="p-5 bg-surface border border-rule border-l-4 border-l-ledger-green rounded-lg space-y-4 shadow-xs">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-2 text-ink text-sm font-semibold">
               <CheckCircle2 className="h-5 w-5 text-ledger-green shrink-0" />
               <span>Transaction successfully posted to immutable ledger</span>
             </div>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-paper text-ledger-green border border-rule font-medium">
+            <span className="text-xs font-mono px-2 py-0.5 rounded-lg bg-surface-secondary text-ledger-green border border-rule font-medium">
               SHA-256 SEALED
             </span>
           </div>
@@ -321,7 +321,7 @@ export default function TransferPage() {
             The journal entry has been verified with PostgreSQL Serializable isolation and appended to the cryptographic hash chain. Balance conservation is guaranteed (ΔΣ = 0).
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-paper p-3.5 border border-rule rounded">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-surface-secondary p-3.5 border border-rule rounded-lg">
             <div>
               <span className="text-ink-muted block text-xs">Operation</span>
               <span className="mono-num font-semibold text-ink uppercase">{result.type}</span>
@@ -358,13 +358,13 @@ export default function TransferPage() {
                   setAmountRupees('');
                   setNote('');
                 }}
-                className="px-3.5 py-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-paper transition font-medium"
+                className="px-3.5 py-2 border border-rule rounded-lg text-ink-muted hover:text-ink hover:bg-surface-secondary transition font-medium"
               >
                 Make another transfer
               </button>
               <Link
                 href={`/accounts/${fromAccountId}`}
-                className="px-4 py-2 bg-accent text-white rounded font-medium hover:opacity-90 transition pressable"
+                className="px-4 py-2 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition pressable"
               >
                 View updated statement →
               </Link>
@@ -374,7 +374,7 @@ export default function TransferPage() {
       )}
 
       {/* Main Execution Form */}
-      <form onSubmit={handleOpenReview} className="bg-white border border-rule rounded p-6 space-y-5">
+      <form onSubmit={handleOpenReview} className="bg-surface border border-rule rounded-lg p-6 space-y-5 shadow-xs">
         {/* Step 1: Operation Type Selector using Tab-Underline Pattern */}
         <div className="space-y-2">
           <label className="block text-xs text-ink-muted font-medium">
@@ -462,7 +462,7 @@ export default function TransferPage() {
                 <select
                   value={toAccountId}
                   onChange={(e) => setToAccountId(e.target.value)}
-                  className="h-10 block w-full px-3 border border-rule rounded text-xs text-ink bg-white focus:outline-none focus:border-accent"
+                  className="h-10 block w-full px-3 border border-rule rounded-lg text-xs text-ink bg-surface focus:outline-none focus:border-accent"
                 >
                   {allAccounts
                     .filter((acc) => acc.id !== fromAccountId)
@@ -612,7 +612,7 @@ export default function TransferPage() {
                   </button>
                 </div>
               </div>
-              <div className="mono-num text-xs text-ink-muted bg-white p-2 border border-rule rounded truncate">
+              <div className="mono-num text-xs text-ink-muted bg-surface-secondary p-2 border border-rule rounded-lg truncate">
                 {idempotencyKey}
               </div>
               <p className="text-xs text-ink-muted">
@@ -626,7 +626,7 @@ export default function TransferPage() {
         <button
           type="submit"
           disabled={!isFormValid || loading}
-          className="h-10 w-full flex justify-center items-center py-2 px-4 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition pressable"
+          className="h-10 w-full flex justify-center items-center py-2 px-4 rounded-lg text-xs font-semibold text-white bg-accent hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed transition pressable"
         >
           <span>Review {type}</span>
           <ArrowRight className="ml-2 h-3.5 w-3.5" />
@@ -638,9 +638,9 @@ export default function TransferPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 animate-in fade-in duration-100"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-100"
         >
-          <div className="bg-white rounded border border-rule max-w-lg w-full p-6 space-y-5 shadow-lg animate-in zoom-in-95 duration-150">
+          <div className="bg-surface rounded-lg border border-rule max-w-lg w-full p-6 space-y-5 shadow-xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between pb-3 border-b border-rule">
               <div>
                 <h3 className="text-base font-bold text-ink">

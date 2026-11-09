@@ -11,6 +11,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Institutional Blue core tokens
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        'surface-secondary': 'var(--surface-secondary)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        border: 'var(--border)',
+        success: 'var(--success)',
+        danger: 'var(--danger)',
+        warning: 'var(--warning)',
+
+        // Module accents
+        'accent-accounts': 'var(--accent-accounts)',
+        'accent-audit': 'var(--accent-audit)',
+        'accent-stress': 'var(--accent-stress)',
+        'accent-seal': 'var(--accent-seal)',
+        'accent-failed': 'var(--accent-failed)',
+
+        // Semantic aliases
         ink: 'var(--ink)',
         'ink-muted': 'var(--ink-muted)',
         'ink-faint': 'var(--ink-faint)',
@@ -24,15 +43,15 @@ module.exports = {
         'role-holder': 'var(--role-holder)',
         'role-auditor': 'var(--role-auditor)',
 
-        border: 'var(--rule)',
         background: 'var(--paper)',
         foreground: 'var(--ink)',
         primary: {
-          DEFAULT: 'var(--accent)',
+          DEFAULT: 'var(--primary)',
+          hover: 'var(--primary-hover)',
           foreground: '#ffffff',
         },
         card: {
-          DEFAULT: '#ffffff',
+          DEFAULT: 'var(--surface)',
           foreground: 'var(--ink)',
         },
       },
@@ -41,11 +60,12 @@ module.exports = {
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        DEFAULT: '4px',
-        sm: '2px',
-        md: '4px',
-        lg: '6px',
-        xl: '8px',
+        DEFAULT: '8px',
+        sm: '4px',
+        md: '8px',
+        lg: '10px',
+        xl: '12px',
+        '2xl': '16px',
       },
     },
   },

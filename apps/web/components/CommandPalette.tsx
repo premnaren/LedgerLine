@@ -302,12 +302,12 @@ export default function CommandPalette({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-white rounded border border-rule overflow-hidden text-ink animate-in fade-in-0 duration-150"
+        className="w-full max-w-xl bg-surface rounded-lg border border-rule overflow-hidden text-ink animate-in fade-in-0 duration-150 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleNavKeys}
       >
         {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3 border-b border-rule bg-paper">
+        <div className="flex items-center px-4 py-3 border-b border-rule bg-surface-secondary">
           <Search className="h-4 w-4 text-ink-faint shrink-0 mr-3" />
           <input
             ref={inputRef}
@@ -320,14 +320,14 @@ export default function CommandPalette({
             placeholder="Search commands, accounts, and actions..."
             className="w-full bg-transparent text-xs font-medium text-ink placeholder:text-ink-faint focus:outline-none"
           />
-          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] mono-num text-ink-faint bg-white border border-rule rounded">
+          <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] mono-num text-ink-faint bg-surface border border-rule rounded-lg">
             ESC
           </kbd>
         </div>
 
         {/* Role Switching Toast */}
         {switchingRole && (
-          <div className="px-4 py-2 bg-paper border-b border-rule flex items-center space-x-2 text-xs font-medium text-ink">
+          <div className="px-4 py-2 bg-surface-secondary border-b border-rule flex items-center space-x-2 text-xs font-medium text-ink">
             <Sparkles className="h-3.5 w-3.5 text-accent animate-spin" />
             <span>Establishing role session as {switchingRole}...</span>
           </div>
@@ -338,7 +338,7 @@ export default function CommandPalette({
           id="command-palette-results"
           ref={listRef}
           role="listbox"
-          className="max-h-[360px] overflow-y-auto p-2 space-y-2"
+          className="max-h-[360px] overflow-y-auto p-2 space-y-2 bg-surface"
         >
           {filtered.length === 0 ? (
             <div className="py-8 px-6 text-center text-xs text-ink-muted">
@@ -367,14 +367,14 @@ export default function CommandPalette({
                       aria-selected={isSelected}
                       onClick={cmd.onSelect}
                       onMouseEnter={() => setSelectedIndex(globalIdx)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded text-left transition ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition ${
                         isSelected
-                          ? 'bg-[#F3F2EE] text-ink font-medium'
-                          : 'hover:bg-[#F3F2EE] text-ink'
+                          ? 'bg-surface-secondary text-ink font-medium'
+                          : 'hover:bg-surface-secondary text-ink'
                       }`}
                     >
                       <div className="flex items-center space-x-2.5 min-w-0">
-                        <div className="h-7 w-7 rounded border border-rule flex items-center justify-center shrink-0 bg-white">
+                        <div className="h-7 w-7 rounded-lg border border-rule flex items-center justify-center shrink-0 bg-surface">
                           {cmd.icon}
                         </div>
 

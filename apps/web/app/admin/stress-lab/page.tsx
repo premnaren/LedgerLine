@@ -219,7 +219,7 @@ export default function StressLabPage() {
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePrintCertificate}
-              className="inline-flex items-center px-3.5 py-2 border border-rule rounded text-xs font-semibold text-ink bg-white hover:bg-paper transition pressable"
+              className="inline-flex items-center px-3.5 py-2 border border-rule rounded-lg text-xs font-semibold text-ink bg-surface hover:bg-surface-secondary transition pressable shadow-xs"
             >
               <Printer className="mr-2 h-4 w-4 text-ink-muted" />
               Print compliance certificate
@@ -231,7 +231,7 @@ export default function StressLabPage() {
       {error && (
         <div
           role="alert"
-          className="p-3.5 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red text-xs animate-in fade-in"
+          className="p-3.5 bg-surface border border-ledger-red rounded-lg flex items-center space-x-3 text-ledger-red text-xs animate-in fade-in"
         >
           <AlertCircle className="h-4 w-4 shrink-0 text-ledger-red" />
           <p className="font-medium">{error}</p>
@@ -239,7 +239,7 @@ export default function StressLabPage() {
       )}
 
       {/* Stage 1: Simulation Configuration Panel */}
-      <div className="bg-white rounded border border-rule p-5 sm:p-6 space-y-5">
+      <div className="bg-surface rounded-lg border border-rule p-5 sm:p-6 space-y-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-rule">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted block">
@@ -396,9 +396,9 @@ export default function StressLabPage() {
 
       {/* Pre-Execution Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 animate-in fade-in duration-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-100">
           <div
-            className="w-full max-w-lg bg-white rounded border border-rule p-6 space-y-5 shadow-lg animate-in zoom-in-95 duration-150"
+            className="w-full max-w-lg bg-surface rounded-lg border border-rule p-6 space-y-5 shadow-xl animate-in zoom-in-95 duration-150"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-modal-title"
@@ -511,7 +511,7 @@ export default function StressLabPage() {
           {/* 4 Explicit Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Card 1: Balance Conservation */}
-            <div className="bg-white rounded border border-rule p-4">
+            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Conservation
@@ -527,7 +527,7 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 2: Transaction Throughput */}
-            <div className="bg-white rounded border border-rule p-4">
+            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Throughput
@@ -543,7 +543,7 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 3: Successful Transactions */}
-            <div className="bg-white rounded border border-rule p-4">
+            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Committed
@@ -559,7 +559,7 @@ export default function StressLabPage() {
             </div>
 
             {/* Card 4: Hash Chain Integrity */}
-            <div className="bg-white rounded border border-rule p-4">
+            <div className="bg-surface rounded-lg border border-rule p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Chain integrity
@@ -576,7 +576,7 @@ export default function StressLabPage() {
           </div>
 
           {/* Conservation Proof & Balance Shift Card */}
-          <div className="bg-white rounded border border-rule p-5 space-y-4">
+          <div className="bg-surface rounded-lg border border-rule p-5 space-y-4 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-rule">
               <h3 className="text-sm font-bold text-ink flex items-center space-x-2">
                 <ArrowRightLeft className="h-4 w-4 text-accent" />

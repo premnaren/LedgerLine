@@ -14,11 +14,14 @@ import {
   X,
 } from 'lucide-react';
 import CommandPalette from './CommandPalette';
+import ThemeToggle from './ThemeToggle';
+import { getTheme, setTheme, subscribeTheme, Theme } from '@/lib/theme';
 
 export default function Navbar() {
   const [user, setUserState] = useState<UserSession | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [theme, setCurrentTheme] = useState<Theme>('light');
   const pathname = usePathname();
 
   useEffect(() => {
@@ -30,12 +33,24 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    setCurrentTheme(getTheme());
+    const unsubTheme = subscribeTheme((newTheme) => {
+      setCurrentTheme(newTheme);
+    });
+    return unsubTheme;
+  }, []);
+
+  useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
   if (pathname === '/login') {
     return null;
   }
+
+  const handleToggleTheme = (isDark: boolean) => {
+    setTheme(isDark ? 'dark' : 'light');
+  };
 
   const getRoleColor = (role?: string) => {
     switch (role) {
@@ -61,11 +76,11 @@ export default function Navbar() {
               href="/dashboard"
               className="flex items-center space-x-2.5 pressable focus:outline-hidden"
             >
-              <div className="h-8 w-8 rounded border border-rule bg-paper text-accent flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg border border-rule bg-surface text-primary flex items-center justify-center shadow-xs">
                 <Layers className="h-4 w-4" />
               </div>
               <span className="font-bold text-lg tracking-tight text-ink">
-                Ledger<span className="text-accent">Line</span>
+                Ledger<span className="text-primary">Line</span>
               </span>
             </Link>
 
@@ -73,10 +88,10 @@ export default function Navbar() {
               <nav className="hidden md:flex items-center space-x-1.5">
                 <Link
                   href="/dashboard"
-                  className={`px-3 py-1.5 rounded text-xs font-medium tracking-tight transition pressable ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition pressable ${
                     pathname === '/dashboard'
-                      ? 'bg-ink text-paper'
-                      : 'text-ink-muted hover:text-ink hover:bg-rule/40'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
                   }`}
                 >
                   Accounts
@@ -85,10 +100,10 @@ export default function Navbar() {
                 {(user.role === 'ADMIN' || user.role === 'AUDITOR') && (
                   <Link
                     href="/admin/audit"
-                    className={`px-3 py-1.5 rounded text-xs font-medium tracking-tight flex items-center space-x-1.5 transition pressable ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
                       pathname === '/admin/audit'
-                        ? 'bg-ink text-paper'
-                        : 'text-ink-muted hover:text-ink hover:bg-rule/40'
+                        ? 'bg-[#5275A5] dark:bg-[#8BA8D1] text-white dark:text-[#0B1220] shadow-xs'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
                     }`}
                   >
                     <BookOpen className="h-3.5 w-3.5" />
@@ -99,10 +114,10 @@ export default function Navbar() {
                 {user.role === 'ADMIN' && (
                   <Link
                     href="/admin/stress-lab"
-                    className={`px-3 py-1.5 rounded text-xs font-medium tracking-tight flex items-center space-x-1.5 transition pressable ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
                       pathname === '/admin/stress-lab'
-                        ? 'bg-ink text-paper'
-                        : 'text-ink-muted hover:text-ink hover:bg-rule/40 border border-rule'
+                        ? 'bg-[#D99524] dark:bg-[#E9B45C] text-white dark:text-[#0B1220] shadow-xs'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary border border-rule'
                     }`}
                   >
                     <Zap className="h-3.5 w-3.5 text-accent" />
@@ -118,7 +133,7 @@ export default function Navbar() {
             {/* Quick ⌘K Button */}
             <button
               onClick={() => setIsCommandOpen(true)}
-              className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 bg-paper hover:bg-rule/30 border border-rule rounded text-xs text-ink-muted transition pressable"
+              className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 bg-surface hover:bg-surface-secondary border border-rule rounded-lg text-xs text-ink-muted transition pressable shadow-xs"
               title="Search commands, accounts, and actions"
             >
               <Search className="h-3.5 w-3.5 text-ink-faint" />
@@ -128,10 +143,18 @@ export default function Navbar() {
               </kbd>
             </button>
 
+            {/* Theme Toggle Button */}
+            <div className="flex items-center">
+              <ThemeToggle
+                isDark={theme === 'dark'}
+                onToggle={handleToggleTheme}
+              />
+            </div>
+
             {user && (
               <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Role Dot + Sentence Case Pattern */}
-                <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
+                <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium bg-surface-secondary px-2.5 py-1 rounded-full border border-rule">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleColor }} />
                   {user.role}
                 </span>
@@ -142,7 +165,7 @@ export default function Navbar() {
 
                 <button
                   onClick={() => logoutUser()}
-                  className="hidden sm:inline-flex p-1.5 rounded text-ink-faint hover:text-ink hover:bg-rule/40 transition pressable"
+                  className="hidden sm:inline-flex p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-surface-secondary transition pressable"
                   title="Sign out"
                   aria-label="Sign out"
                 >
@@ -153,7 +176,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-                  className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-rule/40 transition pressable md:hidden"
+                  className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable md:hidden"
                   aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
                   aria-expanded={isMobileMenuOpen}
                 >

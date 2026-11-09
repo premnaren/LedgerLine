@@ -267,8 +267,8 @@ export default function AuditPage() {
         </div>
       )}
 
-      {/* Filter Bar: border border-rule rounded, "Apply Filters" is the single primary filled button */}
-      <div className="p-4 space-y-3 bg-white rounded border border-rule">
+      {/* Filter Bar: border border-rule rounded-lg, "Apply Filters" is the single primary filled button */}
+      <div className="p-4 space-y-3 bg-surface rounded-lg border border-rule shadow-xs">
         <div className="grid grid-cols-1 gap-3 items-end sm:grid-cols-4">
           <div>
             <label className="block mb-1 text-xs font-medium text-ink-muted">
@@ -277,7 +277,7 @@ export default function AuditPage() {
             <select
               value={selectedAccount}
               onChange={(e) => setSelectedAccount(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
+              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
             >
               <option value="">All accounts</option>
               {accounts.map((acc) => (
@@ -296,9 +296,8 @@ export default function AuditPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
-            >
-            </input>
+              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
+            />
           </div>
 
           <div>
@@ -309,14 +308,14 @@ export default function AuditPage() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="block px-3 py-2 w-full text-xs bg-white rounded border border-rule text-ink focus:outline-none focus:border-accent"
+              className="block px-3 py-2 w-full text-xs bg-surface rounded-lg border border-rule text-ink focus:outline-none focus:border-accent"
             />
           </div>
 
           <div>
             <button
               onClick={() => fetchAuditEntries()}
-              className="flex justify-center items-center px-4 py-2 w-full text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95"
+              className="flex justify-center items-center px-4 py-2 w-full text-xs font-semibold text-white rounded-lg transition bg-accent hover:opacity-95"
             >
               <Search className="mr-1.5 h-3.5 w-3.5" />
               <span>Apply filters</span>
@@ -342,7 +341,7 @@ export default function AuditPage() {
 
       {/* Metric Cards Summary Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="p-4 bg-white rounded border border-rule">
+        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Total entries</span>
           <div className="mono-num text-xl font-bold text-ink mt-0.5">
             {loading ? '—' : entries.length}
@@ -350,7 +349,7 @@ export default function AuditPage() {
           <span className="text-xs text-ink-muted mt-0.5 block">Audit log count</span>
         </div>
 
-        <div className="p-4 bg-white rounded border border-rule">
+        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Posted records</span>
           <div className="mono-num text-xl font-bold text-ledger-green mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'POSTED').length}
@@ -358,7 +357,7 @@ export default function AuditPage() {
           <span className="text-xs text-ink-muted mt-0.5 block">Committed</span>
         </div>
 
-        <div className="p-4 bg-white rounded border border-rule">
+        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Refused attempts</span>
           <div className="mono-num text-xl font-bold text-ledger-red mt-0.5">
             {loading ? '—' : entries.filter((e) => e.status === 'REFUSED').length}
@@ -366,7 +365,7 @@ export default function AuditPage() {
           <span className="text-xs text-ink-muted mt-0.5 block">Refused</span>
         </div>
 
-        <div className="p-4 bg-white rounded border border-rule">
+        <div className="p-4 bg-surface rounded-lg border border-rule shadow-xs">
           <span className="block text-xs font-medium text-ink-muted">Cryptographic seal</span>
           <div className="mono-num text-xl font-bold text-ink mt-0.5 flex items-center space-x-1.5">
             <span>100%</span>
@@ -377,10 +376,10 @@ export default function AuditPage() {
       </div>
 
       {/* Audit Table */}
-      <div className="overflow-hidden bg-white rounded border border-rule">
+      <div className="overflow-hidden bg-surface rounded-lg border border-rule shadow-xs">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs divide-y divide-rule">
-            <thead className="sticky top-0 z-10 font-semibold border-b bg-paper text-ink border-rule-strong">
+            <thead className="sticky top-0 z-10 font-semibold border-b bg-surface-secondary text-ink border-rule">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold text-left">
                   Date &amp; time
@@ -411,7 +410,7 @@ export default function AuditPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-rule">
+            <tbody className="bg-surface divide-y divide-rule">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">

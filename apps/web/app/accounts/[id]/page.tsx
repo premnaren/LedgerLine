@@ -123,12 +123,12 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
   if (loading) {
     return (
-      <div className="bg-white border border-rule rounded p-4 space-y-3 animate-pulse">
+      <div className="bg-surface border border-rule rounded-lg p-4 space-y-3 animate-pulse shadow-xs">
         <div className="flex items-center justify-between">
           <div className="h-3.5 w-28 bg-rule/50 rounded" />
           <div className="h-3 w-16 bg-rule/40 rounded" />
         </div>
-        <div className="h-32 bg-paper/70 border border-dashed border-rule rounded flex items-center justify-center">
+        <div className="h-32 bg-paper/70 border border-dashed border-rule rounded-lg flex items-center justify-center">
           <span className="mono-num text-[11px] text-ink-faint">Loading telemetry stream...</span>
         </div>
       </div>
@@ -141,12 +141,12 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
   const activePt = hoveredIdx !== null && coords[hoveredIdx] ? coords[hoveredIdx] : null;
 
   return (
-    <div className="bg-white border border-rule rounded p-4 space-y-3">
+    <div className="bg-surface border border-rule rounded-lg p-4 space-y-3 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-xs text-ink-muted font-medium">Balance over time</span>
           {activePt && (
-            <span className="text-xs mono-num text-accent bg-paper px-2 py-0.5 rounded border border-rule animate-in fade-in duration-100">
+            <span className="text-xs mono-num text-accent bg-surface-secondary px-2 py-0.5 rounded-lg border border-rule animate-in fade-in duration-100">
               Point #{hoveredIdx! + 1} of {coords.length}
             </span>
           )}
@@ -158,7 +158,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
       {/* Interactive Scrubbing Ribbon */}
       {activePt ? (
-        <div className="p-2.5 bg-paper border border-rule rounded flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
+        <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in duration-150">
           <div className="flex items-center space-x-2">
             <span
               className="w-2 h-2 rounded-full shrink-0"
@@ -202,7 +202,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
                   ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
             </span>
             <span className="text-ink-muted">→</span>
-            <span className="font-semibold text-ink bg-white px-2 py-0.5 rounded border border-rule">
+            <span className="font-semibold text-ink bg-surface px-2 py-0.5 rounded-lg border border-rule">
               ₹{activePt.val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -570,10 +570,10 @@ export default function AccountStatementPage() {
       ) : null}
 
       {/* Statement Table */}
-      <div className="bg-white border border-rule rounded overflow-hidden">
+      <div className="bg-surface border border-rule rounded-lg overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-rule text-xs">
-            <thead className="sticky top-0 bg-paper text-ink font-semibold border-b border-rule-strong z-10">
+            <thead className="sticky top-0 bg-surface-secondary text-ink font-semibold border-b border-rule z-10">
               <tr>
                 <th scope="col" className="px-5 py-3 text-left font-semibold">
                   Date &amp; time
@@ -601,7 +601,7 @@ export default function AccountStatementPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-rule bg-white">
+            <tbody className="divide-y divide-rule bg-surface">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
@@ -753,8 +753,8 @@ export default function AccountStatementPage() {
 
       {/* Account Double-Entry Reconciliation Modal */}
       {showReconcileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-          <div className="bg-white rounded border border-rule max-w-lg w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-surface rounded-lg border border-rule max-w-lg w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-rule">
               <div>
                 <h3 className="text-sm font-semibold text-ink">

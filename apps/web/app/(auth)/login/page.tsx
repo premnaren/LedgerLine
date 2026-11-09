@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { setSession } from '@/lib/auth';
 import InteractiveLedgerNetwork from '@/components/InteractiveLedgerNetwork';
 import ThemeToggle from '@/components/ThemeToggle';
+import { getTheme, setTheme, subscribeTheme, Theme } from '@/lib/theme';
 import {
   Layers,
   Lock,
@@ -23,39 +24,22 @@ import {
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [isDark, setIsDark] = useState(false);
+  const [theme, setCurrentTheme] = useState<Theme>('light');
 
-  // Sync theme with system or saved preference
+  // Sync theme with global theme manager
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('ledgerline_theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (saved === 'dark' || (!saved && prefersDark)) {
-        setIsDark(true);
-        document.documentElement.classList.add('dark');
-      } else {
-        setIsDark(false);
-        document.documentElement.classList.remove('dark');
-      }
-    } catch {
-      // Ignore storage errors in restricted contexts
-    }
+    setCurrentTheme(getTheme());
+    const unsub = subscribeTheme((newTheme) => {
+      setCurrentTheme(newTheme);
+    });
+    return unsub;
   }, []);
 
-  const handleToggleTheme = (nextDark: boolean) => {
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      try {
-        localStorage.setItem('ledgerline_theme', 'dark');
-      } catch {}
-    } else {
-      document.documentElement.classList.remove('dark');
-      try {
-        localStorage.setItem('ledgerline_theme', 'light');
-      } catch {}
-    }
+  const handleToggleTheme = (isDark: boolean) => {
+    setTheme(isDark ? 'dark' : 'light');
   };
+
+  const isDark = theme === 'dark';
 
   // Sign in fields
   const [email, setEmail] = useState('admin@ledgerline.dev');
@@ -162,7 +146,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={`min-h-screen w-full flex flex-col lg:flex-row bg-paper dark:bg-[#0B0F17] text-ink dark:text-white transition-colors duration-300 relative ${isDark ? 'dark' : ''}`}>
+    <div className={`min-h-screen w-full flex flex-col lg:flex-row bg-[#F5F7FA] dark:bg-[#0B1220] text-ink dark:text-white transition-colors duration-300 relative ${isDark ? 'dark' : ''}`}>
       {/* Floating Theme Switcher */}
       <div className="fixed top-5 right-5 sm:top-6 sm:right-8 z-50">
         <ThemeToggle isDark={isDark} onToggle={handleToggleTheme} />
@@ -171,20 +155,20 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* Left Column: Visual Interactive Ledger Network (Desktop)     */}
       {/* ============================================================ */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#E2E6EE] dark:bg-[#080C14] border-r border-[#DDD9D2] dark:border-[#1E293B] flex-col justify-between p-10 xl:p-14 overflow-hidden select-none transition-colors duration-300">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F0F3F7] dark:bg-[#0B1220] border-r border-[#DCE2E9] dark:border-[#29384D] flex-col justify-between p-10 xl:p-14 overflow-hidden select-none transition-colors duration-300">
         {/* Interactive Connected-Node Network Canvas */}
         <InteractiveLedgerNetwork isDark={isDark} />
 
         {/* Top: Brand Identity */}
         <div className="relative z-10 flex items-center space-x-3 pointer-events-none">
-          <div className="flex justify-center items-center w-9 h-9 bg-white dark:bg-[#131A26] rounded border border-[#DDD9D2] dark:border-[#1E293B] text-accent dark:text-[#38BDF8] shadow-sm pointer-events-auto transition">
+          <div className="flex justify-center items-center w-9 h-9 bg-white dark:bg-[#111C2E] rounded-lg border border-[#DCE2E9] dark:border-[#29384D] text-primary dark:text-[#78A6F6] shadow-xs pointer-events-auto transition">
             <Layers className="w-5 h-5" />
           </div>
           <div>
             <span className="text-lg font-bold tracking-tight text-ink dark:text-white transition">
-              Ledger<span className="text-accent dark:text-[#38BDF8]">Line</span>
+              Ledger<span className="text-primary dark:text-[#78A6F6]">Line</span>
             </span>
-            <span className="block text-xs font-mono text-ink-muted dark:text-slate-400 transition">
+            <span className="block text-xs font-mono text-ink-muted dark:text-[#9AA9BD] transition">
               Double-entry core engine
             </span>
           </div>
@@ -194,7 +178,7 @@ export default function LoginPage() {
         <div className="relative z-10 mt-auto pt-16 pointer-events-none">
           <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-ink dark:text-white leading-tight transition">
             Every transaction,<br />
-            <span className="text-accent dark:text-[#38BDF8]">accounted for.</span>
+            <span className="text-primary dark:text-[#78A6F6]">accounted for.</span>
           </h1>
         </div>
       </div>
@@ -202,36 +186,36 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* Right Column: Clean, Prominent Auth Form                      */}
       {/* ============================================================ */}
-      <div className="w-full lg:w-1/2 xl:w-7/12 2xl:w-1/2 flex flex-col justify-center items-center p-6 sm:p-10 lg:p-12 xl:p-16 min-h-screen bg-paper dark:bg-[#0B0F17] transition-colors duration-300">
+      <div className="w-full lg:w-1/2 xl:w-7/12 2xl:w-1/2 flex flex-col justify-center items-center p-6 sm:p-10 lg:p-12 xl:p-16 min-h-screen bg-[#F5F7FA] dark:bg-[#0B1220] transition-colors duration-300">
         {/* Mobile Brand Header (Visible only on smaller screens) */}
-        <div className="lg:hidden w-full max-w-[460px] flex items-center justify-between mb-6 pb-4 border-b border-rule dark:border-[#1E293B]">
+        <div className="lg:hidden w-full max-w-[460px] flex items-center justify-between mb-6 pb-4 border-b border-rule dark:border-[#29384D]">
           <div className="flex items-center space-x-2.5">
-            <div className="flex justify-center items-center w-8 h-8 bg-white dark:bg-[#131A26] rounded border border-rule dark:border-[#1E293B] text-accent dark:text-[#38BDF8]">
+            <div className="flex justify-center items-center w-8 h-8 bg-white dark:bg-[#111C2E] rounded-lg border border-rule dark:border-[#29384D] text-primary dark:text-[#78A6F6]">
               <Layers className="w-4 h-4" />
             </div>
             <div>
               <span className="text-base font-bold tracking-tight text-ink dark:text-white">
-                Ledger<span className="text-accent dark:text-[#38BDF8]">Line</span>
+                Ledger<span className="text-primary dark:text-[#78A6F6]">Line</span>
               </span>
-              <span className="block text-xs text-ink-muted dark:text-slate-400">
+              <span className="block text-xs text-ink-muted dark:text-[#9AA9BD]">
                 Double-entry core ledger
               </span>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5 text-xs text-ledger-green bg-white dark:bg-[#131A26] px-2.5 py-1 rounded border border-rule dark:border-[#1E293B]">
+          <div className="flex items-center space-x-1.5 text-xs text-ledger-green bg-white dark:bg-[#111C2E] px-2.5 py-1 rounded-full border border-rule dark:border-[#29384D]">
             <span className="w-1.5 h-1.5 rounded-full bg-ledger-green" />
             <span className="font-medium">Active</span>
           </div>
         </div>
 
         {/* Prominent Auth Card */}
-        <div className="w-full max-w-[460px] bg-white dark:bg-[#131926] rounded border border-rule dark:border-[#1E293B] p-7 sm:p-8 space-y-5 shadow-sm transition">
+        <div className="w-full max-w-[460px] bg-white dark:bg-[#111C2E] rounded-lg border border-rule dark:border-[#29384D] p-7 sm:p-8 space-y-5 shadow-xs transition">
           {/* Form Header */}
           <div className="space-y-1">
             <h2 className="text-xl font-bold tracking-tight text-ink dark:text-white">
               {mode === 'signin' ? 'Sign in to LedgerLine' : 'Create your account'}
             </h2>
-            <p className="text-xs text-ink-muted dark:text-slate-400 leading-relaxed">
+            <p className="text-xs text-ink-muted dark:text-[#9AA9BD] leading-relaxed">
               {mode === 'signin'
                 ? 'Access your verified double-entry operating ledger.'
                 : 'Register for a new operating account with personal ledger access.'}
@@ -239,7 +223,7 @@ export default function LoginPage() {
           </div>
 
           {/* Segmented Tab Switcher */}
-          <div className="grid grid-cols-2 p-1 bg-paper dark:bg-[#0B0F17] rounded border border-rule dark:border-[#1E293B] text-xs">
+          <div className="grid grid-cols-2 p-1 bg-[#F0F3F7] dark:bg-[#19263A] rounded-lg border border-rule dark:border-[#29384D] text-xs">
             <button
               type="button"
               role="tab"
@@ -248,10 +232,10 @@ export default function LoginPage() {
                 setMode('signin');
                 setError(null);
               }}
-              className={`py-2 text-xs rounded transition text-center font-semibold ${
+              className={`py-2 text-xs rounded-md transition text-center font-semibold ${
                 mode === 'signin'
-                  ? 'bg-white dark:bg-[#1E293B] text-ink dark:text-white border border-rule dark:border-[#334155] shadow-none'
-                  : 'text-ink-muted dark:text-slate-400 hover:text-ink dark:hover:text-white font-medium'
+                  ? 'bg-white dark:bg-[#111C2E] text-ink dark:text-white border border-rule dark:border-[#29384D] shadow-xs'
+                  : 'text-ink-muted dark:text-[#9AA9BD] hover:text-ink dark:hover:text-white font-medium'
               }`}
             >
               Sign in
@@ -265,10 +249,10 @@ export default function LoginPage() {
                 setError(null);
                 setActiveRole(null);
               }}
-              className={`py-2 text-xs rounded transition text-center font-semibold ${
+              className={`py-2 text-xs rounded-md transition text-center font-semibold ${
                 mode === 'signup'
-                  ? 'bg-white dark:bg-[#1E293B] text-ink dark:text-white border border-rule dark:border-[#334155] shadow-none'
-                  : 'text-ink-muted dark:text-slate-400 hover:text-ink dark:hover:text-white font-medium'
+                  ? 'bg-white dark:bg-[#111C2E] text-ink dark:text-white border border-rule dark:border-[#29384D] shadow-xs'
+                  : 'text-ink-muted dark:text-[#9AA9BD] hover:text-ink dark:hover:text-white font-medium'
               }`}
             >
               Create account
@@ -342,7 +326,7 @@ export default function LoginPage() {
                         setEmail(e.target.value);
                         setActiveRole(null);
                       }}
-                      className="pr-3 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border mono-num border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                      className="pr-3 pl-9 w-full h-10 text-xs bg-surface rounded-lg border mono-num border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                       placeholder="name@company.com"
                     />
                   </div>
@@ -353,20 +337,20 @@ export default function LoginPage() {
                   <div className="flex justify-between items-center mb-1">
                     <label
                       htmlFor="signin-password"
-                      className="block text-xs font-semibold text-ink-muted dark:text-slate-400"
+                      className="block text-xs font-semibold text-ink-muted"
                     >
                       Password
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowForgotNotice(true)}
-                      className="text-xs text-accent dark:text-[#38BDF8] hover:underline font-medium"
+                      className="text-xs text-primary hover:underline font-medium"
                     >
                       Forgot?
                     </button>
                   </div>
                   <div className="relative">
-                    <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted dark:text-slate-400">
+                    <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
@@ -377,7 +361,7 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pr-9 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                      className="pr-9 pl-9 w-full h-10 text-xs bg-surface rounded-lg border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                       placeholder="••••••••••••"
                     />
                     <button
@@ -399,7 +383,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex justify-center items-center px-4 py-2 mt-2 w-full h-10 text-xs font-bold text-white rounded transition bg-accent dark:bg-[#0284C7] hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed pressable"
+                  className="flex justify-center items-center px-4 py-2 mt-2 w-full h-10 text-xs font-bold text-white rounded-lg transition bg-primary hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed pressable shadow-xs"
                 >
                   {loading ? (
                     <>
@@ -418,10 +402,10 @@ export default function LoginPage() {
               {/* Quick Demo Access Divider */}
               <div className="relative pt-1">
                 <div className="flex absolute inset-0 items-center" aria-hidden="true">
-                  <div className="w-full border-t border-rule dark:border-[#1E293B]" />
+                  <div className="w-full border-t border-rule dark:border-[#29384D]" />
                 </div>
                 <div className="flex relative justify-center text-xs">
-                  <span className="bg-white dark:bg-[#131926] px-2.5 text-xs text-ink-muted dark:text-slate-400 font-medium">
+                  <span className="bg-white dark:bg-[#111C2E] px-2.5 text-xs text-ink-muted dark:text-[#9AA9BD] font-medium">
                     Demo accounts
                   </span>
                 </div>
@@ -432,52 +416,52 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('ADMIN', 'admin@ledgerline.dev', 'Admin1234!')}
-                  className={`py-2 px-1.5 rounded text-center border transition pressable text-xs ${
+                  className={`py-2 px-1.5 rounded-lg text-center border transition pressable text-xs ${
                     activeRole === 'ADMIN'
-                      ? 'border-accent dark:border-[#38BDF8] bg-paper dark:bg-[#1E293B] font-semibold text-ink dark:text-white ring-1 ring-accent dark:ring-[#38BDF8]'
-                      : 'border-rule dark:border-[#1E293B] bg-white dark:bg-[#0B0F17] hover:bg-paper dark:hover:bg-[#1E293B] text-ink dark:text-white'
+                      ? 'border-primary dark:border-[#78A6F6] bg-[#F0F3F7] dark:bg-[#19263A] font-semibold text-primary dark:text-[#78A6F6] ring-1 ring-primary dark:ring-[#78A6F6]'
+                      : 'border-rule dark:border-[#29384D] bg-white dark:bg-[#111C2E] hover:bg-[#F0F3F7] dark:hover:bg-[#19263A] text-ink dark:text-white'
                   }`}
                   aria-label="Load Admin demo credentials"
                 >
                   <div className="flex items-center justify-center space-x-1 mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-admin)' }} />
-                    <span className="font-semibold text-ink dark:text-white text-xs">Admin</span>
+                    <span className="font-semibold text-xs">Admin</span>
                   </div>
-                  <span className="text-xs text-ink-muted dark:text-slate-400 block truncate">Superuser</span>
+                  <span className="text-xs text-ink-muted dark:text-[#9AA9BD] block truncate">Superuser</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('HOLDER', 'holder@ledgerline.dev', 'Holder1234!')}
-                  className={`py-2 px-1.5 rounded text-center border transition pressable text-xs ${
+                  className={`py-2 px-1.5 rounded-lg text-center border transition pressable text-xs ${
                     activeRole === 'HOLDER'
-                      ? 'border-accent dark:border-[#38BDF8] bg-paper dark:bg-[#1E293B] font-semibold text-ink dark:text-white ring-1 ring-accent dark:ring-[#38BDF8]'
-                      : 'border-rule dark:border-[#1E293B] bg-white dark:bg-[#0B0F17] hover:bg-paper dark:hover:bg-[#1E293B] text-ink dark:text-white'
+                      ? 'border-primary dark:border-[#78A6F6] bg-[#F0F3F7] dark:bg-[#19263A] font-semibold text-primary dark:text-[#78A6F6] ring-1 ring-primary dark:ring-[#78A6F6]'
+                      : 'border-rule dark:border-[#29384D] bg-white dark:bg-[#111C2E] hover:bg-[#F0F3F7] dark:hover:bg-[#19263A] text-ink dark:text-white'
                   }`}
                   aria-label="Load Holder demo credentials"
                 >
                   <div className="flex items-center justify-center space-x-1 mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-holder)' }} />
-                    <span className="font-semibold text-ink dark:text-white text-xs">Holder</span>
+                    <span className="font-semibold text-xs">Holder</span>
                   </div>
-                  <span className="text-xs text-ink-muted dark:text-slate-400 block truncate">Account owner</span>
+                  <span className="text-xs text-ink-muted dark:text-[#9AA9BD] block truncate">Account owner</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('AUDITOR', 'auditor@ledgerline.dev', 'Audit1234!')}
-                  className={`py-2 px-1.5 rounded text-center border transition pressable text-xs ${
+                  className={`py-2 px-1.5 rounded-lg text-center border transition pressable text-xs ${
                     activeRole === 'AUDITOR'
-                      ? 'border-accent dark:border-[#38BDF8] bg-paper dark:bg-[#1E293B] font-semibold text-ink dark:text-white ring-1 ring-accent dark:ring-[#38BDF8]'
-                      : 'border-rule dark:border-[#1E293B] bg-white dark:bg-[#0B0F17] hover:bg-paper dark:hover:bg-[#1E293B] text-ink dark:text-white'
+                      ? 'border-primary dark:border-[#78A6F6] bg-[#F0F3F7] dark:bg-[#19263A] font-semibold text-primary dark:text-[#78A6F6] ring-1 ring-primary dark:ring-[#78A6F6]'
+                      : 'border-rule dark:border-[#29384D] bg-white dark:bg-[#111C2E] hover:bg-[#F0F3F7] dark:hover:bg-[#19263A] text-ink dark:text-white'
                   }`}
                   aria-label="Load Auditor demo credentials"
                 >
                   <div className="flex items-center justify-center space-x-1 mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--role-auditor)' }} />
-                    <span className="font-semibold text-ink dark:text-white text-xs">Auditor</span>
+                    <span className="font-semibold text-xs">Auditor</span>
                   </div>
-                  <span className="text-xs text-ink-muted dark:text-slate-400 block truncate">Read-only</span>
+                  <span className="text-xs text-ink-muted dark:text-[#9AA9BD] block truncate">Read-only</span>
                 </button>
               </div>
             </div>
@@ -507,7 +491,7 @@ export default function LoginPage() {
                     spellCheck={false}
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
-                    className="pr-3 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border mono-num border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                    className="pr-3 pl-9 w-full h-10 text-xs bg-surface rounded-lg border mono-num border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                     placeholder="name@company.com"
                   />
                 </div>
@@ -517,12 +501,12 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="account-name"
-                  className="block mb-1 text-xs font-semibold text-ink-muted dark:text-slate-400"
+                  className="block mb-1 text-xs font-semibold text-ink-muted"
                 >
-                  Account label <span className="text-ink-muted dark:text-slate-500 font-normal">(Optional)</span>
+                  Account label <span className="text-ink-faint font-normal">(Optional)</span>
                 </label>
                 <div className="relative">
-                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted dark:text-slate-400">
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                     <Building className="w-4 h-4" />
                   </div>
                   <input
@@ -531,7 +515,7 @@ export default function LoginPage() {
                     type="text"
                     value={accountName}
                     onChange={(e) => setAccountName(e.target.value)}
-                    className="pr-3 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                    className="pr-3 pl-9 w-full h-10 text-xs bg-surface rounded-lg border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                     placeholder="e.g. Acme Operations"
                   />
                 </div>
@@ -541,12 +525,12 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="signup-password"
-                  className="block mb-1 text-xs font-semibold text-ink-muted dark:text-slate-400"
+                  className="block mb-1 text-xs font-semibold text-ink-muted"
                 >
-                  Password <span className="text-ink-muted dark:text-slate-500 font-normal">(min 6 characters)</span>
+                  Password <span className="text-ink-faint font-normal">(min 6 characters)</span>
                 </label>
                 <div className="relative">
-                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted dark:text-slate-400">
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -557,14 +541,14 @@ export default function LoginPage() {
                     autoComplete="new-password"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
-                    className="pr-9 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                    className="pr-9 pl-9 w-full h-10 text-xs bg-surface rounded-lg border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-muted hover:text-ink dark:text-slate-400 dark:hover:text-white"
+                    className="flex absolute inset-y-0 right-0 items-center pr-3 text-ink-muted hover:text-ink"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -579,12 +563,12 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="confirm-password"
-                  className="block mb-1 text-xs font-semibold text-ink-muted dark:text-slate-400"
+                  className="block mb-1 text-xs font-semibold text-ink-muted"
                 >
                   Confirm password
                 </label>
                 <div className="relative">
-                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted dark:text-slate-400">
+                  <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-muted">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -595,7 +579,7 @@ export default function LoginPage() {
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-9 pl-9 w-full h-10 text-xs bg-white dark:bg-[#0B0F17] rounded border border-rule dark:border-[#1E293B] text-ink dark:text-white placeholder:text-ink-muted dark:placeholder:text-slate-500 focus:outline-none focus:border-accent dark:focus:border-[#38BDF8]"
+                    className="pr-9 pl-9 w-full h-10 text-xs bg-surface rounded-lg border border-rule text-ink placeholder:text-ink-muted focus:outline-none focus:border-primary"
                     placeholder="••••••••••••"
                   />
                   <button

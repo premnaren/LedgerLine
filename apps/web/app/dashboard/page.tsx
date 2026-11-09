@@ -428,10 +428,10 @@ export default function DashboardPage() {
       : 'var(--role-holder)';
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="pb-12 mx-auto space-y-6 max-w-7xl">
       {/* Top Banner Navigation & Actions */}
       <div className="flex flex-col gap-4 pb-4 border-b border-rule">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-3 justify-between items-start">
           <div>
             <div className="flex items-center space-x-2.5 mb-1">
               <h1 className="text-2xl font-bold tracking-tight text-ink">
@@ -456,7 +456,7 @@ export default function DashboardPage() {
 
           <button
             onClick={() => fetchAccounts()}
-            className="p-2 border border-rule rounded text-ink-muted hover:text-ink hover:bg-rule/30 transition pressable shrink-0"
+            className="p-2 rounded border transition border-rule text-ink-muted hover:text-ink hover:bg-rule/30 pressable shrink-0"
             title="Refresh balances and transactions"
             aria-label="Refresh balances and transactions"
           >
@@ -469,7 +469,7 @@ export default function DashboardPage() {
           {user?.role === 'ADMIN' && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition pressable"
+              className="inline-flex items-center px-4 py-2 text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95 pressable"
             >
               <PlusCircle className="mr-1.5 h-4 w-4" />
               <span>New account</span>
@@ -479,7 +479,7 @@ export default function DashboardPage() {
           {user?.role === 'HOLDER' && accounts.length > 0 && (
             <Link
               href={`/accounts/${accounts[0].id}/transfer`}
-              className="inline-flex items-center px-4 py-2 rounded text-xs font-semibold text-white bg-accent hover:opacity-95 transition pressable"
+              className="inline-flex items-center px-4 py-2 text-xs font-semibold text-white rounded transition bg-accent hover:opacity-95 pressable"
               title="Initiate transfer from your account"
             >
               <ArrowRightLeft className="mr-1.5 h-4 w-4" />
@@ -533,9 +533,9 @@ export default function DashboardPage() {
       {error && (
         <div
           role="alert"
-          className="p-4 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red"
+          className="flex items-center p-4 space-x-3 rounded border bg-paper border-ledger-red text-ledger-red"
         >
-          <AlertCircle className="h-5 w-5 shrink-0" />
+          <AlertCircle className="w-5 h-5 shrink-0" />
           <p className="text-xs font-medium">{error}</p>
         </div>
       )}
@@ -544,9 +544,9 @@ export default function DashboardPage() {
       {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           {/* Trend 1: Posted entries in last 7 days */}
-          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
             <div>
-              <span className="text-xs text-ink-muted font-medium block">
+              <span className="block text-xs font-medium text-ink-muted">
                 Posted entries (7d)
               </span>
               <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
@@ -561,9 +561,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend 2: Refused attempts in last 7 days */}
-          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
             <div>
-              <span className="text-xs text-ink-muted font-medium block">
+              <span className="block text-xs font-medium text-ink-muted">
                 Refused attempts (7d)
               </span>
               <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
@@ -578,9 +578,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend 3: Net flow in last 7 days */}
-          <div className="bg-white border border-rule rounded p-4 flex items-center justify-between">
+          <div className="flex justify-between items-center p-4 rounded-lg border bg-surface border-rule shadow-xs">
             <div>
-              <span className="text-xs text-ink-muted font-medium block">
+              <span className="block text-xs font-medium text-ink-muted">
                 Net flow (7d)
               </span>
               <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
@@ -599,18 +599,18 @@ export default function DashboardPage() {
       {/* HOLDER Metric Cards */}
       {user?.role === 'HOLDER' && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="bg-white border border-rule rounded p-4">
-            <span className="text-xs text-ink-muted font-medium block">Total balance</span>
+          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+            <span className="block text-xs font-medium text-ink-muted">Total balance</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {formatPaiseToRupees(combinedBalancePence.toString())}
             </div>
-            <p className="text-xs text-ink-faint mt-1">
+            <p className="mt-1 text-xs text-ink-faint">
               Across {accounts.length} registered {accounts.length === 1 ? 'account' : 'accounts'}
             </p>
           </div>
 
-          <div className="bg-white border border-rule rounded p-4">
-            <span className="text-xs text-ink-muted font-medium block">Your accounts</span>
+          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+            <span className="block text-xs font-medium text-ink-muted">Your accounts</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5">
               {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
             </div>
@@ -620,13 +620,13 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="bg-white border border-rule rounded p-4">
-            <span className="text-xs text-ink-muted font-medium block">Account protection</span>
+          <div className="p-4 rounded-lg border bg-surface border-rule shadow-xs">
+            <span className="block text-xs font-medium text-ink-muted">Account protection</span>
             <div className="mono-num text-2xl font-medium text-ink mt-0.5 flex items-center gap-2">
               <span>Protected</span>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
             </div>
-            <p className="text-xs text-ink-faint mt-1">
+            <p className="mt-1 text-xs text-ink-faint">
               Append-only cryptographic seal
             </p>
           </div>
@@ -635,7 +635,7 @@ export default function DashboardPage() {
 
       {/* Accounts List Section */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 justify-between sm:flex-row sm:items-center">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-ink">
               {user?.role === 'HOLDER' ? 'Your accounts' : 'Ledger accounts'}
@@ -649,7 +649,7 @@ export default function DashboardPage() {
 
           {accounts.length > 2 && (
             <div className="relative w-full sm:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-faint">
+              <div className="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-ink-faint">
                 <Search className="h-3.5 w-3.5" />
               </div>
               <input
@@ -657,7 +657,7 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by name or ID..."
-                className="h-9 w-full pl-9 pr-3 rounded border border-rule bg-white text-xs text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:border-accent"
+                className="pr-3 pl-9 w-full h-9 text-xs rounded-lg border border-rule bg-surface text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:border-accent"
               />
             </div>
           )}
@@ -665,43 +665,43 @@ export default function DashboardPage() {
 
         {/* Account Cards Grid */}
         {loading && accounts.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-44 bg-white border border-rule rounded p-5 flex flex-col justify-between animate-pulse"
+                className="flex flex-col justify-between p-5 h-44 rounded-lg border animate-pulse bg-surface border-rule"
               >
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <div className="h-3 w-28 bg-rule/50 rounded" />
-                    <div className="h-3 w-12 bg-rule/40 rounded" />
+                    <div className="w-28 h-3 rounded bg-rule/50" />
+                    <div className="w-12 h-3 rounded bg-rule/40" />
                   </div>
-                  <div className="h-4 w-36 bg-rule/60 rounded mb-2" />
-                  <div className="h-7 w-44 bg-rule/50 rounded" />
+                  <div className="mb-2 w-36 h-4 rounded bg-rule/60" />
+                  <div className="w-44 h-7 rounded bg-rule/50" />
                 </div>
-                <div className="pt-3 border-t border-rule flex justify-between items-center">
-                  <div className="h-3 w-28 bg-rule/40 rounded" />
-                  <div className="h-3 w-16 bg-rule/40 rounded" />
+                <div className="flex justify-between items-center pt-3 border-t border-rule">
+                  <div className="w-28 h-3 rounded bg-rule/40" />
+                  <div className="w-16 h-3 rounded bg-rule/40" />
                 </div>
               </div>
             ))}
           </div>
         ) : accounts.length === 0 ? (
-          <div className="bg-white border border-rule rounded p-10 text-center">
-            <Building className="mx-auto h-10 w-10 text-ink-faint" />
+          <div className="p-10 text-center rounded-lg border bg-surface border-rule shadow-xs">
+            <Building className="mx-auto w-10 h-10 text-ink-faint" />
             <h3 className="mt-2 text-sm font-semibold text-ink">No accounts accessible</h3>
             <p className="mt-1 text-xs text-ink-muted">
               You do not currently hold any registered accounts on this ledger.
             </p>
           </div>
         ) : filteredAccounts.length === 0 ? (
-          <div className="bg-white border border-rule rounded p-8 text-center">
+          <div className="p-8 text-center rounded-lg border bg-surface border-rule shadow-xs">
             <p className="text-xs text-ink-muted">
               No accounts match &ldquo;{searchQuery}&rdquo;. Clear filter to view all accounts.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {filteredAccounts.map((acc) => {
               const balanceNum = Number(acc.balancePence);
               const isNegative = balanceNum < 0;
@@ -709,11 +709,11 @@ export default function DashboardPage() {
               return (
                 <div
                   key={acc.id}
-                  className="bg-white border border-rule rounded p-5 flex flex-col justify-between"
+                  className="flex flex-col justify-between p-5 rounded-lg border transition bg-surface border-rule shadow-xs hover:border-border-strong"
                 >
                   <div>
                     {/* Header Row: ID and Status */}
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex justify-between items-center mb-3">
                       <button
                         type="button"
                         onClick={(e) => handleCopyId(acc.id, e)}
@@ -727,7 +727,7 @@ export default function DashboardPage() {
                             Copied
                           </span>
                         ) : (
-                          <Copy className="h-3 w-3 text-ink-faint" />
+                          <Copy className="w-3 h-3 text-ink-faint" />
                         )}
                       </button>
 
@@ -737,13 +737,13 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-base font-semibold tracking-tight text-ink mb-2">
+                    <h3 className="mb-2 text-base font-semibold tracking-tight text-ink">
                       {acc.name}
                     </h3>
 
                     {/* Balance Display */}
                     <div>
-                      <span className="text-xs text-ink-muted font-medium block">
+                      <span className="block text-xs font-medium text-ink-muted">
                         {user?.role === 'AUDITOR' ? 'Ledger balance' : 'Current balance'}
                       </span>
                       <span
@@ -755,13 +755,13 @@ export default function DashboardPage() {
                     </div>
 
                     {acc.overdraftLimit !== '0' && (
-                      <p className="text-xs mono-num text-ink-muted mt-1">
+                      <p className="mt-1 text-xs mono-num text-ink-muted">
                         Overdraft limit: {formatPaiseToRupees(acc.overdraftLimit)}
                       </p>
                     )}
 
                     {acc.holders && acc.holders.length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-rule text-xs text-ink-muted">
+                      <div className="pt-2 mt-3 text-xs border-t border-rule text-ink-muted">
                         <span className="font-medium text-ink">Holders:</span>{' '}
                         <span className="mono-num text-ink-muted">
                           {acc.holders.map((h) => h.user.email).join(', ')}
@@ -771,11 +771,11 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Card Actions Footer: Plain text links in var(--accent) separated by border-t border-rule */}
-                  <div className="mt-4 pt-3 border-t border-rule flex items-center justify-between text-xs">
+                  <div className="flex justify-between items-center pt-3 mt-4 text-xs border-t border-rule">
                     {user?.role === 'AUDITOR' ? (
                       <Link
                         href={`/accounts/${acc.id}`}
-                        className="font-semibold text-accent hover:underline flex items-center gap-1"
+                        className="flex gap-1 items-center font-semibold text-accent hover:underline"
                       >
                         <span>View statement</span>
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -808,15 +808,15 @@ export default function DashboardPage() {
 
       {/* Recent Transactions Feed for Account Holder */}
       {user?.role === 'HOLDER' && (
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
+        <div className="pt-2 space-y-3">
+          <div className="flex justify-between items-center">
             <h2 className="text-base font-semibold tracking-tight text-ink">
               Recent transactions
             </h2>
             {accounts.length > 0 && (
               <Link
                 href={`/accounts/${accounts[0].id}`}
-                className="text-xs font-semibold text-accent hover:underline flex items-center gap-1"
+                className="flex gap-1 items-center text-xs font-semibold text-accent hover:underline"
               >
                 <span>View complete statement</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -825,17 +825,17 @@ export default function DashboardPage() {
           </div>
 
           {entriesLoading && recentEntries.length === 0 ? (
-            <div className="bg-white border border-rule rounded p-5 space-y-2">
+            <div className="p-5 space-y-2 rounded-lg border bg-surface border-rule shadow-xs">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-rule/30 rounded animate-pulse" />
+                <div key={i} className="h-10 rounded animate-pulse bg-surface-secondary" />
               ))}
             </div>
           ) : recentEntries.length === 0 ? (
-            <div className="bg-white border border-rule rounded p-8 text-center">
+            <div className="p-8 text-center rounded-lg border bg-surface border-rule shadow-xs">
               <p className="text-xs text-ink-muted">No recent transactions recorded on this account.</p>
             </div>
           ) : (
-            <div className="bg-white border border-rule rounded divide-y divide-rule">
+            <div className="overflow-hidden rounded-lg border divide-y bg-surface border-rule divide-rule shadow-xs">
               {recentEntries.map((entry) => {
                 const isDebit =
                   entry.isDebit ||
@@ -866,7 +866,7 @@ export default function DashboardPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center space-x-2">
-                        <p className="text-xs font-medium text-ink truncate">
+                        <p className="text-xs font-medium truncate text-ink">
                           {entry.note || (isDebit ? 'Transfer to account' : 'Received funds')}
                         </p>
                         <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
@@ -890,9 +890,9 @@ export default function DashboardPage() {
                       </p>
                     </div>
 
-                    <div className="text-right shrink-0 ml-4">
+                    <div className="ml-4 text-right shrink-0">
                       <span
-                        className="mono-num text-sm font-medium block"
+                        className="block text-sm font-medium mono-num"
                         style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
                       >
                         {isDebit ? '−' : '+'}
@@ -909,12 +909,12 @@ export default function DashboardPage() {
 
       {/* Create Account Modal (Admin only) */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-          <div className="bg-white rounded border border-rule max-w-md w-full p-6 space-y-4">
+        <div className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="p-6 space-y-4 w-full max-w-md rounded-lg border shadow-xl bg-surface border-rule">
             <h3 className="text-base font-semibold text-ink">Create new ledger account</h3>
             <form onSubmit={handleCreateAccount} className="space-y-4">
               <div>
-                <label className="block text-xs text-ink-muted font-medium mb-1">
+                <label className="block mb-1 text-xs font-medium text-ink-muted">
                   Account name
                 </label>
                 <input
@@ -922,13 +922,13 @@ export default function DashboardPage() {
                   required
                   value={newAccountName}
                   onChange={(e) => setNewAccountName(e.target.value)}
-                  className="block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full text-xs rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:border-accent"
                   placeholder="e.g. Treasury Operations"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-ink-muted font-medium mb-1">
+                <label className="block mb-1 text-xs font-medium text-ink-muted">
                   Initial balance (₹)
                 </label>
                 <input
@@ -937,13 +937,13 @@ export default function DashboardPage() {
                   step="0.01"
                   value={newAccountBalance}
                   onChange={(e) => setNewAccountBalance(e.target.value)}
-                  className="mono-num block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full text-xs rounded-lg border mono-num border-rule bg-surface text-ink focus:outline-none focus:border-accent"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-ink-muted font-medium mb-1">
+                <label className="block mb-1 text-xs font-medium text-ink-muted">
                   Overdraft limit (₹)
                 </label>
                 <input
@@ -952,23 +952,23 @@ export default function DashboardPage() {
                   step="0.01"
                   value={newAccountOverdraft}
                   onChange={(e) => setNewAccountOverdraft(e.target.value)}
-                  className="mono-num block w-full px-3 py-2 border border-rule rounded text-xs text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full text-xs rounded-lg border mono-num border-rule bg-surface text-ink focus:outline-none focus:border-accent"
                   placeholder="0.00"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-rule">
+              <div className="flex justify-end pt-3 space-x-2 border-t border-rule">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink border border-rule rounded"
+                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink border border-rule bg-surface hover:bg-surface-secondary rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded hover:opacity-90 disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded-lg hover:opacity-90 disabled:opacity-50 transition"
                 >
                   {createLoading ? 'Creating...' : 'Create account'}
                 </button>
@@ -983,12 +983,12 @@ export default function DashboardPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <div className="bg-white rounded border border-rule max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-rule shrink-0">
+          <div className="bg-surface rounded-lg border border-rule max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-rule shrink-0">
               <div className="flex items-center space-x-2.5">
-                <ShieldCheck className="h-5 w-5 text-accent" />
+                <ShieldCheck className="w-5 h-5 text-accent" />
                 <div>
                   <h3 className="text-sm font-semibold text-ink">
                     System double-entry &amp; integrity audit
@@ -1012,35 +1012,35 @@ export default function DashboardPage() {
                   className="p-1 text-ink-faint hover:text-ink"
                   aria-label="Close dialog"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             <div className="overflow-y-auto p-5 space-y-4">
               {reconcileLoading ? (
-                <div className="py-12 text-center text-ink-muted flex flex-col items-center space-y-2">
-                  <RefreshCw className="h-5 w-5 animate-spin text-accent" />
+                <div className="flex flex-col items-center py-12 space-y-2 text-center text-ink-muted">
+                  <RefreshCw className="w-5 h-5 animate-spin text-accent" />
                   <p className="text-xs">Aggregating ledger entries across all system accounts...</p>
                 </div>
               ) : reconcileResult ? (
                 <div className="space-y-4 text-xs">
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 bg-paper border border-rule rounded">
+                    <div className="p-3 rounded border bg-paper border-rule">
                       <span className="text-[11px] text-ink-muted block">Total accounts</span>
                       <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
                         {reconcileResult.totalAccounts}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-paper border border-rule rounded">
+                    <div className="p-3 rounded border bg-paper border-rule">
                       <span className="text-[11px] text-ink-muted block">System total</span>
                       <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
                         {formatPaiseToRupees(reconcileResult.totalStoredBalancePence)}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-paper border border-rule rounded">
+                    <div className="p-3 rounded border bg-paper border-rule">
                       <span className="text-[11px] text-ink-muted block">Status</span>
                       <span className="text-xl font-medium text-ledger-green mt-0.5 block">
                         Balanced
@@ -1049,9 +1049,9 @@ export default function DashboardPage() {
                   </div>
 
                   {reconcileResult.cryptographicIntegrity?.headHash && (
-                    <div className="p-3 bg-paper border border-rule rounded space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-ink-muted font-medium">Head hash (SHA-256):</span>
+                    <div className="p-3 bg-surface-secondary border border-rule rounded-lg space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-ink-muted">Head hash (SHA-256):</span>
                         <button
                           type="button"
                           onClick={() => handleCopyHeadHash(reconcileResult.cryptographicIntegrity?.headHash || '')}
@@ -1060,15 +1060,15 @@ export default function DashboardPage() {
                           {copiedHeadHash ? 'Copied' : 'Copy hash'}
                         </button>
                       </div>
-                      <div className="mono-num text-[11px] text-ink truncate bg-white p-1.5 border border-rule rounded">
+                      <div className="mono-num text-[11px] text-ink truncate bg-surface p-1.5 border border-rule rounded-lg">
                         {reconcileResult.cryptographicIntegrity.headHash}
                       </div>
                     </div>
                   )}
 
-                  <div className="border border-rule rounded overflow-hidden">
-                    <table className="min-w-full divide-y divide-rule text-xs">
-                      <thead className="bg-paper text-ink-muted font-medium border-b border-rule-strong">
+                  <div className="overflow-hidden rounded-lg border border-rule">
+                    <table className="min-w-full text-xs divide-y divide-rule">
+                      <thead className="font-medium border-b bg-surface-secondary text-ink-muted border-rule">
                         <tr>
                           <th className="px-3.5 py-2 text-left">Account</th>
                           <th className="px-3.5 py-2 text-right">Stored</th>
@@ -1076,9 +1076,9 @@ export default function DashboardPage() {
                           <th className="px-3.5 py-2 text-center">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-rule bg-white">
+                      <tbody className="divide-y divide-rule bg-surface">
                         {reconcileResult.accounts.map((acc) => (
-                          <tr key={acc.accountId} className="hover:bg-[#F3F2EE]">
+                          <tr key={acc.accountId} className="transition hover:bg-surface-secondary">
                             <td className="px-3.5 py-2 font-medium text-ink">{acc.accountName}</td>
                             <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.storedBalance)}</td>
                             <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.computedBalance)}</td>
@@ -1097,12 +1097,12 @@ export default function DashboardPage() {
               ) : null}
             </div>
 
-            <div className="px-5 py-3 border-t border-rule bg-paper flex items-center justify-between text-xs shrink-0">
+            <div className="flex justify-between items-center px-5 py-3 text-xs border-t border-rule bg-surface-secondary shrink-0">
               <button
                 type="button"
                 onClick={handleExportReport}
                 disabled={!reconcileResult}
-                className="inline-flex items-center px-3 py-1.5 border border-rule rounded text-xs font-medium text-ink bg-white hover:bg-rule/30"
+                className="inline-flex items-center px-3 py-1.5 border border-rule rounded-lg text-xs font-medium text-ink bg-surface hover:bg-surface-secondary transition"
               >
                 <Download className="mr-1.5 h-3.5 w-3.5 text-ink-faint" />
                 Export JSON
@@ -1110,7 +1110,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowReconcileModal(false)}
-                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-ink rounded hover:opacity-90"
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded-lg hover:opacity-90 transition"
               >
                 Close
               </button>

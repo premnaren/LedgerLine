@@ -3,41 +3,83 @@
 @tailwind utilities;
 
 :root {
-  --ink: #14181F;
-  --ink-muted: #484B52;
-  --ink-faint: #62666D;
-  --paper: #FAFAF8;
-  --rule: #DDD9D2;
-  --rule-strong: #B5B1A8;
-  --ledger-green: #146B46;
-  --ledger-red: #A3281E;
-  --accent: #2C4A7C;
-  --role-admin: #6B47A8;
-  --role-holder: #2C4A7C;
-  --role-auditor: #9A6E24;
+  color-scheme: light;
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-secondary: #F0F3F7;
+  --primary: #294B7A;
+  --primary-hover: #203D65;
+  --text-primary: #17212F;
+  --text-secondary: #657386;
+  --border: #DCE2E9;
+  --success: #13835D;
+  --danger: #D14949;
+  --warning: #B7791F;
 
-  --background: 48 20% 98%;
-  --foreground: 220 22% 10%;
-  --border: 43 11% 87%;
+  /* Module accents */
+  --accent-accounts: #294B7A;
+  --accent-audit: #5275A5;
+  --accent-stress: #D99524;
+  --accent-seal: #13835D;
+  --accent-failed: #D14949;
+
+  /* Semantic aliases for backwards compatibility */
+  --ink: var(--text-primary);
+  --ink-muted: var(--text-secondary);
+  --ink-faint: #8E9BAE;
+  --paper: var(--bg);
+  --rule: var(--border);
+  --rule-strong: #BDC6D4;
+  --ledger-green: var(--success);
+  --ledger-red: var(--danger);
+  --accent: var(--primary);
+  --role-admin: #6B47A8;
+  --role-holder: #294B7A;
+  --role-auditor: #B7791F;
+
+  --background: 216 28% 97%;
+  --foreground: 218 34% 14%;
+  --border-hsl: 214 20% 89%;
 }
 
-.dark {
-  --ink: #F8FAFC;
-  --ink-muted: #94A3B8;
-  --ink-faint: #64748B;
-  --paper: #0B0F17;
-  --rule: #1E293B;
-  --rule-strong: #334155;
-  --ledger-green: #22C55E;
-  --ledger-red: #EF4444;
-  --accent: #38BDF8;
-  --role-admin: #A78BFA;
-  --role-holder: #38BDF8;
-  --role-auditor: #F59E0B;
+[data-theme="dark"], .dark {
+  color-scheme: dark;
+  --bg: #0B1220;
+  --surface: #111C2E;
+  --surface-secondary: #19263A;
+  --primary: #78A6F6;
+  --primary-hover: #91B7FF;
+  --text-primary: #E8EEF7;
+  --text-secondary: #9AA9BD;
+  --border: #29384D;
+  --success: #36C995;
+  --danger: #F07878;
+  --warning: #E9B45C;
 
-  --background: 222 47% 7%;
-  --foreground: 210 40% 98%;
-  --border: 217 33% 17%;
+  /* Module accents for dark mode */
+  --accent-accounts: #78A6F6;
+  --accent-audit: #8BA8D1;
+  --accent-stress: #E9B45C;
+  --accent-seal: #36C995;
+  --accent-failed: #F07878;
+
+  /* Semantic aliases for backwards compatibility */
+  --ink: var(--text-primary);
+  --ink-muted: var(--text-secondary);
+  --ink-faint: #6A7A90;
+  --paper: var(--bg);
+  --rule: var(--border);
+  --rule-strong: #3D506B;
+  --ledger-green: var(--success);
+  --ledger-red: var(--danger);
+  --accent: var(--primary);
+  --role-admin: #B197FC;
+  --role-holder: #78A6F6;
+  --role-auditor: #E9B45C;
+
+  --background: 221 48% 8%;
+  --foreground: 217 48% 94%;
+  --border-hsl: 215 31% 23%;
 }
 
 body {
@@ -65,16 +107,70 @@ body {
 
 /* Structural Borders & Clean Surfaces */
 .glass-chrome {
-  background: rgba(250, 250, 248, 0.95);
+  background: rgba(245, 247, 250, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--border);
 }
 
 .glass-card {
-  background: #ffffff;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ============================================================ */
+/* Dark Mode Surface Overrides (Prevents White-on-White Glitch)  */
+/* ============================================================ */
+.dark .glass-chrome {
+  background: rgba(17, 28, 46, 0.90) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.dark .glass-card {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Ensure any hardcoded card or paper class automatically maps to Dark Navy */
+.dark .bg-white {
+  background-color: var(--surface) !important;
+}
+
+.dark .bg-paper {
+  background-color: var(--bg) !important;
+}
+
+.dark .border-rule {
+  border-color: var(--border) !important;
+}
+
+.dark .divide-rule > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* Dark mode inputs and textareas */
+.dark input.bg-white,
+.dark textarea.bg-white,
+.dark select.bg-white {
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+}
+
+.dark input.bg-white::placeholder,
+.dark textarea.bg-white::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus {
+  border-color: var(--primary) !important;
+}
+
+/* Dark mode table row hover and selection states */
+.dark tr:hover td {
+  background-color: var(--surface-secondary) !important;
 }
 
 .glass-drawer {

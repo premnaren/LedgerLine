@@ -35,3 +35,4 @@ export default function ThemeToggle({ className, isDark, onToggle }: ThemeToggle
     </div>
   );
 }
+

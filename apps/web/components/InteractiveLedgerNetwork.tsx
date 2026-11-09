@@ -412,19 +412,20 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
       ctx.clearRect(0, 0, width, height);
 
       // Color palette based on isDark prop
+      // Institutional Blue color palette based on isDark prop
       const baseLineColor = isDark
-        ? 'rgba(56, 189, 248, 0.32)' // Cyan in dark mode
-        : 'rgba(30, 58, 138, 0.35)'; // Deep Navy in light mode
+        ? 'rgba(120, 166, 246, 0.32)' // Soft blue in dark mode (#78A6F6)
+        : 'rgba(41, 75, 122, 0.35)'; // Deep Navy in light mode (#294B7A)
       const highlightLineColor = isDark
-        ? 'rgba(56, 189, 248, 0.90)'
-        : 'rgba(30, 58, 138, 0.85)';
-      const nodeFill = isDark ? '#38BDF8' : '#1E3A8A';
-      const nodeBorder = isDark ? '#E0F2FE' : '#FFFFFF';
-      const hubCore = isDark ? '#0F172A' : '#1E3A8A';
+        ? 'rgba(145, 183, 255, 0.90)' // Brighter blue (#91B7FF)
+        : 'rgba(32, 61, 101, 0.85)'; // Dark blue (#203D65)
+      const nodeFill = isDark ? '#78A6F6' : '#294B7A';
+      const nodeBorder = isDark ? '#E8EEF7' : '#FFFFFF';
+      const hubCore = isDark ? '#111C2E' : '#294B7A';
       const haloColor = isDark
-        ? 'rgba(56, 189, 248, 0.28)'
-        : 'rgba(30, 58, 138, 0.22)';
-      const greenAnchor = isDark ? '#22C55E' : '#146B46';
+        ? 'rgba(120, 166, 246, 0.30)'
+        : 'rgba(41, 75, 122, 0.25)';
+      const greenAnchor = isDark ? '#36C995' : '#13835D'; // Institutional Emerald
 
       // 1. Draw connection lines
       for (let i = 0; i < edges.length; i++) {
@@ -441,7 +442,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
 
         const maxHighlight = Math.max(a.highlight, b.highlight);
         const alpha = isHoveredEdge
-          ? 0.85
+          ? 0.88
           : isDark
           ? 0.30 + maxHighlight * 0.55
           : 0.34 + maxHighlight * 0.50;
@@ -450,8 +451,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
         ctx.strokeStyle = isHoveredEdge
           ? highlightLineColor
           : isDark
-          ? `rgba(56, 189, 248, ${alpha.toFixed(3)})`
-          : `rgba(30, 58, 138, ${alpha.toFixed(3)})`;
+          ? `rgba(120, 166, 246, ${alpha.toFixed(3)})`
+          : `rgba(41, 75, 122, ${alpha.toFixed(3)})`;
         ctx.lineWidth = isDashed ? 1 : isHoveredEdge ? 2 : 1.35 + maxHighlight * 0.6;
 
         if (isDashed) {
@@ -755,8 +756,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
         <div
           className={`flex items-center space-x-1 p-1 rounded-full border text-xs shadow-sm transition ${
             isDark
-              ? 'bg-[#131926]/90 border-[#1E293B] text-slate-300'
-              : 'bg-white/90 border-[#DDD9D2] text-[#484B52]'
+              ? 'bg-[#111C2E]/90 border-[#29384D] text-[#E8EEF7]'
+              : 'bg-white/90 border-[#DCE2E9] text-[#17212F]'
           } backdrop-blur-xs`}
         >
           <button
@@ -765,8 +766,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition flex items-center space-x-1 ${
               activePattern === 'mesh'
                 ? isDark
-                  ? 'bg-[#38BDF8] text-[#0F172A]'
-                  : 'bg-[#1E3A8A] text-white'
+                  ? 'bg-[#294B7A] text-white border border-[#78A6F6]'
+                  : 'bg-[#294B7A] text-white'
                 : 'hover:opacity-80'
             }`}
             title="Distributed Mesh topology"
@@ -781,8 +782,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition flex items-center space-x-1 ${
               activePattern === 'hub'
                 ? isDark
-                  ? 'bg-[#38BDF8] text-[#0F172A]'
-                  : 'bg-[#1E3A8A] text-white'
+                  ? 'bg-[#294B7A] text-white border border-[#78A6F6]'
+                  : 'bg-[#294B7A] text-white'
                 : 'hover:opacity-80'
             }`}
             title="Central Reserve Hub topology"
@@ -797,9 +798,9 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition flex items-center space-x-1 ${
               activePattern === 'chain'
                 ? isDark
-                  ? 'bg-[#38BDF8] text-[#0F172A]'
-                : 'bg-[#1E3A8A] text-white'
-              : 'hover:opacity-80'
+                  ? 'bg-[#294B7A] text-white border border-[#78A6F6]'
+                  : 'bg-[#294B7A] text-white'
+                : 'hover:opacity-80'
             }`}
             title="Cryptographic Hash-Chain topology"
           >
@@ -813,8 +814,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition flex items-center space-x-1 ${
               activePattern === 'constellation'
                 ? isDark
-                  ? 'bg-[#38BDF8] text-[#0F172A]'
-                  : 'bg-[#1E3A8A] text-white'
+                  ? 'bg-[#294B7A] text-white border border-[#78A6F6]'
+                  : 'bg-[#294B7A] text-white'
                 : 'hover:opacity-80'
             }`}
             title="Multi-tier Banking Constellation"
@@ -834,8 +835,8 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
             }}
             className={`px-2.5 py-1 rounded-full text-xs font-semibold transition flex items-center space-x-1 ${
               isDark
-                ? 'hover:bg-slate-800 text-[#38BDF8]'
-                : 'hover:bg-slate-100 text-[#1E3A8A]'
+                ? 'hover:bg-[#19263A] text-[#78A6F6]'
+                : 'hover:bg-[#F0F3F7] text-[#294B7A]'
             }`}
             title="Generate procedural new pattern"
           >
@@ -848,11 +849,11 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
         <div
           className={`inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono transition ${
             isDark
-              ? 'text-slate-400 bg-[#0B0F17]/80 border border-[#1E293B]'
-              : 'text-slate-600 bg-white/70 border border-[#DDD9D2]'
+              ? 'text-[#9AA9BD] bg-[#111C2E]/90 border border-[#29384D]'
+              : 'text-[#657386] bg-white/80 border border-[#DCE2E9]'
           } backdrop-blur-xs`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#13835D] dark:bg-[#36C995] animate-pulse" />
           <span>Drag nodes · Click to add ({nodeCount} points)</span>
         </div>
       </div>

@@ -125,11 +125,11 @@ export default function TransactionDrawer({
       onClick={onClose}
     >
       <div
-        className="w-full sm:max-w-[500px] h-dvh bg-white flex flex-col border-l border-rule text-ink transform animate-in slide-in-from-right duration-150"
+        className="w-full sm:max-w-[500px] h-dvh bg-surface flex flex-col border-l border-rule text-ink transform animate-in slide-in-from-right duration-150 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pinned Header */}
-        <div className="shrink-0 p-5 border-b border-rule flex items-start justify-between bg-paper">
+        <div className="shrink-0 p-5 border-b border-rule flex items-start justify-between bg-surface-secondary">
           <div>
             <div className="flex items-center space-x-3 mb-1">
               <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: statusColor }}>
@@ -168,7 +168,7 @@ export default function TransactionDrawer({
 
           <div className="flex items-center space-x-1">
             {(onNavigatePrevious || onNavigateNext) && (
-              <div className="flex items-center space-x-0.5 mr-2 border border-rule rounded bg-white">
+              <div className="flex items-center space-x-0.5 mr-2 border border-rule rounded-lg bg-surface">
                 <button
                   type="button"
                   onClick={onNavigatePrevious}
@@ -192,7 +192,7 @@ export default function TransactionDrawer({
 
             <button
               onClick={onClose}
-              className="p-1.5 border border-rule rounded text-ink-muted hover:text-ink hover:bg-paper transition"
+              className="p-1.5 border border-rule rounded-lg text-ink-muted hover:text-ink hover:bg-surface-secondary transition"
               title="Close drawer"
               aria-label="Close dialog"
             >
@@ -229,7 +229,7 @@ export default function TransactionDrawer({
           </div>
 
           {/* Double-entry routing */}
-          <div className="border border-rule rounded p-4 space-y-3 bg-white">
+          <div className="border border-rule rounded-lg p-4 space-y-3 bg-surface shadow-xs">
             <div className="flex items-center justify-between pb-2 border-b border-rule">
               <span className="font-semibold text-ink flex items-center space-x-1.5">
                 <ArrowRightLeft className="h-3.5 w-3.5 text-accent" />
@@ -241,7 +241,7 @@ export default function TransactionDrawer({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 bg-paper border border-rule rounded">
+              <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg">
                 <span className="text-xs text-ink-muted block font-medium">Debit source</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.debitAccountName || (entry.debitAccountId ? `Acc: ${entry.debitAccountId.slice(0, 8)}...` : 'Source')}
@@ -249,7 +249,7 @@ export default function TransactionDrawer({
                 <span className="mono-num font-semibold text-ledger-red block mt-0.5">−{amountStr}</span>
               </div>
 
-              <div className="p-2.5 bg-paper border border-rule rounded">
+              <div className="p-2.5 bg-surface-secondary border border-rule rounded-lg">
                 <span className="text-xs text-ink-muted block font-medium">Credit dest</span>
                 <span className="font-medium text-ink truncate block mt-0.5">
                   {entry.creditAccountName || (entry.creditAccountId ? `Acc: ${entry.creditAccountId.slice(0, 8)}...` : 'Destination')}
@@ -265,7 +265,7 @@ export default function TransactionDrawer({
           </div>
 
           {/* SHA-256 Proof & Visual Merkle-Chain Diagram */}
-          <div className="border border-rule rounded p-4 space-y-3 bg-white">
+          <div className="border border-rule rounded-lg p-4 space-y-3 bg-surface shadow-xs">
             <div className="flex items-center justify-between pb-2 border-b border-rule">
               <span className="font-semibold text-ink flex items-center space-x-1.5">
                 <ShieldCheck className="h-3.5 w-3.5 text-accent" />
@@ -275,7 +275,7 @@ export default function TransactionDrawer({
             </div>
 
             {/* Visual Hash-Chain Continuity Block Diagram */}
-            <div className="bg-paper border border-rule rounded p-3 space-y-2">
+            <div className="bg-surface-secondary border border-rule rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-ink-muted font-semibold uppercase tracking-wider">
                   Block pointer continuity
@@ -288,7 +288,7 @@ export default function TransactionDrawer({
 
               <div className="grid grid-cols-11 items-center gap-1.5 text-xs">
                 {/* Parent Block */}
-                <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
+                <div className="col-span-5 p-2 bg-surface rounded-lg border border-rule min-w-0">
                   <div className="flex items-center space-x-1 text-xs text-ink-muted mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
                     <span className="font-medium truncate">Parent seal</span>
@@ -304,7 +304,7 @@ export default function TransactionDrawer({
                 </div>
 
                 {/* Current Block */}
-                <div className="col-span-5 p-2 bg-white rounded border border-rule min-w-0">
+                <div className="col-span-5 p-2 bg-surface rounded-lg border border-rule min-w-0">
                   <div className="flex items-center space-x-1 text-xs text-accent mb-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                     <span className="font-semibold truncate">Current seal</span>
@@ -359,7 +359,7 @@ export default function TransactionDrawer({
           </div>
 
           {/* Audit metadata */}
-          <div className="border border-rule rounded p-4 space-y-2 bg-white">
+          <div className="border border-rule rounded-lg p-4 space-y-2 bg-surface shadow-xs">
             <span className="font-semibold text-ink block pb-1 border-b border-rule">
               Audit metadata
             </span>
@@ -375,7 +375,7 @@ export default function TransactionDrawer({
               {entry.note && (
                 <div className="pt-1">
                   <span className="text-ink-muted block mb-0.5">Note:</span>
-                  <p className="bg-paper p-2 rounded border border-rule mono-num text-xs text-ink">
+                  <p className="bg-surface-secondary p-2 rounded-lg border border-rule mono-num text-xs text-ink">
                     {entry.note}
                   </p>
                 </div>
@@ -384,7 +384,7 @@ export default function TransactionDrawer({
           </div>
 
           {/* Raw JSON toggle */}
-          <div className="border border-rule rounded p-3 bg-white">
+          <div className="border border-rule rounded-lg p-3 bg-surface shadow-xs">
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -408,7 +408,7 @@ export default function TransactionDrawer({
             </div>
 
             {showRawJson && (
-              <pre className="mt-2.5 p-3 bg-paper border border-rule rounded text-xs mono-num overflow-x-auto max-h-48 text-ink">
+              <pre className="mt-2.5 p-3 bg-surface-secondary border border-rule rounded-lg text-xs mono-num overflow-x-auto max-h-48 text-ink">
                 {JSON.stringify(entry, null, 2)}
               </pre>
             )}
@@ -416,14 +416,14 @@ export default function TransactionDrawer({
         </div>
 
         {/* Pinned Footer */}
-        <div className="shrink-0 p-4 border-t border-rule bg-paper flex items-center space-x-2">
+        <div className="shrink-0 p-4 border-t border-rule bg-surface-secondary flex items-center space-x-2">
           {isAdmin && entry.status === 'POSTED' && entry.type !== 'ADJUSTMENT' && onReverse && (
             <button
               onClick={() => {
                 onClose();
                 onReverse(entry);
               }}
-              className="flex-1 py-2 px-3 bg-white hover:bg-rule/30 text-ink border border-rule rounded text-xs font-medium transition"
+              className="flex-1 py-2 px-3 bg-surface hover:bg-surface-secondary text-ink border border-rule rounded-lg text-xs font-medium transition"
             >
               <RotateCcw className="mr-1 h-3 w-3 inline" />
               Reverse
@@ -432,7 +432,7 @@ export default function TransactionDrawer({
 
           <button
             onClick={onClose}
-            className="flex-1 py-2 px-3 bg-ink hover:opacity-90 text-white rounded text-xs font-semibold transition"
+            className="flex-1 py-2 px-3 bg-accent text-white rounded-lg text-xs font-semibold hover:opacity-90 transition"
           >
             Close
           </button>
