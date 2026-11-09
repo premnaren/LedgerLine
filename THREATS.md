@@ -173,6 +173,27 @@
 
 ---
 
+### T-22: Distributed Denial of Service (DDoS) & Rate Limit Bypass via Multi-Instance Scaling
+**Attack**: An attacker targets the money-movement (`POST /transfers`) or authentication (`POST /auth/login`) endpoints across multiple load-balanced backend instances or triggers restarts to wipe local in-memory rate limit tables, attempting to exhaust connection pools and locks.  
+**What we did**: Implemented distributed rate limiting via Redis using `rate-limit-redis` and `ioredis` in [`apps/api/src/middleware/rateLimiter.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/middleware/rateLimiter.ts). Money movement is restricted to 30 requests/minute per authenticated `userId` (independent of source IP/NAT proxies), and login endpoints are restricted to 20 attempts/15 minutes per IP. The rate limiter connects to centralized Redis when `REDIS_URL` is set, and falls back gracefully to in-memory counters during local testing or transient Redis disconnects without interrupting business transactions.  
+**Residual risk**: High Redis network latency during massive spikes; mitigated by strict connection timeouts (5s) and automated memory fallback.
+
+---
+
+### T-23: Database Privilege Escalation via Monolithic Application Credentials
+**Attack**: A SQL injection vulnerability, compromised application secret, or rogue developer uses the runtime database connection string to execute DDL statements (`DROP TABLE`, `TRUNCATE`, `ALTER`) or tamper with financial audit records.  
+**What we did**: Established PostgreSQL role segregation in [`scripts/setup-db-roles.sql`](file:///c:/Users/premn/LedgerLine/scripts/setup-db-roles.sql) enforcing least privilege:
+1. `ledgerline_owner`: Dedicated DDL role for migrations.
+2. `ledgerline_app`: Production runtime role granted only DML (`SELECT`, `INSERT`, `UPDATE`), explicitly denied `DROP`, `TRUNCATE`, or `ALTER`.
+3. `ledgerline_auditor`: Read-only role granted `SELECT` only on accounts and ledger entries.
+4. `bootstrap_operator`: Scoped administrative bootstrap operator.
+In addition, the unbypassable PL/pgSQL trigger `prevent_ledger_mutation` physically rejects any `UPDATE` or `DELETE` on `"LedgerEntry"` at the PostgreSQL storage engine level, even if executed by superusers.  
+**Residual risk**: Cloud database providers with single-connection string provisioning (e.g., standard free tiers) require manual execution of `scripts/setup-db-roles.sql` to bind separate role connection pools.
+
+---
+
+---
+
 ## Knowingly accepted risks
 
 1. **Single-Currency Engine**: The ledger records all transactions in a single integer denomination (paise/pence, INR base). Multi-currency conversions, exchange rate fluctuations, and fractional FX spreads are deliberately out of scope for this release to maintain uncompromising ACID correctness and balance conservation invariants.

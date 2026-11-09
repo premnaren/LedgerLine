@@ -13,7 +13,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
+    "db:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -27,9 +29,11 @@
     "express": "^4.19.2",
     "express-rate-limit": "^8.7.3",
     "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^10.4.0",
     "prisma": "^5.14.0",
+    "rate-limit-redis": "^6.0.2",
     "swagger-ui-express": "^5.0.1",
     "typescript": "^5.4.5",
     "yamljs": "^0.3.0",

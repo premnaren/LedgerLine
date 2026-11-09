@@ -10,7 +10,12 @@
     "test:chaos": "pnpm --filter api test:chaos",
     "prisma:generate": "pnpm --filter api prisma:generate",
     "prisma:migrate": "pnpm --filter api prisma:migrate",
-    "prisma:seed": "pnpm --filter api prisma:seed"
+    "prisma:seed": "pnpm --filter api prisma:seed",
+    "bootstrap:admin": "tsx apps/api/scripts/bootstrap-admin.ts",
+    "db:bootstrap": "tsx apps/api/scripts/bootstrap-admin.ts",
+    "db:generate": "pnpm --filter api prisma:generate",
+    "db:migrate": "pnpm --filter api prisma:migrate",
+    "db:seed": "pnpm --filter api prisma:seed"
   },
   "packageManager": "pnpm@9.1.0",
   "devDependencies": {

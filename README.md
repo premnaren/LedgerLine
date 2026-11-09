@@ -16,6 +16,8 @@
 - **API Backend (Render Web Service)**: [https://ledgerline-api-6moj.onrender.com](https://ledgerline-api-6moj.onrender.com)
 - **Interactive API Documentation (Swagger UI)**: [https://ledgerline-api-6moj.onrender.com/api-docs/](https://ledgerline-api-6moj.onrender.com/api-docs/)
 - **Live Database Healthcheck**: [https://ledgerline-api-6moj.onrender.com/health](https://ledgerline-api-6moj.onrender.com/health)
+- **Readiness Probe (`/health/ready`)**: [https://ledgerline-api-6moj.onrender.com/health/ready](https://ledgerline-api-6moj.onrender.com/health/ready)
+- **Liveness Probe (`/health/live`)**: [https://ledgerline-api-6moj.onrender.com/health/live](https://ledgerline-api-6moj.onrender.com/health/live)
 - **Raw OpenAPI 3.0 Specification**: [`apps/api/openapi.yaml`](file:///c:/Users/premn/LedgerLine/apps/api/openapi.yaml) / [/openapi.json](https://ledgerline-api-6moj.onrender.com/openapi.json)
 - **Database Engine**: Neon Serverless PostgreSQL 16 (AWS US East 2 - Ohio)
 
@@ -216,6 +218,67 @@ pnpm dev:web
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## First-Administrator Bootstrap CLI
+
+LedgerLine includes an idempotent administrator bootstrap utility to provision the first superuser account and system reserve ledger:
+
+```bash
+# Run with defaults (admin@ledgerline.dev / Admin1234!)
+pnpm bootstrap:admin
+
+# Or with npm aliases
+npm run db:bootstrap
+
+# Or provide custom credentials via CLI arguments
+pnpm bootstrap:admin --email="admin@customdomain.dev" --password="StrongPassword123!" --account="Primary Reserve"
+```
+
+The script verifies database connectivity, idempotently creates or verifies the administrator, ensures the `ADMIN` role is assigned, and initializes the primary administrative operating account.
+
+---
+
+## Redis Distributed Rate Limiting
+
+The API integrates distributed rate limiting via `ioredis` and `rate-limit-redis`:
+* **Money Movement (`/transfers`)**: User-scoped limit of 30 requests per minute per authenticated user, preventing lock exhaustion and cluster flooding.
+* **Authentication (`/auth/login`)**: IP-scoped limit of 20 attempts per 15 minutes, mitigating brute-force and credential stuffing attacks.
+* **High-Availability Fallback**: If `REDIS_URL` is omitted or temporarily unreachable, the rate limiter falls back automatically to local in-memory counters without interrupting financial transactions.
+
+```env
+# Optional Redis Configuration (.env)
+REDIS_URL="redis://default:password@your-redis-host.com:6379"
+```
+
+---
+
+## Database Roles & Least-Privilege Architecture
+
+Production database access is segmented into four distinct PostgreSQL roles defined in [`scripts/setup-db-roles.sql`](file:///c:/Users/premn/LedgerLine/scripts/setup-db-roles.sql):
+
+1. **`ledgerline_owner`**: Dedicated DDL schema administrator with table creation and migration rights.
+2. **`ledgerline_app`**: Runtime application role granted only DML (`SELECT`, `INSERT`, `UPDATE`), with `DROP`, `TRUNCATE`, and `ALTER TABLE` strictly prohibited.
+3. **`ledgerline_auditor`**: Compliance role granted strict read-only access (`SELECT` only on accounts and ledger entries).
+4. **`bootstrap_operator`**: Scoped provisioning role for administrator onboarding.
+
+In addition, the unbypassable PL/pgSQL trigger `prevent_ledger_mutation` physically intercepts and aborts any `UPDATE` or `DELETE` attempt on `"LedgerEntry"` at the PostgreSQL storage engine level.
+
+---
+
+## Operational Scripts Reference
+
+Both `pnpm` and `npm` workspace command conventions are fully supported:
+
+| Operation | pnpm Command | npm Equivalent |
+| :--- | :--- | :--- |
+| **Run Prisma Generate** | `pnpm prisma:generate` | `npm run db:generate` |
+| **Apply DB Migrations** | `pnpm prisma:migrate` | `npm run db:migrate` |
+| **Seed Database** | `pnpm prisma:seed` | `npm run db:seed` |
+| **Bootstrap Administrator** | `pnpm bootstrap:admin` | `npm run db:bootstrap` |
+| **Execute Test Suites** | `pnpm test` | `npm test` |
+| **Concurrency Benchmark** | `pnpm test:concurrency` | `npm run test:concurrency` |
 
 ---
 

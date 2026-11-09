@@ -10,7 +10,8 @@ import swaggerUi from 'swagger-ui-express';
 import prisma from './config/db';
 import logger from './config/logger';
 import requestLogger from './middleware/requestLogger';
-import transferRateLimiter from './middleware/rateLimiter';
+import { transferRateLimiter, authRateLimiter } from './middleware/rateLimiter';
+import { getRedisStatus } from './config/redis';
 import authRouter from './routes/auth';
 import accountsRouter from './routes/accounts';
 import transfersRouter from './routes/transfers';
@@ -147,18 +148,63 @@ if (openApiFilePath) {
   });
 }
 
-// Health check
+// Health & Readiness Endpoints (Kubernetes & Cloud Orchestrator standard)
 app.get('/health', async (req, res) => {
+  const startTime = Date.now();
+  let dbStatus = 'disconnected';
+  let dbLatencyMs = -1;
+
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+    dbStatus = 'connected';
+    dbLatencyMs = Date.now() - startTime;
+  } catch (err: any) {
+    dbStatus = 'error';
+  }
+
+  const redisStatus = getRedisStatus();
+  const isHealthy = dbStatus === 'connected';
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'ok' : 'degraded',
+    service: 'LedgerLine Core Financial Ledger API',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    database: {
+      status: dbStatus,
+      latencyMs: dbLatencyMs,
+      engine: 'PostgreSQL 16 (Neon Serverless)',
+    },
+    rateLimiter: redisStatus,
+  });
+});
+
+app.get('/health/ready', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    const latencyMs = Date.now() - startTime;
+    return res.status(200).json({
+      status: 'ready',
+      database: 'connected',
+      latencyMs,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error: any) {
-    res.status(503).json({ status: 'error', db: 'disconnected', error: error?.message });
+    return res.status(503).json({
+      status: 'not_ready',
+      database: 'disconnected',
+      error: error?.message,
+    });
   }
 });
 
+app.get('/health/live', (req, res) => {
+  res.status(200).json({ status: 'live', timestamp: new Date().toISOString() });
+});
+
 // Routes
-app.use('/auth', authRouter);
+app.use('/auth', authRateLimiter, authRouter);
 app.use('/accounts', accountsRouter);
 app.use('/transfers', transferRateLimiter, transfersRouter);
 app.use('/statements', statementsRouter);

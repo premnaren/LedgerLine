@@ -113,3 +113,16 @@ Output: Deploy the full LedgerLine stack to production: Frontend on Vercel Edge 
 Problem: Two CI/CD deployment hurdles arose: (1) Render failed during build with `sh: 1: prisma: not found` because `NODE_ENV=production` caused `pnpm install` to skip `devDependencies` where `prisma` and `typescript` resided. (2) Vercel failed with `Error: [NEXT_NO_VERSION]` because in a monorepo, Vercel's root scanner inspected the workspace root `package.json` rather than `apps/web/package.json`.
 Fix: Moved `prisma` and `typescript` directly into `dependencies` in `apps/api/package.json`, set `production=false` in `.npmrc`, and passed `--prod=false` to `pnpm install`. Configured Vercel Root Directory to `apps/web` and synchronized `pnpm-lock.yaml`. Implemented automated initial database seeding (`autoSeedIfEmpty`) in `apps/api/src/services/seedService.ts` so production databases initialize demo users on first boot. Verified live healthcheck and authentication. Commits: 0d25923, b1112e7, f8d492a
 ---
+
+---
+Date: 2026-11-09
+Prompt: Sub-prompt 13 — Enterprise Deliverables: Redis Rate Limiting, First-Admin Bootstrap, DB Roles, & User Administration
+Output: Extended LedgerLine with enterprise operational requirements:
+1. Distributed Rate Limiting: Integrated `ioredis` and `rate-limit-redis` into `rateLimiter.ts` protecting `/transfers` (30 req/min per userId) and `/auth/login` (20 req/15min per IP) with graceful in-memory fallback when `REDIS_URL` is omitted.
+2. First-Administrator Bootstrap CLI: Created `scripts/bootstrap-admin.ts` (executable via `pnpm bootstrap:admin` or `npm run db:bootstrap`) with environment variable flags (`ADMIN_EMAIL`, `ADMIN_PASSWORD`) providing idempotent administrative provisioning.
+3. Database Role Segregation: Authored `scripts/setup-db-roles.sql` establishing distinct PostgreSQL least-privilege roles (`ledgerline_owner` for DDL migrations, `ledgerline_app` for runtime DML, `ledgerline_auditor` for read-only compliance, and `bootstrap_operator`).
+4. Health & Readiness Probes: Upgraded `GET /health`, `GET /health/ready`, and `GET /health/live` reporting PostgreSQL query latency, Redis connectivity status, and service uptime.
+5. Interactive Admin User Management Console: Implemented `GET /admin/users`, `POST /admin/users` (user onboarding with operating ledger creation), and `PATCH /admin/users/:id/role`, paired with a comprehensive React admin dashboard at `/admin/users`.
+Problem: When scaling multi-instance backends, in-memory rate limiting allows proxy clusters to exceed rate limits. Additionally, single-connection database configurations lack least-privilege role boundaries.
+Fix: Wired distributed Redis storage for rate limits with non-blocking error handlers and automatic memory fallback. Created declarative SQL role definitions and automated bootstrap scripts. Documented T-22 and T-23 in `THREATS.md`.
+---
