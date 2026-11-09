@@ -1,292 +1,156 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { RefreshCw, Network, Disc, GitFork, Sparkles, Plus } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
-interface NodeDef {
-  rx: number;
-  ry: number;
+interface RuntimeNode {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  baseX: number;
+  baseY: number;
+  targetX: number;
+  targetY: number;
   radius: number;
-  isHub?: boolean;
-  isBalanced?: boolean;
+  isHub: boolean;
+  isBalanced: boolean;
+  highlight: number;
+  // Relative origami crease parameters when crumpled
+  creaseAngle: number;
+  creaseDist: number;
 }
 
-type PatternType = 'mesh' | 'hub' | 'chain' | 'constellation';
-
-// Preset 1: Distributed Mesh Pattern
-const PRESET_MESH: { nodes: NodeDef[]; edges: [number, number, boolean?][] } = {
-  nodes: [
-    { rx: 0.18, ry: 0.12, radius: 4.5 },
-    { rx: 0.44, ry: 0.10, radius: 5.5 },
-    { rx: 0.72, ry: 0.13, radius: 8, isHub: true },
-    { rx: 0.90, ry: 0.15, radius: 4 },
-    { rx: 0.14, ry: 0.28, radius: 5 },
-    { rx: 0.36, ry: 0.25, radius: 8.5, isHub: true },
-    { rx: 0.60, ry: 0.29, radius: 5.5 },
-    { rx: 0.84, ry: 0.28, radius: 6.5 },
-    { rx: 0.20, ry: 0.44, radius: 5.5 },
-    { rx: 0.48, ry: 0.42, radius: 9.5, isHub: true },
-    { rx: 0.72, ry: 0.44, radius: 6 },
-    { rx: 0.92, ry: 0.43, radius: 4.5 },
-    { rx: 0.22, ry: 0.60, radius: 5 },
-    { rx: 0.50, ry: 0.58, radius: 6.5 },
-    { rx: 0.74, ry: 0.59, radius: 8.5, isHub: true, isBalanced: true },
-    { rx: 0.92, ry: 0.60, radius: 5 },
-    { rx: 0.66, ry: 0.74, radius: 5.5 },
-    { rx: 0.88, ry: 0.76, radius: 7.5, isHub: true },
-    { rx: 0.78, ry: 0.88, radius: 5 },
-    { rx: 0.94, ry: 0.90, radius: 4.5 },
-  ],
-  edges: [
-    [0, 1], [1, 2], [2, 3], [0, 4], [1, 5], [2, 6], [3, 7], [2, 7],
-    [4, 5], [5, 6], [6, 7], [4, 8], [5, 9], [6, 9], [6, 10], [7, 10], [7, 11],
-    [8, 9], [9, 10], [10, 11], [8, 12], [9, 12], [9, 13], [9, 14], [10, 14], [11, 15],
-    [12, 13], [13, 14], [14, 15], [13, 16], [14, 16], [14, 17], [15, 17],
-    [16, 17], [16, 18], [17, 18], [17, 19], [18, 19],
-    [1, 9, true], [5, 14, true], [9, 16, true],
-  ],
-};
-
-// Preset 2: Central Reserve Clearing Hub
-const PRESET_HUB: { nodes: NodeDef[]; edges: [number, number, boolean?][] } = {
-  nodes: [
-    // Central Hub
-    { rx: 0.55, ry: 0.42, radius: 11, isHub: true },
-    // Inner Ring
-    { rx: 0.38, ry: 0.32, radius: 6 },
-    { rx: 0.55, ry: 0.22, radius: 6 },
-    { rx: 0.72, ry: 0.32, radius: 6 },
-    { rx: 0.72, ry: 0.52, radius: 6, isBalanced: true },
-    { rx: 0.55, ry: 0.62, radius: 6 },
-    { rx: 0.38, ry: 0.52, radius: 6 },
-    // Outer Ring
-    { rx: 0.22, ry: 0.20, radius: 4.5 },
-    { rx: 0.55, ry: 0.08, radius: 5 },
-    { rx: 0.88, ry: 0.20, radius: 4.5 },
-    { rx: 0.90, ry: 0.42, radius: 5 },
-    { rx: 0.88, ry: 0.65, radius: 4.5 },
-    { rx: 0.72, ry: 0.78, radius: 5.5, isHub: true },
-    { rx: 0.88, ry: 0.85, radius: 4.5 },
-    { rx: 0.22, ry: 0.65, radius: 4.5 },
-    { rx: 0.20, ry: 0.42, radius: 4.5 },
-  ],
-  edges: [
-    // Radial spokes to center
-    [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6],
-    // Inner ring connections
-    [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 1],
-    // Outer spokes
-    [1, 7], [2, 8], [3, 9], [3, 10], [4, 11], [5, 12], [12, 13], [6, 14], [1, 15],
-    // Outer perimeter
-    [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [14, 15], [15, 7],
-    // Cross verification
-    [7, 2, true], [9, 4, true], [11, 5, true],
-  ],
-};
-
-// Preset 3: Cryptographic Hash-Chain
-const PRESET_CHAIN: { nodes: NodeDef[]; edges: [number, number, boolean?][] } = {
-  nodes: [
-    // Main sequential backbone blocks
-    { rx: 0.20, ry: 0.14, radius: 8, isHub: true },
-    { rx: 0.50, ry: 0.12, radius: 7 },
-    { rx: 0.80, ry: 0.16, radius: 8.5, isHub: true },
-    { rx: 0.74, ry: 0.32, radius: 7 },
-    { rx: 0.42, ry: 0.34, radius: 8, isHub: true },
-    { rx: 0.18, ry: 0.38, radius: 7 },
-    { rx: 0.26, ry: 0.54, radius: 8, isHub: true },
-    { rx: 0.58, ry: 0.52, radius: 7.5, isBalanced: true },
-    { rx: 0.86, ry: 0.54, radius: 8, isHub: true },
-    { rx: 0.82, ry: 0.72, radius: 7 },
-    { rx: 0.58, ry: 0.76, radius: 8, isHub: true },
-    { rx: 0.78, ry: 0.90, radius: 7 },
-    // Satellite proof anchors
-    { rx: 0.35, ry: 0.08, radius: 4 },
-    { rx: 0.92, ry: 0.24, radius: 4.5 },
-    { rx: 0.56, ry: 0.26, radius: 4 },
-    { rx: 0.08, ry: 0.44, radius: 4.5 },
-    { rx: 0.40, ry: 0.62, radius: 4.5 },
-    { rx: 0.94, ry: 0.64, radius: 4 },
-    { rx: 0.92, ry: 0.82, radius: 4.5 },
-  ],
-  edges: [
-    // Linear hash chain
-    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 11],
-    // Proof anchors
-    [0, 12], [1, 12], [2, 13], [3, 14], [4, 14], [5, 15], [6, 16], [7, 16], [8, 17], [9, 18], [10, 18],
-    // Cryptographic cross-links (parent to child verification)
-    [0, 4, true], [2, 6, true], [4, 8, true], [6, 10, true],
-  ],
-};
-
-// Preset 4: Constellation Multi-Tier Banking
-const PRESET_CONSTELLATION: { nodes: NodeDef[]; edges: [number, number, boolean?][] } = {
-  nodes: [
-    // Cluster A: Treasury Reserve (Top-Right)
-    { rx: 0.70, ry: 0.18, radius: 9, isHub: true },
-    { rx: 0.54, ry: 0.12, radius: 5 },
-    { rx: 0.85, ry: 0.10, radius: 4.5 },
-    { rx: 0.88, ry: 0.24, radius: 5 },
-    { rx: 0.68, ry: 0.28, radius: 4.5 },
-
-    // Cluster B: Commercial Clearing (Center)
-    { rx: 0.40, ry: 0.44, radius: 9.5, isHub: true },
-    { rx: 0.22, ry: 0.36, radius: 5 },
-    { rx: 0.24, ry: 0.52, radius: 4.5 },
-    { rx: 0.42, ry: 0.60, radius: 5 },
-    { rx: 0.58, ry: 0.46, radius: 5.5, isBalanced: true },
-
-    // Cluster C: Operating Settlement (Lower-Right)
-    { rx: 0.78, ry: 0.66, radius: 9, isHub: true },
-    { rx: 0.64, ry: 0.58, radius: 5 },
-    { rx: 0.92, ry: 0.56, radius: 4.5 },
-    { rx: 0.90, ry: 0.76, radius: 5 },
-    { rx: 0.72, ry: 0.82, radius: 5 },
-    { rx: 0.84, ry: 0.90, radius: 4.5 },
-  ],
-  edges: [
-    // Cluster A internal
-    [0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 3], [3, 4],
-    // Cluster B internal
-    [5, 6], [5, 7], [5, 8], [5, 9], [6, 7], [7, 8], [8, 9],
-    // Cluster C internal
-    [10, 11], [10, 12], [10, 13], [10, 14], [10, 15], [11, 12], [12, 13], [13, 14], [14, 15],
-    // Inter-cluster trunk lines (RTGS settlement)
-    [0, 5], [0, 9], [5, 10], [9, 10], [4, 11],
-    // Cross verification
-    [1, 6, true], [9, 11, true], [4, 10, true],
-  ],
-};
-
-interface InteractiveLedgerNetworkProps {
-  isDark?: boolean;
+interface WaterRipple {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  alpha: number;
 }
 
-export default function InteractiveLedgerNetwork({ isDark = false }: InteractiveLedgerNetworkProps) {
+type InteractionMode = 'IDLE' | 'CRUMPLED' | 'POURING';
+
+interface NetworkState {
+  width: number;
+  height: number;
+  dpr: number;
+  nodes: RuntimeNode[];
+  edges: [number, number, boolean?][];
+  mouseX: number | null;
+  mouseY: number | null;
+  hoveredIndex: number | null;
+  draggedIndex: number | null;
+  mode: InteractionMode;
+  crumpleCenter: { x: number; y: number } | null;
+  crumpleProgress: number; // 0 to 1
+  ripples: WaterRipple[];
+  isHolding: boolean;
+  holdStartTime: number;
+  downPos: { x: number; y: number } | null;
+}
+
+export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [activePattern, setActivePattern] = useState<PatternType>('mesh');
-  const [nodeCount, setNodeCount] = useState(20);
 
-  // Runtime node structure
-  interface RuntimeNode {
-    id: number;
-    baseX: number;
-    baseY: number;
-    x: number;
-    y: number;
-    targetX: number;
-    targetY: number;
-    radius: number;
-    isHub: boolean;
-    isBalanced: boolean;
-    highlight: number;
-  }
-
-  // Ref storing the active nodes and edges across renders
-  const stateRef = useRef<{
-    nodes: RuntimeNode[];
-    edges: [number, number, boolean?][];
-    width: number;
-    height: number;
-    dpr: number;
-    draggedIndex: number | null;
-    isDragging: boolean;
-    hasDragged: boolean;
-    mouseX: number | null;
-    mouseY: number | null;
-    hoveredIndex: number | null;
-  }>({
-    nodes: [],
-    edges: [],
+  const stateRef = useRef<NetworkState>({
     width: 0,
     height: 0,
     dpr: 1,
-    draggedIndex: null,
-    isDragging: false,
-    hasDragged: false,
+    nodes: [],
+    edges: [],
     mouseX: null,
     mouseY: null,
     hoveredIndex: null,
+    draggedIndex: null,
+    mode: 'IDLE',
+    crumpleCenter: null,
+    crumpleProgress: 0,
+    ripples: [],
+    isHolding: false,
+    holdStartTime: 0,
+    downPos: null,
   });
 
-  // Apply a pattern definition to the runtime nodes
-  const applyPreset = useCallback(
-    (preset: { nodes: NodeDef[]; edges: [number, number, boolean?][] }) => {
-      const { width, height } = stateRef.current;
-      if (width === 0 || height === 0) return;
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-      const newNodes: RuntimeNode[] = preset.nodes.map((def, idx) => {
-        const bx = def.rx * width;
-        const by = def.ry * height;
-        const existing = stateRef.current.nodes[idx];
+  // Helper: check if a normalized point is inside protected zones
+  // 1. Top-left logo zone: rx < 0.38 && ry < 0.22
+  // 2. Bottom-left headline zone: rx < 0.58 && ry > 0.70
+  const isProtectedZone = (rx: number, ry: number) => {
+    if (rx < 0.38 && ry < 0.22) return true; // Logo & LedgerLine
+    if (rx < 0.58 && ry > 0.70) return true; // Headline
+    return false;
+  };
 
-        return {
-          id: idx,
-          baseX: bx,
-          baseY: by,
-          x: existing ? existing.x : bx,
-          y: existing ? existing.y : by,
-          targetX: bx,
-          targetY: by,
-          radius: def.radius,
-          isHub: !!def.isHub,
-          isBalanced: !!def.isBalanced,
-          highlight: 0,
-        };
-      });
+  // Helper: generate completely randomized, non-overlapping nodes avoiding protected zones
+  const generateRandomizedLayout = (width: number, height: number, count = 22) => {
+    const newNodes: RuntimeNode[] = [];
+    const minPixelDist = Math.min(width, height) * 0.12;
 
-      stateRef.current.nodes = newNodes;
-      stateRef.current.edges = [...preset.edges];
-      setNodeCount(newNodes.length);
-    },
-    []
-  );
-
-  // Generate an organic new procedural pattern
-  const generateNewPattern = useCallback(() => {
-    const { width, height } = stateRef.current;
-    if (width === 0 || height === 0) return;
-
-    const count = 18;
-    const generatedDefs: NodeDef[] = [];
-
-    // Distribute nodes across canvas avoiding bottom-left headline zone (rx: 0..0.55, ry: 0.75..1.0)
     for (let i = 0; i < count; i++) {
-      let rx: number, ry: number;
+      let x = 0;
+      let y = 0;
       let valid = false;
       let attempts = 0;
 
-      while (!valid && attempts < 50) {
+      while (!valid && attempts < 100) {
         attempts++;
-        rx = 0.12 + Math.random() * 0.82;
-        ry = 0.10 + Math.random() * 0.82;
+        const rx = 0.12 + Math.random() * 0.82;
+        const ry = 0.12 + Math.random() * 0.82;
 
-        // Keep bottom-left clear
-        if (rx < 0.58 && ry > 0.72) continue;
+        if (isProtectedZone(rx, ry)) continue;
 
-        // Keep away from other nodes
-        const tooClose = generatedDefs.some(
-          (d) => Math.hypot(d.rx - rx, d.ry - ry) < 0.12
+        const candidateX = rx * width;
+        const candidateY = ry * height;
+
+        const tooClose = newNodes.some(
+          (n) => Math.hypot(n.targetX - candidateX, n.targetY - candidateY) < minPixelDist
         );
-        if (!tooClose) valid = true;
+
+        if (!tooClose || attempts > 70) {
+          x = candidateX;
+          y = candidateY;
+          valid = true;
+        }
       }
 
-      const isHub = i === 2 || i === 7 || i === 13;
-      const isBalanced = i === 11;
-      const radius = isHub ? 8.5 : isBalanced ? 7 : 4 + Math.random() * 3;
+      const isHub = i === 1 || i === 6 || i === 12;
+      const isBalanced = i === 9;
+      const radius = isHub ? 8.5 : isBalanced ? 7 : 4.5 + (i % 3) * 1.2;
 
-      generatedDefs.push({ rx: rx!, ry: ry!, radius, isHub, isBalanced });
+      // Unique crumple paper origami crease offset
+      const creaseAngle = (i / count) * Math.PI * 2 + ((i * 3) % 7) * 0.35;
+      const creaseDist = 12 + (i % 5) * 6 + ((i * 3) % 9);
+
+      newNodes.push({
+        id: i,
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        baseX: x,
+        baseY: y,
+        targetX: x,
+        targetY: y,
+        radius,
+        isHub,
+        isBalanced,
+        highlight: 0,
+        creaseAngle,
+        creaseDist,
+      });
     }
 
     // Connect to 2-3 closest nodes
-    const generatedEdges: [number, number, boolean?][] = [];
+    const edges: [number, number, boolean?][] = [];
     const edgeSet = new Set<string>();
 
-    for (let i = 0; i < generatedDefs.length; i++) {
-      const dists = generatedDefs
-        .map((d, j) => ({
+    for (let i = 0; i < newNodes.length; i++) {
+      const dists = newNodes
+        .map((n, j) => ({
           idx: j,
-          dist: i === j ? Infinity : Math.hypot(d.rx - generatedDefs[i].rx, d.ry - generatedDefs[i].ry),
+          dist: i === j ? Infinity : Math.hypot(n.targetX - newNodes[i].targetX, n.targetY - newNodes[i].targetY),
         }))
         .sort((a, b) => a.dist - b.dist);
 
@@ -297,15 +161,14 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
         if (!edgeSet.has(key)) {
           edgeSet.add(key);
           const isDashed = Math.random() < 0.12;
-          generatedEdges.push([i, j, isDashed]);
+          edges.push([i, j, isDashed]);
         }
       }
     }
 
-    applyPreset({ nodes: generatedDefs, edges: generatedEdges });
-  }, [applyPreset]);
+    return { nodes: newNodes, edges };
+  };
 
-  // Main canvas animation and interaction loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -313,10 +176,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
-
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let animFrameId: number | null = null;
 
     const handleResize = () => {
@@ -335,72 +195,208 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
       ctx.scale(d, d);
 
       if (stateRef.current.nodes.length === 0) {
-        applyPreset(PRESET_MESH);
-      } else {
-        // Rescale existing nodes to fit new dimensions
-        stateRef.current.nodes.forEach((node) => {
-          node.x = (node.x / (stateRef.current.width || 1)) * w;
-          node.y = (node.y / (stateRef.current.height || 1)) * h;
-          node.targetX = (node.targetX / (stateRef.current.width || 1)) * w;
-          node.targetY = (node.targetY / (stateRef.current.height || 1)) * h;
-          node.baseX = node.targetX;
-          node.baseY = node.targetY;
-        });
+        const { nodes, edges } = generateRandomizedLayout(w, h, 22);
+        stateRef.current.nodes = nodes;
+        stateRef.current.edges = edges;
       }
       draw();
     };
 
-    const INFLUENCE_RADIUS = 160;
-    const MAX_DISPLACEMENT = 14;
+    // Transition: Crumple paper mode
+    const startCrumple = (originX: number, originY: number) => {
+      const state = stateRef.current;
+      state.mode = 'CRUMPLED';
+      state.crumpleCenter = { x: originX, y: originY };
+      state.crumpleProgress = 0;
+      canvas.style.cursor = 'grabbing';
+
+      // Pull every node inward with high spring tension and fractal crease jitter
+      state.nodes.forEach((node) => {
+        const tx = originX + Math.cos(node.creaseAngle) * node.creaseDist;
+        const ty = originY + Math.sin(node.creaseAngle) * node.creaseDist;
+        node.targetX = tx;
+        node.targetY = ty;
+        node.vx = (tx - node.x) * 0.22 + (Math.random() - 0.5) * 8;
+        node.vy = (ty - node.y) * 0.22 + (Math.random() - 0.5) * 8;
+        node.highlight = 1;
+      });
+
+      wakeLoop();
+    };
+
+    // Transition: Pour like water on floor
+    const startWaterPour = (releaseX: number, releaseY: number) => {
+      const state = stateRef.current;
+      const { width, height } = state;
+      state.mode = 'POURING';
+      canvas.style.cursor = 'grab';
+
+      // 1. Trigger expanding water ripples
+      state.ripples.push(
+        { x: releaseX, y: releaseY, radius: 10, maxRadius: 320, alpha: 0.75 },
+        { x: releaseX, y: releaseY, radius: 25, maxRadius: 240, alpha: 0.55 },
+        { x: releaseX, y: releaseY, radius: 45, maxRadius: 180, alpha: 0.40 }
+      );
+
+      // 2. Generate brand new completely randomized destinations across open canvas
+      const { nodes: newLayout, edges: newEdges } = generateRandomizedLayout(width, height, state.nodes.length);
+      state.edges = newEdges;
+
+      // 3. Fluid outward splash velocities (like water splashing onto the floor)
+      state.nodes.forEach((node, i) => {
+        const target = newLayout[i];
+        node.baseX = target.targetX;
+        node.baseY = target.targetY;
+        node.targetX = target.targetX;
+        node.targetY = target.targetY;
+        node.radius = target.radius;
+        node.isHub = target.isHub;
+        node.isBalanced = target.isBalanced;
+
+        // Outward radial splash vector from pour origin towards target with fluid turbulence
+        const angle = Math.atan2(target.targetY - releaseY, target.targetX - releaseX) + (Math.random() - 0.5) * 0.4;
+        const splashSpeed = 16 + Math.random() * 22; // Initial energetic splash
+
+        node.vx = Math.cos(angle) * splashSpeed;
+        node.vy = Math.sin(angle) * splashSpeed;
+        node.highlight = 1;
+      });
+
+      wakeLoop();
+    };
 
     const updatePhysics = () => {
-      const { nodes, mouseX, mouseY, isDragging, draggedIndex } = stateRef.current;
+      const state = stateRef.current;
+      const { nodes, mouseX, mouseY, mode, crumpleCenter, width, height } = state;
       let isSettled = true;
 
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
+      // Update water splash ripples
+      for (let r = state.ripples.length - 1; r >= 0; r--) {
+        const rip = state.ripples[r];
+        rip.radius += 5.5;
+        rip.alpha *= 0.94;
+        if (rip.alpha < 0.02 || rip.radius > rip.maxRadius) {
+          state.ripples.splice(r, 1);
+        } else {
+          isSettled = false;
+        }
+      }
 
-        if (isDragging && draggedIndex === i) {
-          // Dragged node follows cursor directly
-          node.x = mouseX!;
-          node.y = mouseY!;
-          node.targetX = mouseX!;
-          node.targetY = mouseY!;
-          node.baseX = mouseX!;
-          node.baseY = mouseY!;
+      if (mode === 'CRUMPLED') {
+        isSettled = false;
+        state.crumpleProgress = Math.min(1, state.crumpleProgress + 0.08);
+
+        // Entire crumpled paper ball tracks cursor smoothly
+        const cx = mouseX !== null ? mouseX : crumpleCenter?.x || width / 2;
+        const cy = mouseY !== null ? mouseY : crumpleCenter?.y || height / 2;
+
+        nodes.forEach((node) => {
+          // Origami crease folded target
+          const tx = cx + Math.cos(node.creaseAngle) * node.creaseDist;
+          const ty = cy + Math.sin(node.creaseAngle) * node.creaseDist;
+
+          node.vx += (tx - node.x) * 0.28;
+          node.vy += (ty - node.y) * 0.28;
+          node.vx *= 0.65; // High paper crease damping
+          node.vy *= 0.65;
+
+          node.x += node.vx;
+          node.y += node.vy;
           node.highlight = 1;
-          isSettled = false;
-          continue;
-        }
+        });
+      } else if (mode === 'POURING') {
+        let maxSpeed = 0;
+        let maxDist = 0;
 
-        let targetX = node.baseX;
-        let targetY = node.baseY;
-        let targetHighlight = 0;
+        nodes.forEach((node) => {
+          // Viscous laminar fluid spreading: decelerate smoothly
+          node.x += node.vx;
+          node.y += node.vy;
 
-        if (!prefersReducedMotion && mouseX !== null && mouseY !== null && !isDragging) {
-          const dx = node.x - mouseX;
-          const dy = node.y - mouseY;
+          // Liquid viscosity damping (pours smoothly like water)
+          node.vx *= 0.88;
+          node.vy *= 0.88;
+
+          // Surface tension pull towards settled target
+          const dx = node.targetX - node.x;
+          const dy = node.targetY - node.y;
+          node.vx += dx * 0.052;
+          node.vy += dy * 0.052;
+
+          // Keep within canvas bounds
+          node.x = Math.max(20, Math.min(width - 20, node.x));
+          node.y = Math.max(20, Math.min(height - 20, node.y));
+
+          node.highlight *= 0.96;
+
+          const speed = Math.hypot(node.vx, node.vy);
           const dist = Math.hypot(dx, dy);
+          if (speed > maxSpeed) maxSpeed = speed;
+          if (dist > maxDist) maxDist = dist;
+        });
 
-          if (dist < INFLUENCE_RADIUS && dist > 0) {
-            const force = Math.pow(1 - dist / INFLUENCE_RADIUS, 1.6);
-            targetX = node.baseX + (dx / dist) * force * MAX_DISPLACEMENT;
-            targetY = node.baseY + (dy / dist) * force * MAX_DISPLACEMENT;
-            targetHighlight = force;
-          }
-        }
-
-        // Fluid linear damping interpolation
-        node.x += (targetX - node.x) * 0.08;
-        node.y += (targetY - node.y) * 0.08;
-        node.highlight += (targetHighlight - node.highlight) * 0.12;
-
-        if (
-          Math.abs(node.x - targetX) > 0.04 ||
-          Math.abs(node.y - targetY) > 0.04 ||
-          Math.abs(node.highlight - targetHighlight) > 0.01
-        ) {
+        if (maxSpeed < 0.15 && maxDist < 1.2 && state.ripples.length === 0) {
+          state.mode = 'IDLE';
+          nodes.forEach((n) => {
+            n.x = n.targetX;
+            n.y = n.targetY;
+            n.baseX = n.targetX;
+            n.baseY = n.targetY;
+            n.vx = 0;
+            n.vy = 0;
+            n.highlight = 0;
+          });
+        } else {
           isSettled = false;
+        }
+      } else {
+        // IDLE MODE: ambient cursor response & single-node dragging
+        const INFLUENCE_RADIUS = 150;
+        const MAX_DISPLACEMENT = 12;
+
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+
+          if (state.draggedIndex === i && mouseX !== null && mouseY !== null) {
+            node.x = mouseX;
+            node.y = mouseY;
+            node.targetX = mouseX;
+            node.targetY = mouseY;
+            node.baseX = mouseX;
+            node.baseY = mouseY;
+            node.highlight = 1;
+            isSettled = false;
+            continue;
+          }
+
+          let targetX = node.baseX;
+          let targetY = node.baseY;
+          let targetHighlight = 0;
+
+          if (!prefersReducedMotion && mouseX !== null && mouseY !== null && state.draggedIndex === null) {
+            const dx = node.x - mouseX;
+            const dy = node.y - mouseY;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < INFLUENCE_RADIUS && dist > 0) {
+              const force = Math.pow(1 - dist / INFLUENCE_RADIUS, 1.6);
+              targetX = node.baseX + (dx / dist) * force * MAX_DISPLACEMENT;
+              targetY = node.baseY + (dy / dist) * force * MAX_DISPLACEMENT;
+              targetHighlight = force;
+            }
+          }
+
+          node.x += (targetX - node.x) * 0.08;
+          node.y += (targetY - node.y) * 0.08;
+          node.highlight += (targetHighlight - node.highlight) * 0.12;
+
+          if (
+            Math.abs(node.x - targetX) > 0.05 ||
+            Math.abs(node.y - targetY) > 0.05 ||
+            Math.abs(node.highlight - targetHighlight) > 0.01
+          ) {
+            isSettled = false;
+          }
         }
       }
 
@@ -408,54 +404,71 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
     };
 
     const draw = () => {
-      const { width, height, nodes, edges, hoveredIndex, draggedIndex } = stateRef.current;
+      const { width, height, nodes, edges, hoveredIndex, mode, ripples } = stateRef.current;
       ctx.clearRect(0, 0, width, height);
 
-      // Color palette based on isDark prop
-      // Institutional Blue color palette based on isDark prop
-      const baseLineColor = isDark
-        ? 'rgba(120, 166, 246, 0.32)' // Soft blue in dark mode (#78A6F6)
-        : 'rgba(41, 75, 122, 0.35)'; // Deep Navy in light mode (#294B7A)
-      const highlightLineColor = isDark
-        ? 'rgba(145, 183, 255, 0.90)' // Brighter blue (#91B7FF)
-        : 'rgba(32, 61, 101, 0.85)'; // Dark blue (#203D65)
+      // Institutional Blue color tokens
+      const primaryLine = isDark ? 'rgba(120, 166, 246,' : 'rgba(41, 75, 122,';
       const nodeFill = isDark ? '#78A6F6' : '#294B7A';
       const nodeBorder = isDark ? '#E8EEF7' : '#FFFFFF';
-      const hubCore = isDark ? '#111C2E' : '#294B7A';
-      const haloColor = isDark
-        ? 'rgba(120, 166, 246, 0.30)'
-        : 'rgba(41, 75, 122, 0.25)';
-      const greenAnchor = isDark ? '#36C995' : '#13835D'; // Institutional Emerald
+      const greenAnchor = isDark ? '#36C995' : '#13835D';
 
-      // 1. Draw connection lines
+      // 1. Draw expanding water ripples during pour
+      ripples.forEach((rip) => {
+        ctx.beginPath();
+        ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = isDark
+          ? `rgba(120, 166, 246, ${rip.alpha.toFixed(3)})`
+          : `rgba(41, 75, 122, ${rip.alpha.toFixed(3)})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // 2. Draw crumpled paper origami crease facets
+      if (mode === 'CRUMPLED' && nodes.length > 3) {
+        ctx.beginPath();
+        for (let i = 0; i < Math.min(12, nodes.length - 2); i += 2) {
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[i + 1].x, nodes[i + 1].y);
+          ctx.lineTo(nodes[i + 2].x, nodes[i + 2].y);
+          ctx.closePath();
+        }
+        ctx.fillStyle = isDark ? 'rgba(120, 166, 246, 0.08)' : 'rgba(41, 75, 122, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = isDark ? 'rgba(145, 183, 255, 0.35)' : 'rgba(32, 61, 101, 0.30)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 3. Draw connection lines
       for (let i = 0; i < edges.length; i++) {
         const [aIdx, bIdx, isDashed] = edges[i];
         const a = nodes[aIdx];
         const b = nodes[bIdx];
         if (!a || !b) continue;
 
-        const isHoveredEdge =
-          hoveredIndex === aIdx ||
-          hoveredIndex === bIdx ||
-          draggedIndex === aIdx ||
-          draggedIndex === bIdx;
-
+        const isHovered = hoveredIndex === aIdx || hoveredIndex === bIdx;
         const maxHighlight = Math.max(a.highlight, b.highlight);
-        const alpha = isHoveredEdge
-          ? 0.88
-          : isDark
-          ? 0.30 + maxHighlight * 0.55
-          : 0.34 + maxHighlight * 0.50;
+
+        const alpha =
+          mode === 'CRUMPLED'
+            ? 0.55
+            : isHovered
+            ? 0.85
+            : isDark
+            ? 0.28 + maxHighlight * 0.45
+            : 0.32 + maxHighlight * 0.45;
 
         ctx.beginPath();
-        ctx.strokeStyle = isHoveredEdge
-          ? highlightLineColor
-          : isDark
-          ? `rgba(120, 166, 246, ${alpha.toFixed(3)})`
-          : `rgba(41, 75, 122, ${alpha.toFixed(3)})`;
-        ctx.lineWidth = isDashed ? 1 : isHoveredEdge ? 2 : 1.35 + maxHighlight * 0.6;
+        ctx.strokeStyle = isHovered
+          ? isDark
+            ? 'rgba(145, 183, 255, 0.90)'
+            : 'rgba(32, 61, 101, 0.85)'
+          : `${primaryLine} ${alpha.toFixed(3)})`;
 
-        if (isDashed) {
+        ctx.lineWidth = isDashed ? 1 : isHovered ? 2 : 1.35 + maxHighlight * 0.5;
+
+        if (isDashed && mode !== 'CRUMPLED') {
           ctx.setLineDash([4, 4]);
         } else {
           ctx.setLineDash([]);
@@ -468,62 +481,58 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
 
       ctx.setLineDash([]);
 
-      // 2. Draw nodes
+      // 4. Draw nodes
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const { x, y, radius, isHub, isBalanced, highlight } = node;
-        const isHovered = hoveredIndex === i || draggedIndex === i;
+        const isHovered = hoveredIndex === i;
 
         // Outer concentric halo for hubs or active nodes
-        if (isHub || isHovered || highlight > 0.05) {
-          const haloRadius = isHub
-            ? radius + 6 + (isHovered ? 4 : highlight * 4)
-            : radius + (isHovered ? 6 : highlight * 5);
-
+        if (isHub || isHovered || highlight > 0.05 || mode === 'CRUMPLED') {
+          const haloRadius = radius + (isHovered ? 6 : 4 + highlight * 3);
           ctx.beginPath();
           ctx.arc(x, y, haloRadius, 0, Math.PI * 2);
           ctx.strokeStyle = isBalanced
             ? isDark
-              ? 'rgba(34, 197, 94, 0.45)'
-              : 'rgba(20, 107, 70, 0.35)'
-            : haloColor;
+              ? 'rgba(54, 201, 149, 0.45)'
+              : 'rgba(19, 131, 93, 0.35)'
+            : isDark
+            ? 'rgba(120, 166, 246, 0.30)'
+            : 'rgba(41, 75, 122, 0.25)';
           ctx.lineWidth = isHovered ? 1.5 : 1;
           ctx.stroke();
         }
 
-        // Main node circle
+        // Main node dot
         ctx.beginPath();
-        ctx.arc(x, y, radius + (isHovered ? 2.5 : highlight * 1.5), 0, Math.PI * 2);
+        ctx.arc(x, y, radius + (isHovered ? 2 : highlight * 1.2), 0, Math.PI * 2);
 
         if (isBalanced) {
-          // Green proof anchor
           ctx.fillStyle = greenAnchor;
           ctx.fill();
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 2;
           ctx.stroke();
         } else if (isHub) {
-          // Key Ledger Hub: outer ring with inner core
-          ctx.fillStyle = isDark ? '#1E293B' : '#FFFFFF';
+          ctx.fillStyle = isDark ? '#111C2E' : '#FFFFFF';
           ctx.fill();
           ctx.strokeStyle = isHovered
             ? isDark
-              ? '#38BDF8'
-              : '#1E3A8A'
+              ? '#91B7FF'
+              : '#203D65'
             : isDark
-            ? 'rgba(56, 189, 248, 0.90)'
-            : 'rgba(30, 58, 138, 0.88)';
-          ctx.lineWidth = 2.5;
+            ? '#78A6F6'
+            : '#294B7A';
+          ctx.lineWidth = 2.2;
           ctx.stroke();
 
           // Inner solid core
           ctx.beginPath();
           ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
-          ctx.fillStyle = isHovered ? (isDark ? '#38BDF8' : '#1E3A8A') : hubCore;
+          ctx.fillStyle = isDark ? '#78A6F6' : '#294B7A';
           ctx.fill();
         } else {
-          // Standard satellite node: solid dot with crisp border
-          ctx.fillStyle = isHovered ? (isDark ? '#FFFFFF' : '#0F172A') : nodeFill;
+          ctx.fillStyle = isHovered ? (isDark ? '#FFFFFF' : '#0B1220') : nodeFill;
           ctx.fill();
           ctx.strokeStyle = nodeBorder;
           ctx.lineWidth = 1.2;
@@ -536,7 +545,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
       const isSettled = updatePhysics();
       draw();
 
-      if (!isSettled || stateRef.current.isDragging || stateRef.current.mouseX !== null) {
+      if (!isSettled || stateRef.current.mode !== 'IDLE' || stateRef.current.mouseX !== null) {
         animFrameId = requestAnimationFrame(loop);
       } else {
         animFrameId = null;
@@ -549,165 +558,170 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
       }
     };
 
-    // Find node near cursor
     const findNodeIndexAt = (px: number, py: number): number | null => {
       const { nodes } = stateRef.current;
       for (let i = nodes.length - 1; i >= 0; i--) {
         const d = Math.hypot(nodes[i].x - px, nodes[i].y - py);
-        if (d <= nodes[i].radius + 12) {
+        if (d <= nodes[i].radius + 14) {
           return i;
         }
       }
       return null;
     };
 
-    // Mouse handlers
-    const onMouseDown = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
+    // Mouse & Touch events
+    const handlePointerDown = (px: number, py: number) => {
+      const state = stateRef.current;
+      state.downPos = { x: px, y: py };
+      state.isHolding = true;
+      state.holdStartTime = Date.now();
 
-      const idx = findNodeIndexAt(px, py);
-      if (idx !== null) {
-        stateRef.current.isDragging = true;
-        stateRef.current.draggedIndex = idx;
-        stateRef.current.hasDragged = false;
-        canvas.style.cursor = 'grabbing';
-      } else {
-        stateRef.current.isDragging = false;
-        stateRef.current.draggedIndex = null;
+      const hitIdx = findNodeIndexAt(px, py);
+
+      // Start hold timer for paper crumple (190ms)
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = setTimeout(() => {
+        if (stateRef.current.isHolding) {
+          startCrumple(px, py);
+        }
+      }, 190);
+
+      if (hitIdx !== null) {
+        state.draggedIndex = hitIdx;
       }
       wakeLoop();
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
+    const handlePointerMove = (px: number, py: number) => {
+      const state = stateRef.current;
+      state.mouseX = px;
+      state.mouseY = py;
 
-      stateRef.current.mouseX = px;
-      stateRef.current.mouseY = py;
-
-      if (stateRef.current.isDragging) {
-        stateRef.current.hasDragged = true;
+      if (state.mode === 'CRUMPLED') {
+        state.crumpleCenter = { x: px, y: py };
         canvas.style.cursor = 'grabbing';
+      } else if (state.isHolding && state.downPos) {
+        const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
+        // If moved significantly before hold timer fired, cancel crumple timer and drag single node
+        if (dist > 10 && state.draggedIndex !== null && state.mode === 'IDLE') {
+          if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+          canvas.style.cursor = 'grabbing';
+        }
       } else {
         const hovered = findNodeIndexAt(px, py);
-        stateRef.current.hoveredIndex = hovered;
+        state.hoveredIndex = hovered;
         canvas.style.cursor = hovered !== null ? 'grab' : 'crosshair';
       }
       wakeLoop();
     };
 
-    const onMouseUp = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
+    const handlePointerUp = (px: number, py: number) => {
+      const state = stateRef.current;
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
 
-      // Clicked on empty canvas without dragging: spawn a new point!
-      if (!stateRef.current.hasDragged && stateRef.current.draggedIndex === null) {
-        // Prevent adding inside the headline protection zone (bottom-left)
-        const rx = px / stateRef.current.width;
-        const ry = py / stateRef.current.height;
+      if (state.mode === 'CRUMPLED') {
+        // Release the crumpled ball: water pour splash!
+        startWaterPour(px, py);
+      } else if (state.isHolding && state.downPos && state.mode === 'IDLE') {
+        const dist = Math.hypot(px - state.downPos.x, py - state.downPos.y);
+        const elapsed = Date.now() - state.holdStartTime;
 
-        if (!(rx < 0.58 && ry > 0.72)) {
-          const { nodes, edges } = stateRef.current;
-          const newId = nodes.length;
+        // Quick click on empty canvas: spawn new point
+        if (dist < 6 && elapsed < 200 && state.draggedIndex === null) {
+          const rx = px / state.width;
+          const ry = py / state.height;
 
-          const newNode: RuntimeNode = {
-            id: newId,
-            baseX: px,
-            baseY: py,
-            x: px,
-            y: py,
-            targetX: px,
-            targetY: py,
-            radius: 5.5,
-            isHub: false,
-            isBalanced: false,
-            highlight: 1,
-          };
+          if (!isProtectedZone(rx, ry)) {
+            const newId = state.nodes.length;
+            state.nodes.push({
+              id: newId,
+              x: px,
+              y: py,
+              vx: 0,
+              vy: 0,
+              baseX: px,
+              baseY: py,
+              targetX: px,
+              targetY: py,
+              radius: 5.5,
+              isHub: false,
+              isBalanced: false,
+              highlight: 1,
+              creaseAngle: Math.random() * Math.PI * 2,
+              creaseDist: 16 + Math.random() * 12,
+            });
 
-          nodes.push(newNode);
+            // Connect to 2 closest nodes
+            const sorted = state.nodes
+              .slice(0, -1)
+              .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
+              .sort((a, b) => a.dist - b.dist);
 
-          // Connect to the 2 closest nodes
-          const sorted = nodes
-            .slice(0, -1)
-            .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
-            .sort((a, b) => a.dist - b.dist);
-
-          if (sorted.length > 0) edges.push([sorted[0].idx, newId]);
-          if (sorted.length > 1) edges.push([sorted[1].idx, newId]);
-
-          setNodeCount(nodes.length);
+            if (sorted.length > 0) state.edges.push([sorted[0].idx, newId]);
+            if (sorted.length > 1) state.edges.push([sorted[1].idx, newId]);
+          }
         }
       }
 
-      stateRef.current.isDragging = false;
-      stateRef.current.draggedIndex = null;
-      stateRef.current.hasDragged = false;
-      canvas.style.cursor = findNodeIndexAt(px, py) !== null ? 'grab' : 'crosshair';
+      state.isHolding = false;
+      state.draggedIndex = null;
+      state.downPos = null;
       wakeLoop();
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      handlePointerDown(e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      handlePointerMove(e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    const onMouseUp = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      handlePointerUp(e.clientX - rect.left, e.clientY - rect.top);
     };
 
     const onMouseLeave = () => {
-      stateRef.current.mouseX = null;
-      stateRef.current.mouseY = null;
-      stateRef.current.hoveredIndex = null;
-      stateRef.current.isDragging = false;
-      stateRef.current.draggedIndex = null;
-      canvas.style.cursor = 'default';
+      const state = stateRef.current;
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (state.mode === 'CRUMPLED' && state.crumpleCenter) {
+        startWaterPour(state.crumpleCenter.x, state.crumpleCenter.y);
+      }
+      state.mouseX = null;
+      state.mouseY = null;
+      state.hoveredIndex = null;
+      state.draggedIndex = null;
+      state.isHolding = false;
       wakeLoop();
     };
 
-    // Touch handlers
+    // Touch support
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const rect = canvas.getBoundingClientRect();
-        const px = e.touches[0].clientX - rect.left;
-        const py = e.touches[0].clientY - rect.top;
-
-        const idx = findNodeIndexAt(px, py);
-        if (idx !== null) {
-          stateRef.current.isDragging = true;
-          stateRef.current.draggedIndex = idx;
-          stateRef.current.hasDragged = false;
-        }
-        stateRef.current.mouseX = px;
-        stateRef.current.mouseY = py;
-        wakeLoop();
+        handlePointerDown(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const rect = canvas.getBoundingClientRect();
-        const px = e.touches[0].clientX - rect.left;
-        const py = e.touches[0].clientY - rect.top;
-
-        stateRef.current.mouseX = px;
-        stateRef.current.mouseY = py;
-        stateRef.current.hasDragged = true;
-        wakeLoop();
+        handlePointerMove(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
       }
     };
 
-    const onTouchEnd = () => {
-      stateRef.current.isDragging = false;
-      stateRef.current.draggedIndex = null;
-      stateRef.current.hasDragged = false;
-      stateRef.current.mouseX = null;
-      stateRef.current.mouseY = null;
-      wakeLoop();
+    const onTouchEnd = (e: TouchEvent) => {
+      const state = stateRef.current;
+      const x = state.mouseX || state.width / 2;
+      const y = state.mouseY || state.height / 2;
+      handlePointerUp(x, y);
     };
 
     handleResize();
-
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize();
-    });
-    resizeObserver.observe(canvas);
-
+    window.addEventListener('resize', handleResize);
     canvas.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
@@ -718,10 +732,9 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
     window.addEventListener('touchend', onTouchEnd, { passive: true });
 
     return () => {
-      resizeObserver.disconnect();
-      if (animFrameId !== null) {
-        cancelAnimationFrame(animFrameId);
-      }
+      if (animFrameId !== null) cancelAnimationFrame(animFrameId);
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      window.removeEventListener('resize', handleResize);
       canvas.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
@@ -731,24 +744,14 @@ export default function InteractiveLedgerNetwork({ isDark = false }: Interactive
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [applyPreset, isDark]);
-
-  // Handle Preset selection
-  const handleSelectPattern = (pattern: PatternType) => {
-    setActivePattern(pattern);
-    if (pattern === 'mesh') applyPreset(PRESET_MESH);
-    if (pattern === 'hub') applyPreset(PRESET_HUB);
-    if (pattern === 'chain') applyPreset(PRESET_CHAIN);
-    if (pattern === 'constellation') applyPreset(PRESET_CONSTELLATION);
-  };
+  }, [isDark]);
 
   return (
-    <div className="absolute inset-0 w-full h-full">
-      {/* Interactive HTML5 Canvas */}
+    <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-        aria-label="Interactive double-entry ledger network canvas. Drag nodes or click empty space to add accounts."
+        aria-label="Playful interactive double-entry network. Click and hold to crumple the paper pattern, drag it around, and release to pour like water on the floor."
       />
     </div>
   );

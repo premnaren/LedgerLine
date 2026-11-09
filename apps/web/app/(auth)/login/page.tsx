@@ -155,27 +155,27 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* Left Column: Visual Interactive Ledger Network (Desktop)     */}
       {/* ============================================================ */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F0F3F7] dark:bg-[#0B1220] border-r border-[#DCE2E9] dark:border-[#29384D] flex-col justify-between p-10 xl:p-14 overflow-hidden select-none transition-colors duration-300">
-        {/* Interactive Connected-Node Network Canvas */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-5/12 2xl:w-1/2 relative bg-[#F0F3F7] dark:bg-[#0B1220] border-r border-[#DCE2E9] dark:border-[#29384D] flex-col justify-end p-10 xl:p-14 overflow-hidden select-none transition-colors duration-300">
+        {/* Interactive Connected-Node Network Canvas with Paper Crumple & Water Pour Physics */}
         <InteractiveLedgerNetwork isDark={isDark} />
 
-        {/* Top: Brand Identity */}
-        <div className="relative z-10 flex items-center space-x-3 pointer-events-none">
-          <div className="flex justify-center items-center w-9 h-9 bg-white dark:bg-[#111C2E] rounded-lg border border-[#DCE2E9] dark:border-[#29384D] text-primary dark:text-[#78A6F6] shadow-xs pointer-events-auto transition">
+        {/* Top-Left Corner: Brand Identity (Pinned securely to top-left without pattern overlap) */}
+        <div className="absolute top-8 left-8 sm:top-10 sm:left-10 z-20 flex items-center space-x-3 pointer-events-none select-none">
+          <div className="flex justify-center items-center w-10 h-10 bg-surface/90 backdrop-blur-md rounded-xl border border-rule text-primary shadow-xs pointer-events-auto transition">
             <Layers className="w-5 h-5" />
           </div>
-          <div>
-            <span className="text-lg font-bold tracking-tight text-ink dark:text-white transition">
-              Ledger<span className="text-primary dark:text-[#78A6F6]">Line</span>
+          <div className="pointer-events-auto px-2.5 py-1 rounded-lg backdrop-blur-xs bg-surface/60 border border-rule/30">
+            <span className="text-lg font-bold tracking-tight text-ink transition">
+              Ledger<span className="text-primary">Line</span>
             </span>
-            <span className="block text-xs font-mono text-ink-muted dark:text-[#9AA9BD] transition">
+            <span className="block text-[11px] font-mono text-ink-muted transition">
               Double-entry core engine
             </span>
           </div>
         </div>
 
         {/* Bottom: Single Short Headline */}
-        <div className="relative z-10 mt-auto pt-16 pointer-events-none">
+        <div className="relative z-10 pt-16 pointer-events-none">
           <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-ink dark:text-white leading-tight transition">
             Every transaction,<br />
             <span className="text-primary dark:text-[#78A6F6]">accounted for.</span>
