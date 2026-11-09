@@ -413,15 +413,24 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
       const nodeBorder = isDark ? '#E8EEF7' : '#FFFFFF';
       const greenAnchor = isDark ? '#36C995' : '#13835D';
 
-      // 1. Draw expanding water ripples during pour
+      // 1. Draw expanding water ripples (pour & node creation)
       ripples.forEach((rip) => {
         ctx.beginPath();
         ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
         ctx.strokeStyle = isDark
           ? `rgba(120, 166, 246, ${rip.alpha.toFixed(3)})`
           : `rgba(41, 75, 122, ${rip.alpha.toFixed(3)})`;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(1, 2.2 * rip.alpha);
         ctx.stroke();
+
+        if (rip.alpha > 0.35) {
+          ctx.beginPath();
+          ctx.arc(rip.x, rip.y, rip.radius, 0, Math.PI * 2);
+          ctx.fillStyle = isDark
+            ? `rgba(120, 166, 246, ${(rip.alpha * 0.05).toFixed(3)})`
+            : `rgba(41, 75, 122, ${(rip.alpha * 0.05).toFixed(3)})`;
+          ctx.fill();
+        }
       });
 
       // 2. Draw crumpled paper origami crease facets
@@ -651,14 +660,37 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
               creaseDist: 16 + Math.random() * 12,
             });
 
+            // Trigger expanding water ripples like water droplet on pond
+            state.ripples.push(
+              { x: px, y: py, radius: 8, maxRadius: 240, alpha: 0.8 },
+              { x: px, y: py, radius: 24, maxRadius: 180, alpha: 0.6 },
+              { x: px, y: py, radius: 42, maxRadius: 120, alpha: 0.4 }
+            );
+
             // Connect to 2 closest nodes
             const sorted = state.nodes
               .slice(0, -1)
               .map((n, idx) => ({ idx, dist: Math.hypot(n.x - px, n.y - py) }))
               .sort((a, b) => a.dist - b.dist);
 
-            if (sorted.length > 0) state.edges.push([sorted[0].idx, newId]);
-            if (sorted.length > 1) state.edges.push([sorted[1].idx, newId]);
+            if (sorted.length > 0) {
+              state.edges.push([sorted[0].idx, newId]);
+              // Gentle water ripple impulse to connected node
+              const n1 = state.nodes[sorted[0].idx];
+              const angle1 = Math.atan2(n1.y - py, n1.x - px);
+              n1.vx += Math.cos(angle1) * 2.8;
+              n1.vy += Math.sin(angle1) * 2.8;
+              n1.highlight = 0.8;
+            }
+            if (sorted.length > 1) {
+              state.edges.push([sorted[1].idx, newId]);
+              // Gentle water ripple impulse to second connected node
+              const n2 = state.nodes[sorted[1].idx];
+              const angle2 = Math.atan2(n2.y - py, n2.x - px);
+              n2.vx += Math.cos(angle2) * 2.2;
+              n2.vy += Math.sin(angle2) * 2.2;
+              n2.highlight = 0.6;
+            }
           }
         }
       }
@@ -715,8 +747,10 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
 
     const onTouchEnd = (e: TouchEvent) => {
       const state = stateRef.current;
-      const x = state.mouseX || state.width / 2;
-      const y = state.mouseY || state.height / 2;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.changedTouches?.[0] || e.touches?.[0];
+      const x = touch ? touch.clientX - rect.left : (state.mouseX ?? state.width / 2);
+      const y = touch ? touch.clientY - rect.top : (state.mouseY ?? state.height / 2);
       handlePointerUp(x, y);
     };
 
@@ -747,7 +781,7 @@ export default function InteractiveLedgerNetwork({ isDark = false }: { isDark?: 
   }, [isDark]);
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-auto">
+    <div className="overflow-hidden absolute inset-0 w-full h-full pointer-events-auto select-none">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
