@@ -73,6 +73,41 @@ body {
   transform: scale(0.985);
 }
 
+/* Subtle, Restrained Fintech Background Ambient Motion */
+@keyframes subtle-drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate(12px, -8px) scale(1.03);
+    opacity: 0.35;
+  }
+}
+
+.animate-subtle-drift {
+  animation: subtle-drift 18s ease-in-out infinite;
+}
+
+@keyframes node-draw {
+  0% {
+    stroke-dashoffset: 600;
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.45;
+  }
+}
+
+.animate-node-draw {
+  stroke-dasharray: 600;
+  animation: node-draw 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
