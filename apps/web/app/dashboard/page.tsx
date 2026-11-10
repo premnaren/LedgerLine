@@ -150,6 +150,72 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [verificationTimestamp, setVerificationTimestamp] = useState<string | null>(null);
 
+  // Financial Activity Chart state & datasets
+  const [chartRange, setChartRange] = useState<'7D' | '30D' | '90D' | 'ALL'>('7D');
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number;
+    y: number;
+    date: string;
+    volume: string;
+    count: number;
+  } | null>(null);
+
+  const chartDatasets = useMemo(() => {
+    return {
+      '7D': {
+        points: [
+          { x: 30, y: 150, date: 'Nov 4', volume: '₹34,200', count: 14 },
+          { x: 150, y: 135, date: 'Nov 5', volume: '₹42,800', count: 19 },
+          { x: 270, y: 148, date: 'Nov 6', volume: '₹38,500', count: 16 },
+          { x: 390, y: 110, date: 'Nov 7', volume: '₹61,400', count: 28 },
+          { x: 510, y: 138, date: 'Nov 8', volume: '₹52,100', count: 22 },
+          { x: 630, y: 65, date: 'Nov 9', volume: '₹84,950', count: 39 },
+          { x: 770, y: 98, date: 'Today', volume: '₹71,200', count: 31 },
+        ],
+        path: 'M 30,150 L 150,135 L 270,148 L 390,110 L 510,138 L 630,65 L 770,98',
+        areaPath: 'M 30,150 L 150,135 L 270,148 L 390,110 L 510,138 L 630,65 L 770,98 L 770,195 L 30,195 Z',
+        labels: ['Nov 4', 'Nov 5', 'Nov 6', 'Nov 7', 'Nov 8', 'Nov 9', 'Today'],
+      },
+      '30D': {
+        points: [
+          { x: 30, y: 160, date: 'Oct 12', volume: '₹1,24,000', count: 72 },
+          { x: 175, y: 120, date: 'Oct 18', volume: '₹1,95,500', count: 98 },
+          { x: 325, y: 135, date: 'Oct 25', volume: '₹1,68,200', count: 84 },
+          { x: 475, y: 85, date: 'Nov 1', volume: '₹2,45,800', count: 124 },
+          { x: 625, y: 70, date: 'Nov 6', volume: '₹2,82,000', count: 142 },
+          { x: 770, y: 90, date: 'Nov 10', volume: '₹2,40,500', count: 118 },
+        ],
+        path: 'M 30,160 L 175,120 L 325,135 L 475,85 L 625,70 L 770,90',
+        areaPath: 'M 30,160 L 175,120 L 325,135 L 475,85 L 625,70 L 770,90 L 770,195 L 30,195 Z',
+        labels: ['Oct 12', 'Oct 18', 'Oct 25', 'Nov 1', 'Nov 6', 'Nov 10'],
+      },
+      '90D': {
+        points: [
+          { x: 30, y: 168, date: 'Mid Aug', volume: '₹3,80,000', count: 210 },
+          { x: 215, y: 138, date: 'Late Aug', volume: '₹5,10,000', count: 280 },
+          { x: 400, y: 112, date: 'Sep', volume: '₹6,90,000', count: 390 },
+          { x: 585, y: 78, date: 'Oct', volume: '₹8,40,000', count: 480 },
+          { x: 770, y: 58, date: 'Nov', volume: '₹9,85,000', count: 540 },
+        ],
+        path: 'M 30,168 L 215,138 L 400,112 L 585,78 L 770,58',
+        areaPath: 'M 30,168 L 215,138 L 400,112 L 585,78 L 770,58 L 770,195 L 30,195 Z',
+        labels: ['Mid Aug', 'Late Aug', 'Sep', 'Oct', 'Nov'],
+      },
+      'ALL': {
+        points: [
+          { x: 30, y: 172, date: '2025 Q1', volume: '₹8,50,000', count: 620 },
+          { x: 215, y: 142, date: '2025 Q2', volume: '₹14,20,000', count: 1140 },
+          { x: 400, y: 104, date: '2025 Q3', volume: '₹22,80,000', count: 1890 },
+          { x: 585, y: 72, date: '2025 Q4', volume: '₹31,40,000', count: 2650 },
+          { x: 770, y: 52, date: '2026 Live', volume: '₹42,10,000', count: 3420 },
+        ],
+        path: 'M 30,172 L 215,142 L 400,104 L 585,72 L 770,52',
+        areaPath: 'M 30,172 L 215,142 L 400,104 L 585,72 L 770,52 L 770,195 L 30,195 Z',
+        labels: ['2025 Q1', '2025 Q2', '2025 Q3', '2025 Q4', '2026 Live'],
+      },
+    };
+  }, []);
+
   // New account modal state (for Admin)
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
@@ -479,8 +545,8 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <Wallet className="w-5 h-5" />
             </div>
-            <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC]" />
+            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
               Active
             </span>
           </div>
@@ -489,7 +555,7 @@ export default function DashboardPage() {
             <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
               {accounts.length ? accounts.length : '128'}
             </div>
-            <div className="text-xs font-medium text-[#60C9BC] mt-2 flex items-center gap-1.5">
+            <div className="text-xs font-medium text-[#5DD6A0] mt-2 flex items-center gap-1.5">
               <span>+{accounts.length ? accounts.length : 12} this month</span>
             </div>
           </div>
@@ -501,8 +567,8 @@ export default function DashboardPage() {
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <ArrowRightLeft className="w-5 h-5" />
             </div>
-            <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/25 bg-[#60C9BC]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC]" />
+            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
               Operational
             </span>
           </div>
@@ -511,7 +577,7 @@ export default function DashboardPage() {
             <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
               {auditEntries.length ? auditEntries.length.toLocaleString() : '1,024'}
             </div>
-            <div className="text-xs font-medium text-[#60C9BC] mt-2 flex items-center gap-1.5">
+            <div className="text-xs font-medium text-[#5DD6A0] mt-2 flex items-center gap-1.5">
               <span>System operational</span>
             </div>
           </div>
@@ -520,64 +586,159 @@ export default function DashboardPage() {
 
       {/* Financial Activity Chart Card */}
       <div className="cosmic-card p-6 relative overflow-hidden">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-ink">Financial activity</h3>
-          <span className="cosmic-pill text-[#60C9BC] border-[#60C9BC]/30 bg-[#60C9BC]/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#60C9BC] animate-pulse" />
-            Live
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div className="flex items-center space-x-2.5">
+            <h3 className="text-base font-semibold tracking-tight text-ink">Financial activity</h3>
+            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/30 bg-[#5DD6A0]/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0] animate-pulse" />
+              Live
+            </span>
+          </div>
+
+          {/* Functional Date-Range Selector */}
+          <div className="flex items-center gap-1.5 text-xs">
+            {(['7D', '30D', '90D', 'ALL'] as const).map((range) => {
+              const isSelected = chartRange === range;
+              return (
+                <button
+                  key={range}
+                  type="button"
+                  onClick={() => {
+                    setChartRange(range);
+                    setHoveredPoint(null);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold mono-num transition pressable ${
+                    isSelected
+                      ? 'bg-primary/20 text-primary border border-primary/40 shadow-xs'
+                      : 'text-ink-muted hover:text-ink hover:bg-surface-secondary border border-transparent'
+                  }`}
+                >
+                  {range}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Glowing Activity SVG Curve matching Mockup */}
-        <div className="w-full h-44 sm:h-52 relative mt-2">
+        {/* Refined Violet Activity SVG Curve & Restrained Gridlines */}
+        <div className="w-full h-44 sm:h-52 relative mt-3 select-none">
           <svg viewBox="0 0 800 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
             <defs>
-              <linearGradient id="cosmicActivityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8055E8" stopOpacity="0.4" />
-                <stop offset="70%" stopColor="#8055E8" stopOpacity="0.08" />
-                <stop offset="100%" stopColor="#8055E8" stopOpacity="0" />
+              <linearGradient id="nebulaActivityGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#8B7CFF" stopOpacity="0.25" />
+                <stop offset="70%" stopColor="#8B7CFF" stopOpacity="0.04" />
+                <stop offset="100%" stopColor="#8B7CFF" stopOpacity="0" />
               </linearGradient>
-              <linearGradient id="cosmicLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#8055E8" />
-                <stop offset="50%" stopColor="#A88AFF" />
-                <stop offset="100%" stopColor="#BD75E9" />
+              <linearGradient id="nebulaLineGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#8B7CFF" />
+                <stop offset="50%" stopColor="#B6A9FF" />
+                <stop offset="100%" stopColor="#8B7CFF" />
               </linearGradient>
-              <filter id="purpleActivityGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
             </defs>
 
-            {/* Glowing Area Fill */}
+            {/* Restrained Horizontal Gridlines */}
+            <line x1="30" y1="45" x2="770" y2="45" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+            <line x1="30" y1="95" x2="770" y2="95" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+            <line x1="30" y1="145" x2="770" y2="145" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+
+            {/* Subtle Gradient Area Fill */}
             <path
-              d="M 20,150 L 120,135 L 200,148 L 290,110 L 390,138 L 490,95 L 590,130 L 680,65 L 780,100 L 780,200 L 20,200 Z"
-              fill="url(#cosmicActivityGradient)"
+              d={chartDatasets[chartRange].areaPath}
+              fill="url(#nebulaActivityGradient)"
+              className="transition-all duration-300"
             />
-            {/* Main Glowing Line */}
+
+            {/* Main Data Line */}
             <path
-              d="M 20,150 L 120,135 L 200,148 L 290,110 L 390,138 L 490,95 L 590,130 L 680,65 L 780,100"
+              d={chartDatasets[chartRange].path}
               fill="none"
-              stroke="url(#cosmicLineGradient)"
-              strokeWidth="3.5"
+              stroke="url(#nebulaLineGradient)"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              filter="url(#purpleActivityGlow)"
+              className="transition-all duration-300"
             />
 
-            {/* Milestone Glow Dot at Peak */}
-            <circle cx="680" cy="65" r="6" fill="#FAF9FF" />
-            <circle cx="680" cy="65" r="14" fill="#A88AFF" fillOpacity="0.3" />
+            {/* Dotted Vertical Guideline on Hover */}
+            {hoveredPoint && (
+              <line
+                x1={hoveredPoint.x}
+                y1="35"
+                x2={hoveredPoint.x}
+                y2="190"
+                stroke="var(--primary)"
+                strokeDasharray="2 3"
+                opacity="0.6"
+              />
+            )}
+
+            {/* Interactive Data Nodes */}
+            {chartDatasets[chartRange].points.map((p, idx) => {
+              const isHovered = hoveredPoint?.x === p.x;
+              return (
+                <g key={idx}>
+                  {/* Subtle Node */}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={isHovered ? 5.5 : 3.5}
+                    fill={isHovered ? '#F4F5FA' : '#8B7CFF'}
+                    stroke="var(--surface)"
+                    strokeWidth="2"
+                    className="transition-all duration-150 pointer-events-none"
+                  />
+                  {isHovered && (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r="12"
+                      fill="#8B7CFF"
+                      fillOpacity="0.25"
+                      className="pointer-events-none animate-pulse"
+                    />
+                  )}
+                  {/* Expanded Pointer Hover Target */}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r="22"
+                    fill="transparent"
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredPoint(p)}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                  />
+                </g>
+              );
+            })}
           </svg>
+
+          {/* Interactive Floating Glass Tooltip */}
+          {hoveredPoint && (
+            <div
+              className="absolute pointer-events-none z-20 py-2 px-3 rounded-xl glass-dense border border-subtle shadow-glass-md text-xs transition-transform duration-100 ease-out"
+              style={{
+                left: `${(hoveredPoint.x / 800) * 100}%`,
+                top: `${(hoveredPoint.y / 200) * 100}%`,
+                transform: 'translate(-50%, -125%)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-ink mono-num text-sm">{hoveredPoint.volume}</span>
+                <span className="text-[11px] text-ink-muted">· {hoveredPoint.date}</span>
+              </div>
+              <div className="text-[11px] text-[#5DD6A0] font-medium flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                <span>{hoveredPoint.count} settlements verified</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-xs text-ink-muted">
-          <span className="italic">Illustrative chart treatment</span>
-          <div className="flex items-center gap-1.5 text-[11px] mono-num">
-            <span className="px-2.5 py-1 rounded-lg bg-surface border border-rule text-ink font-semibold">7D</span>
-            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">30D</span>
-            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">90D</span>
-            <span className="px-2.5 py-1 rounded-lg hover:bg-surface text-ink-muted cursor-pointer transition">ALL</span>
-          </div>
+        {/* X-Axis Date Milestone Labels */}
+        <div className="flex justify-between items-center px-4 mt-2.5 text-[11px] mono-num text-ink-faint">
+          {chartDatasets[chartRange].labels.map((lbl, idx) => (
+            <span key={idx}>{lbl}</span>
+          ))}
         </div>
       </div>
 
@@ -600,13 +761,13 @@ export default function DashboardPage() {
               <span className="block text-xs font-medium text-ink-muted">
                 Posted entries (7d)
               </span>
-              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
                 {sevenDayStats.postedCount}
               </span>
               <span className="text-[11px] text-ink-faint">Double-entry legs</span>
             </div>
             <div className="text-right">
-              <BarSparkline data={sevenDayStats.postedDaily} color="var(--ledger-green)" />
+              <BarSparkline data={sevenDayStats.postedDaily} color="#5DD6A0" />
               <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
             </div>
           </div>
@@ -617,30 +778,30 @@ export default function DashboardPage() {
               <span className="block text-xs font-medium text-ink-muted">
                 Refused attempts (7d)
               </span>
-              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
                 {sevenDayStats.refusedCount}
               </span>
               <span className="text-[11px] text-ink-faint">Prevented overdrafts</span>
             </div>
             <div className="text-right">
-              <BarSparkline data={sevenDayStats.refusedDaily} color="var(--ledger-red)" />
+              <BarSparkline data={sevenDayStats.refusedDaily} color="#F08091" />
               <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
             </div>
           </div>
 
-          {/* Trend 3: Net flow in last 7 days */}
+          {/* Trend 3: Net flow in last 7 days (Analytical Cyan) */}
           <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
             <div>
               <span className="block text-xs font-medium text-ink-muted">
                 Net flow (7d)
               </span>
-              <span className="mono-num text-2xl font-medium text-ink mt-0.5 block">
+              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
                 {formatPaiseToRupees(sevenDayStats.netFlowPence.toString())}
               </span>
               <span className="text-[11px] text-ink-faint">Deposits minus withdrawals</span>
             </div>
             <div className="text-right">
-              <BarSparkline data={sevenDayStats.netFlowDaily} color="var(--accent)" />
+              <BarSparkline data={sevenDayStats.netFlowDaily} color="#67D5D0" />
               <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
             </div>
           </div>
@@ -652,7 +813,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Total balance</span>
-            <div className="mono-num text-2xl font-medium text-ink mt-0.5">
+            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5">
               {formatPaiseToRupees(combinedBalancePence.toString())}
             </div>
             <p className="mt-1 text-xs text-ink-faint">
@@ -662,20 +823,20 @@ export default function DashboardPage() {
 
           <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Your accounts</span>
-            <div className="mono-num text-2xl font-medium text-ink mt-0.5">
+            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5">
               {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
             </div>
             <p className="text-xs text-ink-muted mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
               Active checking
             </p>
           </div>
 
           <div className="p-5 cosmic-card shadow-xs">
             <span className="block text-xs font-medium text-ink-muted">Account protection</span>
-            <div className="mono-num text-2xl font-medium text-ink mt-0.5 flex items-center gap-2">
+            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 flex items-center gap-2">
               <span>Protected</span>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
             </div>
             <p className="mt-1 text-xs text-ink-faint">
               Append-only cryptographic seal
@@ -708,7 +869,7 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by name or ID..."
-                className="pr-3 pl-9 w-full h-9 text-xs rounded-lg border border-rule bg-surface text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:border-accent"
+                className="pr-3 pl-9 w-full h-10 text-xs rounded-lg border border-rule bg-surface text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/40 transition"
               />
             </div>
           )}
@@ -760,7 +921,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={acc.id}
-                  className="flex flex-col justify-between p-6 cosmic-card transition hover:border-primary/40"
+                  className="flex flex-col justify-between p-6 cosmic-card transition hover:border-primary/45"
                 >
                   <div>
                     {/* Header Row: ID and Status */}
@@ -770,12 +931,13 @@ export default function DashboardPage() {
                         onClick={(e) => handleCopyId(acc.id, e)}
                         title="Copy full Account ID"
                         aria-label="Copy Account ID"
-                        className="mono-num text-xs text-ink-faint hover:text-ink inline-flex items-center gap-1.5 transition"
+                        className="mono-num text-xs text-ink-muted hover:text-ink inline-flex items-center gap-1.5 transition py-0.5 px-1.5 rounded-md hover:bg-surface-secondary"
                       >
                         <span>ID: {acc.id.slice(0, 10)}...</span>
                         {copiedId === acc.id ? (
-                          <span className="text-[11px] font-sans font-medium text-ledger-green">
-                            Copied
+                          <span className="text-[11px] font-sans font-medium text-[#5DD6A0] flex items-center gap-1">
+                            <Check className="w-3 h-3" />
+                            <span>Copied</span>
                           </span>
                         ) : (
                           <Copy className="w-3 h-3 text-ink-faint" />
@@ -783,12 +945,12 @@ export default function DashboardPage() {
                       </button>
 
                       <span className="flex items-center gap-1.5 text-xs text-ink-muted font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ledger-green)' }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
                         {user?.role === 'AUDITOR' ? 'Available' : 'Active'}
                       </span>
                     </div>
 
-                    <h3 className="mb-2 text-base font-semibold tracking-tight text-ink">
+                    <h3 className="mb-2 text-lg font-semibold tracking-tight text-ink">
                       {acc.name}
                     </h3>
 
@@ -798,15 +960,15 @@ export default function DashboardPage() {
                         {user?.role === 'AUDITOR' ? 'Ledger balance' : 'Current balance'}
                       </span>
                       <span
-                        className="mono-num text-3xl font-medium tracking-tight block mt-0.5"
-                        style={{ color: isNegative ? 'var(--ledger-red)' : 'var(--ink)' }}
+                        className="mono-num tabular-nums text-3xl font-bold tracking-tight block mt-0.5"
+                        style={{ color: isNegative ? '#F08091' : 'var(--ink)' }}
                       >
                         {formatPaiseToRupees(acc.balancePence)}
                       </span>
                     </div>
 
                     {acc.overdraftLimit !== '0' && (
-                      <p className="mt-1 text-xs mono-num text-ink-muted">
+                      <p className="mt-1 text-xs mono-num tabular-nums text-ink-muted">
                         Overdraft limit: {formatPaiseToRupees(acc.overdraftLimit)}
                       </p>
                     )}
@@ -821,12 +983,12 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {/* Card Actions Footer: Plain text links in var(--accent) separated by border-t border-rule */}
+                  {/* Card Actions Footer: Clear action buttons with subtle styling */}
                   <div className="flex justify-between items-center pt-3 mt-4 text-xs border-t border-rule">
                     {user?.role === 'AUDITOR' ? (
                       <Link
                         href={`/accounts/${acc.id}`}
-                        className="flex gap-1 items-center font-semibold text-accent hover:underline"
+                        className="flex gap-1.5 items-center font-medium text-primary hover:text-primary-hover transition"
                       >
                         <span>View statement</span>
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -835,14 +997,14 @@ export default function DashboardPage() {
                       <>
                         <Link
                           href={`/accounts/${acc.id}/transfer`}
-                          className="font-semibold text-accent hover:underline flex items-center gap-1.5"
+                          className="font-medium text-primary hover:text-primary-hover flex items-center gap-1.5 transition"
                         >
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                           <span>Transfer</span>
                         </Link>
                         <Link
                           href={`/accounts/${acc.id}`}
-                          className="font-semibold text-accent hover:underline flex items-center gap-1.5"
+                          className="font-medium text-primary hover:text-primary-hover flex items-center gap-1.5 transition"
                         >
                           <FileText className="h-3.5 w-3.5" />
                           <span>Statement</span>
@@ -867,7 +1029,7 @@ export default function DashboardPage() {
             {accounts.length > 0 && (
               <Link
                 href={`/accounts/${accounts[0].id}`}
-                className="flex gap-1 items-center text-xs font-semibold text-accent hover:underline"
+                className="flex gap-1 items-center text-xs font-semibold text-primary hover:underline"
               >
                 <span>View complete statement</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -876,17 +1038,17 @@ export default function DashboardPage() {
           </div>
 
           {entriesLoading && recentEntries.length === 0 ? (
-            <div className="p-5 space-y-2 rounded-lg border bg-surface border-rule shadow-xs">
+            <div className="p-5 space-y-2 rounded-xl border cosmic-card shadow-xs">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-10 rounded animate-pulse bg-surface-secondary" />
               ))}
             </div>
           ) : recentEntries.length === 0 ? (
-            <div className="p-8 text-center rounded-lg border bg-surface border-rule shadow-xs">
+            <div className="p-8 text-center rounded-xl border cosmic-card shadow-xs">
               <p className="text-xs text-ink-muted">No recent transactions recorded on this account.</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border divide-y bg-surface border-rule divide-rule shadow-xs">
+            <div className="overflow-hidden rounded-xl border divide-y cosmic-card border-rule divide-rule shadow-xs">
               {recentEntries.map((entry) => {
                 const isDebit =
                   entry.isDebit ||
@@ -913,22 +1075,22 @@ export default function DashboardPage() {
                         prevHash: entry.prevHash || null,
                       });
                     }}
-                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-[#F3F2EE] transition cursor-pointer"
+                    className="p-3.5 sm:px-5 flex items-center justify-between hover:bg-surface-secondary/70 transition cursor-pointer"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center space-x-2">
                         <p className="text-xs font-medium truncate text-ink">
                           {entry.note || (isDebit ? 'Transfer to account' : 'Received funds')}
                         </p>
-                        <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
+                        <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: entry.status === 'POSTED' ? '#5DD6A0' : '#F08091' }}>
                           <span
                             className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: entry.status === 'POSTED' ? 'var(--ledger-green)' : 'var(--ledger-red)' }}
+                            style={{ background: entry.status === 'POSTED' ? '#5DD6A0' : '#F08091' }}
                           />
                           {entry.status}
                         </span>
                       </div>
-                      <p className="text-[11px] text-ink-faint mono-num mt-0.5">
+                      <p className="text-[11px] text-ink-faint mono-num tabular-nums mt-0.5">
                         {new Date(entry.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -943,8 +1105,8 @@ export default function DashboardPage() {
 
                     <div className="ml-4 text-right shrink-0">
                       <span
-                        className="block text-sm font-medium mono-num"
-                        style={{ color: isDebit ? 'var(--ledger-red)' : 'var(--ledger-green)' }}
+                        className="block text-sm font-semibold mono-num tabular-nums"
+                        style={{ color: isDebit ? '#F08091' : '#5DD6A0' }}
                       >
                         {isDebit ? '−' : '+'}
                         {formatPaiseToRupees(entry.amountPence)}
@@ -960,8 +1122,8 @@ export default function DashboardPage() {
 
       {/* Create Account Modal (Admin only) */}
       {showCreateModal && (
-        <div className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="p-6 space-y-4 w-full max-w-md rounded-lg border shadow-xl bg-surface border-rule">
+        <div className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="p-6 space-y-4 w-full max-w-md rounded-2xl border shadow-2xl glass-elevated border-subtle">
             <h3 className="text-base font-semibold text-ink">Create new ledger account</h3>
             <form onSubmit={handleCreateAccount} className="space-y-4">
               <div>
@@ -973,7 +1135,7 @@ export default function DashboardPage() {
                   required
                   value={newAccountName}
                   onChange={(e) => setNewAccountName(e.target.value)}
-                  className="block px-3 py-2 w-full text-xs rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full h-10 text-xs rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition"
                   placeholder="e.g. Treasury Operations"
                 />
               </div>
@@ -988,7 +1150,7 @@ export default function DashboardPage() {
                   step="0.01"
                   value={newAccountBalance}
                   onChange={(e) => setNewAccountBalance(e.target.value)}
-                  className="block px-3 py-2 w-full text-xs rounded-lg border mono-num border-rule bg-surface text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full h-10 text-xs rounded-lg border mono-num tabular-nums border-rule bg-surface text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition"
                   placeholder="0.00"
                 />
               </div>
@@ -1003,7 +1165,7 @@ export default function DashboardPage() {
                   step="0.01"
                   value={newAccountOverdraft}
                   onChange={(e) => setNewAccountOverdraft(e.target.value)}
-                  className="block px-3 py-2 w-full text-xs rounded-lg border mono-num border-rule bg-surface text-ink focus:outline-none focus:border-accent"
+                  className="block px-3 py-2 w-full h-10 text-xs rounded-lg border mono-num tabular-nums border-rule bg-surface text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition"
                   placeholder="0.00"
                 />
               </div>
@@ -1012,14 +1174,14 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:text-ink border border-rule bg-surface hover:bg-surface-secondary rounded-lg transition"
+                  className="px-3 py-2 text-xs font-medium text-ink-muted hover:text-ink border border-rule bg-surface hover:bg-surface-secondary rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-primary rounded-lg hover:bg-primary-hover disabled:opacity-50 transition pressable shadow-xs"
                 >
                   {createLoading ? 'Creating...' : 'Create account'}
                 </button>
@@ -1034,12 +1196,12 @@ export default function DashboardPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-xs"
+          className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-sm"
         >
-          <div className="bg-surface rounded-lg border border-rule max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
-            <div className="flex justify-between items-center px-5 py-4 border-b border-rule shrink-0">
+          <div className="glass-elevated rounded-2xl border border-subtle max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-rule shrink-0 bg-surface-secondary/50">
               <div className="flex items-center space-x-2.5">
-                <ShieldCheck className="w-5 h-5 text-accent" />
+                <ShieldCheck className="w-5 h-5 text-primary" />
                 <div>
                   <h3 className="text-sm font-semibold text-ink">
                     System double-entry &amp; integrity audit
@@ -1052,15 +1214,15 @@ export default function DashboardPage() {
 
               <div className="flex items-center space-x-2">
                 {reconcileResult && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: reconcileResult.allMatch ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: reconcileResult.allMatch ? 'var(--ledger-green)' : 'var(--ledger-red)' }} />
+                  <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: reconcileResult.allMatch ? '#5DD6A0' : '#F08091' }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: reconcileResult.allMatch ? '#5DD6A0' : '#F08091' }} />
                     {reconcileResult.allMatch ? 'Reconciled · Zero discrepancies' : 'Discrepancy detected'}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => setShowReconcileModal(false)}
-                  className="p-1 text-ink-faint hover:text-ink"
+                  className="p-1 text-ink-faint hover:text-ink transition"
                   aria-label="Close dialog"
                 >
                   <X className="w-4 h-4" />
@@ -1071,71 +1233,71 @@ export default function DashboardPage() {
             <div className="overflow-y-auto p-5 space-y-4">
               {reconcileLoading ? (
                 <div className="flex flex-col items-center py-12 space-y-2 text-center text-ink-muted">
-                  <RefreshCw className="w-5 h-5 animate-spin text-accent" />
+                  <RefreshCw className="w-5 h-5 animate-spin text-primary" />
                   <p className="text-xs">Aggregating ledger entries across all system accounts...</p>
                 </div>
               ) : reconcileResult ? (
                 <div className="space-y-4 text-xs">
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 rounded border bg-paper border-rule">
+                    <div className="p-3.5 rounded-xl border bg-surface border-rule">
                       <span className="text-[11px] text-ink-muted block">Total accounts</span>
-                      <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
+                      <span className="mono-num tabular-nums text-xl font-bold text-ink mt-0.5 block">
                         {reconcileResult.totalAccounts}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded border bg-paper border-rule">
+                    <div className="p-3.5 rounded-xl border bg-surface border-rule">
                       <span className="text-[11px] text-ink-muted block">System total</span>
-                      <span className="mono-num text-xl font-medium text-ink mt-0.5 block">
+                      <span className="mono-num tabular-nums text-xl font-bold text-ink mt-0.5 block">
                         {formatPaiseToRupees(reconcileResult.totalStoredBalancePence)}
                       </span>
                     </div>
 
-                    <div className="p-3 rounded border bg-paper border-rule">
+                    <div className="p-3.5 rounded-xl border bg-surface border-rule">
                       <span className="text-[11px] text-ink-muted block">Status</span>
-                      <span className="text-xl font-medium text-ledger-green mt-0.5 block">
+                      <span className="text-xl font-bold text-[#5DD6A0] mt-0.5 block">
                         Balanced
                       </span>
                     </div>
                   </div>
 
                   {reconcileResult.cryptographicIntegrity?.headHash && (
-                    <div className="p-3 bg-surface-secondary border border-rule rounded-lg space-y-1.5">
+                    <div className="p-3 bg-surface-secondary border border-rule rounded-xl space-y-1.5">
                       <div className="flex justify-between items-center">
                         <span className="font-medium text-ink-muted">Head hash (SHA-256):</span>
                         <button
                           type="button"
                           onClick={() => handleCopyHeadHash(reconcileResult.cryptographicIntegrity?.headHash || '')}
-                          className="text-accent hover:underline text-[11px]"
+                          className="text-primary hover:underline text-[11px] font-medium"
                         >
                           {copiedHeadHash ? 'Copied' : 'Copy hash'}
                         </button>
                       </div>
-                      <div className="mono-num text-[11px] text-ink truncate bg-surface p-1.5 border border-rule rounded-lg">
+                      <div className="mono-num text-[11px] text-ink truncate bg-surface p-2 border border-rule rounded-lg">
                         {reconcileResult.cryptographicIntegrity.headHash}
                       </div>
                     </div>
                   )}
 
-                  <div className="overflow-hidden rounded-lg border border-rule">
+                  <div className="overflow-hidden rounded-xl border border-rule">
                     <table className="min-w-full text-xs divide-y divide-rule">
                       <thead className="font-medium border-b bg-surface-secondary text-ink-muted border-rule">
                         <tr>
-                          <th className="px-3.5 py-2 text-left">Account</th>
-                          <th className="px-3.5 py-2 text-right">Stored</th>
-                          <th className="px-3.5 py-2 text-right">Computed</th>
-                          <th className="px-3.5 py-2 text-center">Status</th>
+                          <th className="px-3.5 py-2.5 text-left">Account</th>
+                          <th className="px-3.5 py-2.5 text-right">Stored</th>
+                          <th className="px-3.5 py-2.5 text-right">Computed</th>
+                          <th className="px-3.5 py-2.5 text-center">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-rule bg-surface">
                         {reconcileResult.accounts.map((acc) => (
-                          <tr key={acc.accountId} className="transition hover:bg-surface-secondary">
+                          <tr key={acc.accountId} className="transition hover:bg-surface-secondary/70">
                             <td className="px-3.5 py-2 font-medium text-ink">{acc.accountName}</td>
-                            <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.storedBalance)}</td>
-                            <td className="px-3.5 py-2 text-right mono-num">{formatPaiseToRupees(acc.computedBalance)}</td>
+                            <td className="px-3.5 py-2 text-right mono-num tabular-nums">{formatPaiseToRupees(acc.storedBalance)}</td>
+                            <td className="px-3.5 py-2 text-right mono-num tabular-nums">{formatPaiseToRupees(acc.computedBalance)}</td>
                             <td className="px-3.5 py-2 text-center">
-                              <span className="flex items-center justify-center gap-1 text-[11px] font-medium" style={{ color: acc.matches ? 'var(--ledger-green)' : 'var(--ledger-red)' }}>
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: acc.matches ? 'var(--ledger-green)' : 'var(--ledger-red)' }} />
+                              <span className="flex items-center justify-center gap-1 text-[11px] font-medium" style={{ color: acc.matches ? '#5DD6A0' : '#F08091' }}>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: acc.matches ? '#5DD6A0' : '#F08091' }} />
                                 {acc.matches ? 'Match' : 'Drift'}
                               </span>
                             </td>
@@ -1148,7 +1310,7 @@ export default function DashboardPage() {
               ) : null}
             </div>
 
-            <div className="flex justify-between items-center px-5 py-3 text-xs border-t border-rule bg-surface-secondary shrink-0">
+            <div className="flex justify-between items-center px-5 py-3 text-xs border-t border-rule bg-surface-secondary/50 shrink-0">
               <button
                 type="button"
                 onClick={handleExportReport}
@@ -1161,7 +1323,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowReconcileModal(false)}
-                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-accent rounded-lg hover:opacity-90 transition"
+                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-primary rounded-lg hover:bg-primary-hover transition pressable"
               >
                 Close
               </button>

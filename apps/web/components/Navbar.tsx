@@ -127,7 +127,7 @@ export default function Navbar() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="3.5" fill="currentColor" fillOpacity="0.9" />
                   <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-30 12 12)" stroke="currentColor" strokeWidth="1.5" strokeDasharray="32 6" />
-                  <circle cx="19" cy="8" r="1.5" fill="#A88AFF" />
+                  <circle cx="19" cy="8" r="1.5" fill="#B6A9FF" />
                 </svg>
               </div>
               <span className="flex items-center text-lg font-bold tracking-tight text-ink gap-0.5">
@@ -151,9 +151,9 @@ export default function Navbar() {
                     left: `${indicatorStyle.left}px`,
                     width: `${indicatorStyle.width}px`,
                     opacity: indicatorStyle.opacity,
-                    background: 'rgba(128, 85, 232, 0.12)',
-                    border: '1px solid rgba(168, 138, 255, 0.22)',
-                    boxShadow: '0 0 14px rgba(128, 85, 232, 0.12)',
+                    background: 'rgba(139, 124, 255, 0.12)',
+                    border: '1px solid rgba(182, 169, 255, 0.22)',
+                    boxShadow: '0 0 14px rgba(139, 124, 255, 0.12)',
                   }}
                 />
 

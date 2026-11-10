@@ -4,96 +4,92 @@
 
 :root {
   color-scheme: light;
-  /* Light Cosmic Theme Palette */
-  --bg: #F4F1FA; /* Cosmic Ivory */
-  --surface: #FFFFFF; /* Primary Card */
-  --surface-secondary: #F6F3FC; /* Secondary Surface */
+  /* Light Theme Palette (Clean, high-contrast counterpart) */
+  --bg: #F7F8FC;
+  --surface: #FFFFFF;
+  --surface-secondary: #F0F2F9;
   --surface-elevated: #FFFFFF;
-  --primary: #8055E8; /* Stellar Purple */
-  --primary-hover: #693BC4;
-  --text-primary: #151126; /* Primary Text */
-  --text-secondary: #585270; /* Secondary Text */
-  --text-muted: #7A7394; /* Muted Text */
-  --border: #DED9EA; /* Border Light */
-  --border-secondary: #EAE4F5;
-  --success: #13835D;
-  --danger: #D14949;
-  --warning: #B7791F;
-  --nebula: #D6C2F4; /* Soft Nebula Purple */
-  --planet-glow: rgba(240, 199, 229, 0.45);
+  --primary: #7462E6;
+  --primary-hover: #5F4ECB;
+  --text-primary: #0D111C;
+  --text-secondary: #4E5569;
+  --text-muted: #737B92;
+  --border: #E1E4EE;
+  --border-secondary: #ECEEF5;
+  --border-subtle: rgba(116, 98, 230, 0.12);
+  --border-active: rgba(116, 98, 230, 0.45);
+  --success: #128859;
+  --danger: #DC3545;
+  --warning: #B87A1E;
+  --nebula: #7462E6;
+  --cyan: #0284C7;
+  --lavender: #7462E6;
 
   /* Module accents */
-  --accent-accounts: #8055E8;
-  --accent-audit: #5275A5;
-  --accent-stress: #D99524;
-  --accent-seal: #13835D;
-  --accent-failed: #D14949;
+  --accent-accounts: #7462E6;
+  --accent-audit: #3B82F6;
+  --accent-stress: #D97706;
+  --accent-seal: #128859;
+  --accent-failed: #DC3545;
 
   /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #7A7394;
+  --ink-faint: var(--text-muted);
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: #C4BCD3;
+  --rule-strong: #CBD1E1;
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #8055E8;
-  --role-holder: #648EFF;
-  --role-auditor: #B7791F;
-
-  --background: 260 30% 97%;
-  --foreground: 250 36% 12%;
-  --border-hsl: 260 22% 89%;
+  --role-admin: #7462E6;
+  --role-holder: #0284C7;
+  --role-auditor: #B87A1E;
 }
 
 [data-theme="dark"], .dark {
   color-scheme: dark;
-  /* Dark Cosmic Theme Palette (Cosmic Finance Specification) */
-  --bg: #080713; /* Void Black */
-  --surface: #151126; /* Nebula Card Surface */
-  --surface-secondary: #19132D; /* Midnight Violet */
-  --surface-elevated: #1C1630; /* Elevated Surface */
-  --primary: #8055E8; /* Stellar Purple */
-  --primary-hover: #A88AFF; /* Nebula Glow */
-  --text-primary: #FAF9FF; /* Primary Celestial White */
-  --text-secondary: #B8B2CE; /* Secondary Lavender */
-  --text-muted: #8A82A5; /* Muted Star Dust */
-  --border: rgba(168, 138, 255, 0.14); /* Subtle Nebula Glow Border */
-  --border-secondary: rgba(168, 138, 255, 0.08); /* Faint Secondary Border */
-  --success: #60C9BC; /* Success Teal */
-  --danger: #F07889; /* Alert Red */
-  --warning: #F0B85A; /* Solar Amber */
-  --nebula: #8055E8; /* Stellar Purple */
-  --magenta: #BD75E9; /* Magenta Glow */
-  --cyan: #75C8F0; /* Soft Cyan */
-  --planet-glow: rgba(168, 138, 255, 0.25);
+  /* Midnight Nebula Official Palette */
+  --bg: #090B14; /* Midnight */
+  --surface: #101426; /* Deep Navy */
+  --surface-secondary: #171D32; /* Elevated Surface */
+  --surface-elevated: #171D32;
+  --primary: #8B7CFF; /* Nebula Violet */
+  --primary-hover: #A599FF;
+  --text-primary: #F4F5FA; /* Primary Text */
+  --text-secondary: #A3A8BA; /* Secondary Text */
+  --text-muted: #747B91; /* Muted Text */
+  --border: #35334D; /* Default Border */
+  --border-secondary: rgba(182, 169, 255, 0.08);
+  --border-subtle: rgba(182, 169, 255, 0.13); /* Subtle Border */
+  --border-active: rgba(139, 124, 255, 0.45); /* Active Border */
+  --success: #5DD6A0; /* Semantic Success */
+  --warning: #F0BD72; /* Semantic Warning */
+  --danger: #F08091; /* Semantic Danger */
+  --cyan: #67D5D0; /* Cosmic Cyan */
+  --lavender: #B6A9FF; /* Starlight Lavender */
+  --nebula: #8B7CFF;
 
-  /* Module accents for dark mode */
-  --accent-accounts: #A88AFF;
-  --accent-audit: #8055E8;
-  --accent-stress: #F0B85A;
-  --accent-seal: #60C9BC;
-  --accent-failed: #F07889;
+  /* Module accents */
+  --accent-accounts: #8B7CFF;
+  --accent-audit: #B6A9FF;
+  --accent-stress: #F0BD72;
+  --accent-seal: #5DD6A0;
+  --accent-failed: #F08091;
 
   /* Semantic aliases */
   --ink: var(--text-primary);
   --ink-muted: var(--text-secondary);
-  --ink-faint: #8A82A5;
+  --ink-faint: var(--text-muted);
   --paper: var(--bg);
   --rule: var(--border);
-  --rule-strong: rgba(168, 138, 255, 0.22);
+  --rule-strong: rgba(182, 169, 255, 0.22);
   --ledger-green: var(--success);
   --ledger-red: var(--danger);
   --accent: var(--primary);
-  --role-admin: #8055E8;
-  --role-holder: #648EFF;
-  --role-auditor: #F0B85A;
-
-  --background: 248 45% 5%;
-  --foreground: 255 100% 99%;
-  --border-hsl: 256 50% 20%;
+  --role-admin: #8B7CFF;
+  --role-holder: #67D5D0;
+  --role-auditor: #F0BD72;
 }
 
 body {
@@ -110,6 +106,7 @@ body {
   outline-offset: 1px;
 }
 
+/* Tabular Numerals for Financial Data */
 .mono-num {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-variant-numeric: tabular-nums;
@@ -119,20 +116,71 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Structural Borders & Clean Surfaces */
-.glass-chrome {
-  background: rgba(245, 247, 250, 0.92);
+/* ============================================================ */
+/* Glassmorphism System (Minimal Premium)                       */
+/* ============================================================ */
+
+/* Primary Glass Surface */
+.glass-primary,
+.cosmic-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(116, 98, 230, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px -2px rgba(13, 17, 28, 0.05);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.dark .glass-primary,
+.dark .cosmic-card {
+  background: rgba(23, 29, 50, 0.68) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(182, 169, 255, 0.13) !important;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36) !important;
+}
+
+.dark .glass-primary:hover,
+.dark .cosmic-card:hover {
+  border-color: rgba(139, 124, 255, 0.35) !important;
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Secondary Glass Surface (Dense Content & Financial Information) */
+.glass-secondary,
+.glass-dense {
+  background: #FFFFFF;
+  border: 1px solid #E1E4EE;
+  border-radius: 14px;
+}
+
+.dark .glass-secondary,
+.dark .glass-dense {
+  background: rgba(23, 29, 50, 0.92) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #35334D !important;
+  border-radius: 14px;
+}
+
+/* Structural Header Chrome */
+.glass-chrome {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
 
-.glass-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.dark .glass-chrome {
+  background: rgba(16, 20, 38, 0.82) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(182, 169, 255, 0.13) !important;
 }
 
+/* Elevated Glass Surface */
 .glass-elevated {
   background: var(--surface-elevated);
   border: 1px solid var(--border);
@@ -140,33 +188,20 @@ body {
   box-shadow: 0 12px 36px -6px rgba(15, 23, 42, 0.08);
 }
 
-/* Cosmic Finance UI Components */
-.cosmic-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px -2px rgba(8, 7, 19, 0.06);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+.dark .glass-elevated {
+  background: #171D32 !important;
+  border: 1px solid rgba(182, 169, 255, 0.13) !important;
+  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.7) !important;
 }
 
-.dark .cosmic-card {
-  background: #151126 !important;
-  border-color: rgba(168, 138, 255, 0.14) !important;
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(168, 138, 255, 0.06) !important;
-}
-
-.dark .cosmic-card:hover {
-  border-color: rgba(168, 138, 255, 0.28) !important;
-  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.75), 0 0 20px -2px rgba(128, 85, 232, 0.15) !important;
-}
-
+/* Subtle Status Pills */
 .cosmic-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.25rem 0.625rem;
   border-radius: 9999px;
@@ -174,63 +209,40 @@ body {
 }
 
 .dark .cosmic-pill {
-  border-color: rgba(168, 138, 255, 0.2);
-  background: rgba(168, 138, 255, 0.06);
-  color: #B8B2CE;
+  border-color: rgba(182, 169, 255, 0.18);
+  background: rgba(182, 169, 255, 0.06);
+  color: var(--text-secondary);
 }
 
-/* Subtle Atmospheric Cosmic Nebula layer for all authenticated screens */
+/* Subtle Atmospheric Background Gradient (Minimal, Low-Opacity) */
 .cosmic-nebula-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 80% -10%, rgba(128, 85, 232, 0.06), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 10% 90%, rgba(100, 142, 255, 0.04), transparent 70%);
+    radial-gradient(ellipse 70% 45% at 85% -10%, rgba(116, 98, 230, 0.04), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 10% 90%, rgba(2, 132, 199, 0.02), transparent 70%);
 }
 
 .dark .cosmic-nebula-bg {
   background:
-    radial-gradient(ellipse 90% 60% at 85% -15%, rgba(128, 85, 232, 0.11), transparent 70%),
-    radial-gradient(ellipse 70% 50% at 10% 85%, rgba(168, 138, 255, 0.06), transparent 70%),
-    radial-gradient(circle at 50% 30%, rgba(100, 142, 255, 0.03), transparent 60%);
+    radial-gradient(ellipse 80% 50% at 85% -10%, rgba(139, 124, 255, 0.07), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 10% 90%, rgba(103, 213, 208, 0.03), transparent 70%);
 }
 
-.orbital-ring {
-  position: relative;
-  border-radius: 9999px;
+/* Subtle Interactive Press */
+.pressable {
+  transition: transform 100ms ease, opacity 100ms ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.orbital-ring::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 9999px;
-  border: 1px dashed rgba(168, 138, 255, 0.35);
-  pointer-events: none;
+.pressable:active {
+  transform: scale(0.985);
 }
 
-/* ============================================================ */
-/* Dark Mode Surface Overrides (Prevents White-on-White Glitch)  */
-/* ============================================================ */
-.dark .glass-chrome {
-  background: rgba(11, 18, 32, 0.92) !important;
-  border-bottom-color: var(--border) !important;
-}
-
-.dark .glass-card {
-  background: var(--surface) !important;
-  border-color: var(--border) !important;
-}
-
-.dark .glass-elevated {
-  background: var(--surface-elevated) !important;
-  border-color: var(--border) !important;
-  box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(121, 169, 255, 0.08) !important;
-}
-
-/* Ensure any hardcoded card or paper class automatically maps to Dark Navy */
+/* Dark Mode Surface Overrides */
 .dark .bg-white {
   background-color: var(--surface) !important;
 }
@@ -247,7 +259,6 @@ body {
   border-color: var(--border) !important;
 }
 
-/* Dark mode inputs and textareas */
 .dark input.bg-white,
 .dark textarea.bg-white,
 .dark select.bg-white {
@@ -258,7 +269,7 @@ body {
 
 .dark input.bg-white::placeholder,
 .dark textarea.bg-white::placeholder {
-  color: var(--text-secondary) !important;
+  color: var(--text-muted) !important;
 }
 
 .dark input:focus,
@@ -266,61 +277,11 @@ body {
   border-color: var(--primary) !important;
 }
 
-/* Dark mode table row hover and selection states */
 .dark tr:hover td {
   background-color: var(--surface-secondary) !important;
 }
 
-.glass-drawer {
-  background: var(--paper);
-  border-left: 1px solid var(--rule-strong);
-}
-
-.pressable {
-  transition: transform 80ms ease, opacity 80ms ease;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.pressable:active {
-  transform: scale(0.985);
-}
-
-/* Subtle, Restrained Fintech Background Ambient Motion */
-@keyframes subtle-drift {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.25;
-  }
-  50% {
-    transform: translate(12px, -8px) scale(1.03);
-    opacity: 0.35;
-  }
-}
-
-.animate-subtle-drift {
-  animation: subtle-drift 18s ease-in-out infinite;
-}
-
-@keyframes node-draw {
-  0% {
-    stroke-dashoffset: 600;
-    opacity: 0;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 0.45;
-  }
-}
-
-.animate-node-draw {
-  stroke-dasharray: 600;
-  animation: node-draw 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
+/* Accessibility: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -329,134 +290,4 @@ body {
     scroll-behavior: auto !important;
     transform: none !important;
   }
-}
-
-/* ============================================================ */
-/* Theme Toggle Switch (Animated Sun/Moon)                      */
-/* ============================================================ */
-.theme-switch-wrapper {
-  display: inline-flex;
-  align-items: center;
-}
-
-.theme-switch {
-  --transition: 300ms;
-  --transition500: 500ms;
-  --color-dark: #0c0f14;
-  --color-darkGray: #21262e;
-  --color-gray: #52555a;
-  --color-offwhite: #cecece;
-  --shadow-color: var(--color-dark);
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 60px;
-  height: 33px;
-  background-color: var(--color-dark);
-  border-radius: 30px;
-  padding: 4px;
-  transition: var(--transition500);
-  user-select: none;
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-/* Svg styles */
-.theme-switch .svg {
-  transition: var(--transition);
-  position: absolute;
-  left: 6px;
-}
-.theme-switch .moon {
-  width: 17px;
-  fill: var(--color-gray);
-  opacity: 1;
-}
-
-.theme-switch .sun {
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  left: calc(100% - 21.5px);
-  top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  scale: 0.8;
-  opacity: 0;
-}
-
-.theme-switch .sun .dot {
-  position: relative;
-  display: block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: white;
-  z-index: 1;
-  box-shadow: 11px 0px 0px var(--shadow-color),
-    10.3px 0px 0px var(--shadow-color), -11px 0px 0px var(--shadow-color),
-    -10.3px 0px 0px var(--shadow-color), 0px -11px 0px var(--shadow-color),
-    0px -10.3px 0px var(--shadow-color), 0px 11px 0px var(--shadow-color),
-    0px 10.3px 0px var(--shadow-color), 8px 8px 0px var(--shadow-color),
-    7.3px 7.3px 0px var(--shadow-color), 8px -8px 0px var(--shadow-color),
-    7.3px -7.3px 0px var(--shadow-color), -8px -8px 0px var(--shadow-color),
-    -7.3px -7.3px 0px var(--shadow-color), -8px 8px 0px var(--shadow-color),
-    -7.3px 7.3px 0px var(--shadow-color);
-}
-
-.theme-switch .sun .dot::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: white;
-  border: 2px solid var(--color-dark);
-}
-
-/* Checkbox styles */
-.theme-switch .circle {
-  appearance: none;
-  position: relative;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  left: 0;
-  background-color: var(--color-darkGray);
-  border: 1px solid var(--color-darkGray);
-  transition: var(--transition500);
-  box-shadow: 1px 1px 20px 3px var(--color-darkGray);
-  cursor: pointer;
-}
-
-.theme-switch:has(.circle:checked) {
-  background: var(--color-offwhite);
-}
-
-.theme-switch .circle:hover {
-  margin-left: 3px;
-}
-.theme-switch .circle:checked:hover {
-  margin-left: -3px;
-}
-
-.theme-switch .circle:checked {
-  left: calc(100% - 25px);
-  background: white;
-  border-color: white;
-  box-shadow: 1px 1px 30px 12px white;
-}
-
-.theme-switch:has(.circle:checked) > .sun {
-  opacity: 1;
-}
-
-.theme-switch:has(.circle:checked) > .moon {
-  opacity: 0;
 }

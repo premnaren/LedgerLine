@@ -11,37 +11,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Dark Cosmic palette tokens (Cosmic Finance System)
-        'cosmic-black': '#080713',
-        'deep-space': '#100D20',
-        'nebula-surface': '#151126',
-        'midnight-violet': '#19132D',
-        'elevated-surface': '#1C1630',
-        'stellar-purple': '#8055E8',
-        'nebula-glow': '#A88AFF',
-        'muted-violet': '#291C49',
-        'stellar-blue': '#648EFF',
-        'magenta-glow': '#BD75E9',
-        'soft-cyan': '#75C8F0',
-        'card-surface': '#151126',
-        'card-border': 'rgba(168, 138, 255, 0.14)',
-        'primary-border': 'rgba(168, 138, 255, 0.14)',
-        'secondary-border': '#221F38',
+        // Midnight Nebula official design tokens
+        midnight: '#090B14',
+        'deep-navy': '#101426',
+        'elevated-surface': '#171D32',
+        'nebula-violet': '#8B7CFF',
+        'starlight-lavender': '#B6A9FF',
+        'cosmic-cyan': '#67D5D0',
+        'text-primary-token': '#F4F5FA',
+        'text-secondary-token': '#A3A8BA',
+        'text-muted-token': '#747B91',
+        'border-default': '#35334D',
+        'border-subtle': 'rgba(182, 169, 255, 0.13)',
+        'border-active': 'rgba(139, 124, 255, 0.45)',
 
-        // Light Cosmic palette tokens
-        'cosmic-ivory': '#F4F1FA',
-        'lunar-white': '#FAF9FF',
-        'pale-lavender': '#EEE8FA',
-        'soft-nebula': '#D6C2F4',
-        'celestial-pink': '#F0C7E5',
-        'aurora-blue': '#C4DDF9',
-        'peach-glow': '#F6D9CE',
-        'border-light': '#DED9EA',
-
-        // Semantic Cosmic tokens
-        'cosmic-success': '#60C9BC',
-        'cosmic-warning': '#F0B85A',
-        'cosmic-error': '#F07889',
+        // Semantic tokens
+        'semantic-success': '#5DD6A0',
+        'semantic-warning': '#F0BD72',
+        'semantic-danger': '#F08091',
+        'semantic-info': '#67D5D0',
 
         // Dynamic theme tokens
         bg: 'var(--bg)',
@@ -102,6 +90,11 @@ module.exports = {
         lg: '10px',
         xl: '12px',
         '2xl': '16px',
+      },
+      boxShadow: {
+        'glass-sm': '0 4px 16px 0 rgba(0, 0, 0, 0.25)',
+        'glass-md': '0 8px 32px 0 rgba(0, 0, 0, 0.36)',
+        'glass-lg': '0 12px 40px -4px rgba(0, 0, 0, 0.45)',
       },
     },
   },
