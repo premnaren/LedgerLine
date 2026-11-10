@@ -176,11 +176,11 @@ Optimistic locking (`WHERE version = expectedVersion`) aborts on concurrent upda
 
 ---
 
-### F. Frontend Architecture: Next.js 14 (App Router) + Tailwind CSS
+### F. Frontend Architecture: Next.js 14 (App Router) + Cosmic Finance Design System
 
 #### The Decision:
-* **Chosen:** Next.js 14 App Router deployed to Vercel Edge.
-* **Alternatives Considered:** Single Page App (Vite/React), Remix, SvelteKit.
+* **Chosen:** Next.js 14 App Router deployed to Vercel Edge with Tailwind CSS and the custom **"Cosmic Finance"** design system.
+* **Alternatives Considered:** Single Page App (Vite/React), Remix, SvelteKit, generic dark/light UI component libraries (Shadcn, Material UI).
 
 #### Why Next.js 14:
 * **Dynamic API Rewrites (`next.config.js`):**  
@@ -188,8 +188,14 @@ Optimistic locking (`WHERE version = expectedVersion`) aborts on concurrent upda
   ```javascript
   { source: '/api/:path*', destination: `${apiUrl}/:path*` }
   ```
-  This eliminates cross-origin cookie restrictions! The browser thinks it is communicating with the same origin (`https://ledgerline-tan-beta.vercel.app`), enabling smooth cookie storage even in Safari and Chrome with strict third-party cookie blocking.
-* **Minimal Enterprise Design Tokens:** Tailored around Stripe and Linear design aesthetics: `#F5F8FC` canvas, `#078BCB` action blue, `#172B45` slate typography, 14px card radii, and tabular figures (`font-mono`) for numerical financial alignment.
+  This eliminates cross-origin cookie restrictions. The browser communicates with the same origin (`https://ledgerline-tan-beta.vercel.app`), enabling smooth cookie storage even in Safari and Chrome with strict third-party cookie blocking.
+* **Cosmic Finance Design System:**  
+  Engineered specifically for financial precision combined with deep-space atmospheric depth:
+  * **Base Palette Tokens:** Void Black (`#080713`), Deep Space (`#100D20`), Nebula Surface (`#151126`), Elevated Card (`#1C1630`), Stellar Purple (`#8055E8`), Nebula Glow (`#A88AFF`), Success Teal (`#60C9BC`), Solar Amber (`#F0B85A`), Alert Red (`#F07889`).
+  * **Atmospheric Depth:** Injected `.cosmic-nebula-bg` globally in [`apps/web/app/layout.tsx`](file:///c:/Users/premn/LedgerLine/apps/web/app/layout.tsx) with 6–11% radial violet/blue falloffs, completely eliminating flat-black voids while maintaining strict WCAG AAA contrast for financial numbers.
+  * **Orbital Geometry:** Border highlights (`rgba(168, 138, 255, 0.14)`), custom SVG orbital ring logo, and `.orbital-ring` badges.
+  * **Financial Monospace Typography:** Tabular numeric alignment (`mono-num`, `font-mono`) across all ledger rows, balance cards, and SHA-256 cryptographic hashes.
+  * **Interactive Constellation Canvas Engine (`CosmicConstellation.tsx`):** A custom HTML5 Canvas procedural engine featuring 72 real astronomical stars across 15 constellation presets (Orion, Ursa Major, Cassiopeia, Cygnus, Lyra, Scorpius, Leo, Taurus, Gemini, Canis Major, Pegasus, Andromeda, Perseus, Aquila, Crux), with interactive particle physics: click-to-create star, drag-to-reposition, and hold-to-crumple particle suction into a celestial core that releases into new constellation geometry.
 
 ---
 
@@ -209,10 +215,11 @@ LedgerLine implements strict Role-Based Access Control with 3 distinct organizat
 
 #### The Login Experience:
 1. Navigate to [`/login`](https://ledgerline-tan-beta.vercel.app/login).
-2. The user is presented with the minimal single-column card.
-3. Three one-click demo pills (**Holder**, **Admin**, **Auditor**) prefill demo credentials.
-4. Upon clicking **Sign In**, the API verifies password hash using `bcrypt.compare`, creates an active refresh token in PostgreSQL, dispatches the `HttpOnly` cookie, and sets the in-memory access token.
-5. The user is redirected to `/dashboard`.
+2. The user is greeted by the full-viewport cinematic purple celestial composition with the interactive 72-star constellation network on the right and a compact, 380px glassmorphic authentication card on the left.
+3. Three quick-demo role pills (**Admin**, **Holder**, **Auditor**) prefill test credentials instantly.
+4. Users can interact with the live constellation: clicking anywhere spawns a new star, dragging nodes repositions them with spring physics, and clicking and holding crumples the entire network into a compressed celestial core that emerges into one of 15 real astronomical constellation presets (e.g., Orion, Cassiopeia, Cygnus).
+5. Upon clicking **Sign In**, the API verifies the password hash using `bcrypt.compare`, creates an active refresh token in PostgreSQL, dispatches the `HttpOnly` cookie, and sets the in-memory access token.
+6. The user is redirected to `/dashboard`.
 
 ---
 
@@ -267,23 +274,27 @@ $$\text{Current Hash} = \text{SHA256}\Big(\text{Previous Hash} \parallel \text{E
 4. Every subsequent block's hash immediately becomes invalid, breaking the chain.
 
 #### How to Verify:
-* Navigate to **Audit Trail** (`/admin/audit`) as an Administrator or Auditor.
+* Navigate to **Audit Ledger** (`/admin/audit`) as an Administrator or Auditor.
+* The header displays the tracked `AUDITOR / COMPLIANCE LEDGER` breadcrumb and summary metrics inside `.cosmic-card` containers.
 * The system evaluates every block from entry $1$ to $N$.
 * If all cryptographic hashes match, the interface displays:
-  $$\text{Integrity Verified: } \text{102 of 102 blocks intact. Zero discrepancies.}$$
+  $$\text{Integrity Verified: } \text{All blocks intact. Zero discrepancies.}$$
+* **Interactive Transaction Inspection Drawer:** Clicking any transaction row opens the slide-out double-entry inspection drawer. The drawer renders the complete debit/credit leg routing, sender and receiver account IDs, timestamp, balanced ledger impact ($0.00 delta), and the full SHA-256 cryptographic seal with a one-click copy button and verified badge.
 
 ---
 
-### Walkthrough 4: Mobile-Responsive Admin Stress Lab
+### Walkthrough 4: Concurrency Stress Lab & Concurrency Workbench
 
 The **Stress Lab** (`/admin/stress-lab`) is an administrative testing facility designed to demonstrate database concurrency under extreme load.
 
 ```text
 [ Stress Lab Configuration ]
+• Breadcrumb: ADMIN / STRESS LAB & CONCURRENCY WORKBENCH
 • Concurrency: 5, 10, or 25 Simultaneous Requests
 • Amount per Transfer: ₹10.00
 • Execution Model: PostgreSQL Serializable SSI + FOR UPDATE Locks
 • Invariant Monitored: Total System Balance Delta (ΔΣ = 0)
+• Telemetry: Active status pill, 100% Conserved badge, real-time TPS counters
 ```
 
 #### What Happens When You Click "Run Concurrency Simulation":
@@ -291,7 +302,7 @@ The **Stress Lab** (`/admin/stress-lab`) is an administrative testing facility d
 2. The backend fires concurrent database transactions attempting to debit and credit the accounts at the exact same millisecond.
 3. PostgreSQL SSI detects concurrent write attempts on the same rows.
 4. The transaction retry mechanism resolves serialization deadlocks gracefully.
-5. **The Result:** All 25 transfers execute, 50 ledger entries are written, the SHA-256 chain advances by 50 links, and the system verifies that total system balance changed by exactly **₹0.00** ($\Delta\Sigma = 0$).
+5. **The Result:** All 25 transfers execute, 50 ledger entries are written, the SHA-256 chain advances by 50 links, and the system verifies that total system balance changed by exactly **₹0.00** ($\Delta\Sigma = 0$), surfaced live with the green `100% Conserved` telemetry badge.
 
 ---
 
@@ -311,6 +322,18 @@ Financial networks are inherently unreliable. When mobile connections drop, clie
    * The server returns the cached response with header `X-Cache: HIT`, without executing any database balance updates.
 6. **The Reaper Daemon:**  
    Every 60 minutes, a background cron daemon ([`idempotencyReaper.ts`](file:///c:/Users/premn/LedgerLine/apps/api/src/services/idempotencyReaper.ts)) purges idempotency keys older than 24 hours, ensuring the database table remains lean and fast.
+
+---
+
+### Walkthrough 6: Admin User Management & Operating Ledger Provisioning
+
+Located at `/admin/users`, the **User Management Console** provides enterprise user lifecycle control:
+1. **Breadcrumb & Role Hierarchy:** Displayed under `ADMIN / USER ROLES & ACCESS CONTROL` with 3 color-coded architectural cards:
+   * **ADMIN** (`#8055E8` Stellar Purple): Global oversight, Stress Lab execution, compensating reversals.
+   * **HOLDER** (`#60C9BC` Success Teal): Scoped operating accounts, transfers, balance statement views.
+   * **AUDITOR** (`#F0B85A` Solar Amber): Global read-only compliance inspection, full cryptographic ledger access.
+2. **Onboard User with Operating Ledger:** A modal form allows administrators to provision a new user, assign their role, and optionally provision their primary savings ledger account atomically in a single transaction.
+3. **Role Modification & Audit Trail:** Administrators can toggle user roles dynamically (`PATCH /api/admin/users/:id/role`) with immediate permission recalculation.
 
 ---
 

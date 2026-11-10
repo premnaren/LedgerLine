@@ -61,6 +61,26 @@ The database seed (`prisma/seed.ts`) provisions three accounts corresponding to 
 
 ---
 
+## Cosmic Finance Design System & Interactive Constellation Engine
+
+LedgerLine pairs core banking mathematical rigor with a world-class **"Cosmic Finance"** visual identity (*Deep-space atmosphere · Orbital geometry · Financial precision*):
+
+- **72-Star Celestial Constellation Canvas (`CosmicConstellation.tsx`)**:
+  - Structured astronomical star catalogue containing 72 real stars across 15 constellation presets (Orion, Ursa Major, Cassiopeia, Cygnus, Lyra, Scorpius, Leo, Taurus, Gemini, Canis Major, Pegasus, Andromeda, Perseus, Aquila, Crux).
+  - Physics-based interactive mechanics: **click anywhere** to spawn a new star node, **drag** stars to dynamically reposition them, and **click-and-hold** to crumple the entire active network into a compressed celestial core that emerges into one of the 15 astronomical presets.
+- **Ambient Atmospheric Depth (`.cosmic-nebula-bg`)**:
+  - Injected globally in `apps/web/app/layout.tsx`. Seamlessly extends cinematic violet and indigo radial nebulas across all authenticated pages, eliminating flat-black voids while guaranteeing WCAG AAA contrast for financial data.
+- **Standardized Cosmic Design Tokens**:
+  - Void Black (`#080713`), Deep Space (`#100D20`), Nebula Surface (`#151126`), Elevated Card (`#1C1630`), Stellar Purple (`#8055E8`), Nebula Glow (`#A88AFF`), Success Teal (`#60C9BC`), Solar Amber (`#F0B85A`), Alert Red (`#F07889`).
+- **Hierarchical Authenticated Dashboards**:
+  - Upper tracked breadcrumbs (`OVERVIEW / ACCOUNTS`, `AUDITOR / COMPLIANCE LEDGER`, `ADMIN / USER ROLES & ACCESS CONTROL`).
+  - Dynamic time-of-day greetings (`Good evening, Admin.`).
+  - 2-column elevated KPI cards (`Total accounts`, `Transactions`).
+  - Glowing SVG financial activity curve with `Live` badge, area gradient fill, and milestone peak dot.
+  - Interactive **Transaction Inspection Drawer**: Slide-out panel surfacing double-entry debit/credit routing legs, zero-drift balance validation ($0.00 delta), and cryptographic SHA-256 integrity seal with one-click copy.
+
+---
+
 ## Architecture Flow
 
 ```
@@ -319,12 +339,12 @@ To maintain unbreakable core invariants, the following features were deliberatel
 This script provides an exact, step-by-step outline for recording the 5-minute technical demo:
 
 ### ⏱️ Minute 0:00 - 0:45: Introduction & HOLDER View
-- **Action**: Navigate to `http://localhost:3000/login`. Click **Login as Holder**.
-- **Dialogue**: *"Welcome to LedgerLine. We're logged in as `holder@ledgerline.dev`. On the dashboard, we see Account A with an initial balance of ₹10,000.00. Notice our security header: tokens are held strictly in memory with silent httpOnly refresh cookies."*
+- **Action**: Navigate to `http://localhost:3000/login`. Highlight the celestial constellation canvas and the compact 380px auth card. Click **Holder** quick-login chip.
+- **Dialogue**: *"Welcome to LedgerLine. Notice our distinctive Cosmic Finance visual identity with an interactive 72-star astronomical constellation canvas. We log in as `holder@ledgerline.dev`. On the dashboard, we see Account A holding ₹10,000.00 inside elevated cosmic cards with ambient nebula depth. Notice our security header: tokens are held strictly in memory with silent httpOnly refresh cookies."*
 
 ### ⏱️ Minute 0:45 - 1:30: Money Transfer & Ledger Posting
 - **Action**: Click **Transfer Funds** on Account A. Transfer ₹1,500.00 to Account B.
-- **Dialogue**: *"Every transfer automatically generates a UUIDv4 `Idempotency-Key` on the client. We submit the transfer. The transfer executes inside a single Serializable transaction with `SELECT ... FOR UPDATE` row locks. Account A balance instantly updates to ₹8,500.00. Clicking into the statement, we see the new `TRANSFER_DEBIT` entry with its running balance and transaction note."*
+- **Dialogue**: *"Every transfer automatically generates a UUIDv4 `Idempotency-Key` on the client. We submit the transfer. The transfer executes inside a single Serializable transaction with `SELECT ... FOR UPDATE` row locks. Account A balance instantly updates to ₹8,500.00. Clicking into the statement, we see the glowing Balance Trajectory ribbon and the new `TRANSFER_DEBIT` entry with its running balance and transaction note."*
 
 ### ⏱️ Minute 1:30 - 2:45: Concurrency Test (20 Parallel Overdraw Requests)
 - **Action**: Open terminal. Run `pnpm test:concurrency`.
@@ -334,19 +354,19 @@ This script provides an exact, step-by-step outline for recording the 5-minute t
 - **Action**: Open Chrome DevTools Network Tab. Copy the `Idempotency-Key` from the previous transfer. Make an identical POST request using cURL or re-submitting in browser with the same key.
 - **Dialogue**: *"Notice this transfer response. If a network partition occurs and the client retries with the exact same `Idempotency-Key`, our atomic `INSERT ... ON CONFLICT DO NOTHING` store detects the replay. The server returns HTTP 200 with the exact cached response body and `Idempotent-Replay: true` header. No second deduction occurred and no duplicate ledger row was written."*
 
-### ⏱️ Minute 3:30 - 4:15: AUDITOR View & Compliance Log
-- **Action**: Log out. Click **Login as Auditor** (`auditor@ledgerline.dev`). Navigate to **Audit Ledger** (`/admin/audit`).
-- **Dialogue**: *"Now we log in as the Auditor. Auditors have global read-only compliance access. In the Audit Ledger, we see all entries across all accounts in the entire system. Notice the green `POSTED` entries and the red `REFUSED` entries from our overdraw attempts. Our database trigger prevents any `UPDATE` or `DELETE` on this table — it is mathematically append-only."*
+### ⏱️ Minute 3:30 - 4:15: AUDITOR View, Cryptographic Drawer & Immutability
+- **Action**: Log out. Click **Auditor** quick-login. Navigate to **Audit Ledger** (`/admin/audit`). Click a transaction row to open the Transaction Inspection Drawer.
+- **Dialogue**: *"Now we log in as the Auditor. The navbar updates to the `AUDITOR CONSOLE`. In the Audit Ledger, we see all entries across all accounts in the entire system with `.cosmic-pill` status tags. Clicking any row opens our Transaction Inspection Drawer showing double-entry debit and credit routing, zero balance drift ($0.00 delta), and its SHA-256 cryptographic seal. Our database trigger prevents any `UPDATE` or `DELETE` on this table — it is mathematically append-only."*
 
-### ⏱️ Minute 4:15 - 5:00: Authorization Guard & Unauthorized Denial (403)
-- **Action**: In the Auditor session, attempt to access the transfer endpoint or send a cURL transfer request using the Auditor token or a Holder debiting an unowned account.
-- **Dialogue**: *"Finally, let's verify role enforcement. When an Auditor or unauthorized user attempts to debit an account they do not own, our server-side authorization guard and `transferService.ts` immediately block the request with HTTP 403 Forbidden. The application UI never acts as the sole security boundary."*
+### ⏱️ Minute 4:15 - 5:00: Authorization Guard & Admin Stress Lab
+- **Action**: Verify that the Auditor cannot transfer funds (HTTP 403). Log in as Admin (`admin@ledgerline.dev`), show the Admin Dashboard with its live purple financial activity curve, and trigger a live 25-request simulation in the **Stress Lab** (`/admin/stress-lab`).
+- **Dialogue**: *"Finally, let's verify role enforcement. When an Auditor or unauthorized user attempts to debit an account they do not own, our server-side authorization guard and `transferService.ts` immediately block the request with HTTP 403 Forbidden. On the Admin Console, our Stress Lab runs live concurrency bursts with real-time telemetry confirming 100% balance conservation across every transaction."*
 
 ---
 
 ## Threat Model & Security Specifications
 
-For the comprehensive 12-vector threat analysis, defense implementations, and residual risks, see [THREATS.md](file:///C:/Users/premn/LedgerLine/THREATS.md).
+For the comprehensive 23-vector threat analysis, defense implementations, and residual risks, see [THREATS.md](file:///C:/Users/premn/LedgerLine/THREATS.md).
 
 ---
 

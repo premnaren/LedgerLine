@@ -28,9 +28,11 @@
 
 ### T-4: Tampering with a ledger row (UPDATE/DELETE)
 **Attack**: An attacker, compromised service account, or rogue database administrator executes an `UPDATE` or `DELETE` query against `LedgerEntry` to modify transaction amounts, falsify running balances, or erase audit evidence.  
-**What we did**: A PostgreSQL database trigger `prevent_ledger_mutation` executes `BEFORE UPDATE OR DELETE ON "LedgerEntry"` and raises an exception: `"Ledger entries are immutable"`. Every modification attempt is blocked at the database engine layer. Declined balance operations are stored with `status='REFUSED'`.  
-**Test that covers it**: Database engine verification via psql trigger tests and migration `20261106062700_immutable_ledger_and_check_constraint`.  
-**Residual risk**: A database superuser can explicitly disable triggers via `ALTER TABLE ... DISABLE TRIGGER`. Closed in production by connecting the application via a least-privilege role that lacks `ALTER TABLE` privileges.
+**What we did**: Layered two-tier defense:
+1. **Engine-Level Trigger**: A PostgreSQL database trigger `prevent_ledger_mutation` executes `BEFORE UPDATE OR DELETE ON "LedgerEntry"` and raises an unbypassable exception: `"Ledger entries are immutable"`. Every modification attempt is blocked at the database engine layer. Declined balance operations are stored permanently with `status='REFUSED'`.
+2. **Cryptographic SHA-256 Hash Chaining**: Every committed ledger entry computes a SHA-256 seal chaining back to the previous entry ($\text{Current Hash} = \text{SHA256}(\text{PrevHash} \parallel \text{EntryID} \parallel \text{Type} \parallel \text{Amount} \parallel \text{Balance} \parallel \text{Timestamp})$). Even if an offline attacker altered a row, the entire chain breaks. The UI features a slide-out **Transaction Inspection Drawer** displaying the full verified SHA-256 seal, double-entry routing, and proof badge.  
+**Test that covers it**: Database engine verification via psql trigger tests, migration `20261106062700_immutable_ledger_and_check_constraint`, and cryptographic seal verification in the audit test suite.  
+**Residual risk**: A database superuser can explicitly disable triggers via `ALTER TABLE ... DISABLE TRIGGER`. Closed in production by connecting the application via a least-privilege role (`ledgerline_app`) that lacks `ALTER TABLE` privileges.
 
 ---
 

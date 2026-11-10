@@ -75,18 +75,21 @@ LedgerLine/
 │   ├── api/                       # Express + Prisma + PostgreSQL Backend
 │   │   ├── src/
 │   │   │   ├── config/db.ts       # Prisma Client singleton
-│   │   │   ├── middleware/        # JWT auth, roleGuard, atomic idempotency
-│   │   │   ├── routes/            # auth, accounts, transfers, statements
-│   │   │   ├── services/          # transferService.ts (Core ACID Engine)
+│   │   │   ├── middleware/        # JWT auth, roleGuard, atomic idempotency, Redis rateLimiter
+│   │   │   ├── routes/            # auth, accounts, transfers, statements, admin
+│   │   │   ├── services/          # transferService.ts (Core ACID Engine), reconciliationService.ts
 │   │   │   └── index.ts           # Express setup, /health check, BigInt JSON serializer
 │   │   ├── prisma/                # Schema, SQL migrations (triggers & CHECK constraints), seed
-│   │   └── tests/                 # Concurrency, conservation, idempotency, authz suites
-│   └── web/                       # Next.js 14 App Router + Tailwind CSS Frontend
-│       ├── app/                   # /login, /dashboard, /accounts/[id], /admin/audit
-│       ├── components/Navbar.tsx  # User info, role badge, session management
+│   │   └── tests/                 # Concurrency, conservation, idempotency, authz, chaos suites
+│   └── web/                       # Next.js 14 App Router + Cosmic Finance Design System
+│       ├── app/                   # /login, /dashboard, /accounts/[id], /admin/audit, /admin/users, /admin/stress-lab
+│       ├── components/            # CosmicConstellation.tsx, Navbar.tsx, TransactionDrawer.tsx
+│       ├── tailwind.config.js     # Cosmic tokens (void-black, stellar-purple, nebula-glow, etc.)
 │       └── lib/                   # api.ts (typed fetch), auth.ts (in-memory JWT store)
-├── THREATS.md                     # Comprehensive 12-threat attack vector analysis
+├── scripts/                       # bootstrap-admin.ts, setup-db-roles.sql
+├── THREATS.md                     # Comprehensive 23-threat attack vector analysis
 ├── PROMPTS.md                     # Step-by-step engineering decision diary
+├── MASTER_ARCHITECTURE_AND_WALKTHROUGH.md # Full architecture & design walkthrough
 ├── docker-compose.yml             # Local PostgreSQL 16 container
 └── README.md                      # Public documentation, diagrams, live deployment
 ```
@@ -132,16 +135,18 @@ pnpm dev:web
 
 ### Step 1: Login as HOLDER
 1. Open browser to `http://localhost:3000/login`.
-2. Point out the quick-login buttons: Click **Login as Holder** (`holder@ledgerline.dev`).
-3. **What to say**: *"Notice our security architecture: JWT access tokens are stored strictly in JavaScript module memory—never in `localStorage` or `cookies` where they could be stolen via Cross-Site Scripting (XSS). Silent refresh is handled via secure httpOnly cookies."*
-4. On `/dashboard`, show Account A holding **₹10,000.00** (1,000,000 paise).
+2. Highlight the **Cosmic Finance** visual composition: the interactive 72-star astronomical constellation canvas on the right, the deep planetary nebula background, and the compact 380px authentication card on the left.
+3. Show the interactive star canvas: click anywhere to spawn a star, drag a star to reposition it, or click and hold to fold the network into a celestial core that reveals real constellation patterns (e.g. Orion, Cassiopeia, Cygnus).
+4. Point out the one-click demo pills: Click **Holder** (`holder@ledgerline.dev`).
+5. **What to say**: *"Notice our security architecture: JWT access tokens are stored strictly in JavaScript module memory—never in `localStorage` or `cookies` where they could be stolen via Cross-Site Scripting (XSS). Silent refresh is handled via secure httpOnly cookies."*
+6. On `/dashboard`, show Account A holding **₹10,000.00** (1,000,000 paise) under the tracked `OVERVIEW / ACCOUNTS` breadcrumb and elevated `.cosmic-card` containers.
 
 ### Step 2: Perform a Money Transfer
 1. Click **Transfer Funds** on Account A.
 2. Enter recipient Account ID: `acc-admin-b` (or Account B), amount: `1500`, note: `Payment for services`.
 3. Submit the form.
 4. **What to say**: *"The client generated a UUIDv4 idempotency key. In the backend, `transferService.ts` locked both account rows in ascending order, checked available funds inside the transaction, updated both accounts, and appended an immutable ledger entry. Account A's balance instantly updated to ₹8,500.00."*
-5. Click **View Statement** to show the new `TRANSFER_DEBIT` entry with its updated running balance.
+5. Click **View Statement** to navigate to `/accounts/[id]`. Highlight the **Balance Trajectory Ribbon**: hover across the glowing purple history curve to inspect every balance transition without layout shift. In the table below, point out the new `TRANSFER_DEBIT` entry with its updated running balance.
 
 ### Step 3: Run the Concurrency Overdraw Test (The "Killer" Feature)
 1. Switch to your terminal. Run:
@@ -158,14 +163,32 @@ pnpm dev:web
 4. Re-send the exact same request payload with the identical `Idempotency-Key` (via cURL or browser).
 5. **What to say**: *"The server detects the key, skips executing any money logic, does not create a duplicate ledger entry, and immediately returns the cached response with the `Idempotent-Replay: true` header."*
 
-### Step 5: Login as AUDITOR & Show Immutability
+### Step 5: Login as AUDITOR & Show Immutability & Cryptographic Drawer
 1. Log out. Click **Login as Auditor** (`auditor@ledgerline.dev`).
-2. Navigate to **Audit Ledger** (`/admin/audit`).
-3. **What to say**: *"Auditors have global read-only compliance access across all accounts. Notice that our audit log displays both successful `POSTED` transactions and failed `REFUSED` attempts with full timestamps and actor IDs. Furthermore, our database has a trigger `prevent_ledger_mutation`—if any attacker attempts an `UPDATE` or `DELETE` on `LedgerEntry`, PostgreSQL aborts the query."*
+2. Notice the navbar badge updates to `AUDITOR CONSOLE`. Navigate to **Audit Ledger** (`/admin/audit`).
+3. Point out the `AUDITOR / COMPLIANCE LEDGER` breadcrumb, summary metric cards, and `.cosmic-pill` status tags (`#60C9BC` for POSTED, `#F07889` for REFUSED).
+4. Click on any ledger entry row to trigger the **Transaction Inspection Drawer**:
+   * Inspect the verified double-entry routing legs (debit vs. credit).
+   * Verify the zero-drift ledger balance impact ($0.00 net delta).
+   * Show the SHA-256 cryptographic seal chaining back to the genesis block with the one-click copy button and verified green badge.
+5. **What to say**: *"Auditors have global read-only compliance access across all accounts. Notice that our audit log displays both successful `POSTED` transactions and failed `REFUSED` attempts with full timestamps, actor IDs, and cryptographic SHA-256 hashes. Furthermore, our database has a trigger `prevent_ledger_mutation`—if any attacker attempts an `UPDATE` or `DELETE` on `LedgerEntry`, PostgreSQL aborts the query."*
 
 ### Step 6: Show Authorization Defense (HTTP 403)
 1. Show that as `AUDITOR`, attempting to make a transfer or access money-moving forms is completely blocked.
 2. If an unauthorized user attempts to debit an account they do not own, the API immediately returns `HTTP 403 Forbidden`.
+
+### Step 7: Login as ADMIN & Demonstrate Stress Lab and User Management
+1. Log out. Click **Login as Admin** (`admin@ledgerline.dev`).
+2. Show the **Admin Dashboard** (`/dashboard`):
+   * Uppercase `ADMIN CONSOLE` pill.
+   * Dynamic greeting (`Good evening, Admin.`).
+   * Elevated KPI cards (`Total accounts`, `Transactions`).
+   * Glowing SVG financial activity curve with `Live` badge, area gradient fill, and active milestone dot.
+3. Navigate to **Stress Lab** (`/admin/stress-lab`):
+   * Run a live 25-request concurrency burst. Show the live execution feedback, TPS counters, and the green `100% Conserved` invariant badge.
+4. Navigate to **User Management** (`/admin/users`):
+   * Show the 3 role architecture explainer cards (`ADMIN` Stellar Purple, `HOLDER` Success Teal, `AUDITOR` Solar Amber).
+   * Demonstrate the user onboarding modal with atomic operating ledger creation and dynamic role modification.
 
 ---
 
@@ -308,13 +331,15 @@ When asked about future roadmap or trade-offs, explain these deliberate design b
 |                             LEDGERLINE AT A GLANCE                            |
 +-------------------------------------------------------------------------------+
 | Tech Stack      | Express + TypeScript + PostgreSQL 16 + Prisma + Next.js 14  |
+| Design System   | Cosmic Finance: Orbital geometry, deep-space glow, 72 stars |
 | Currency Unit   | Integer Paise / Pence (BIGINT) - Zero float rounding loss   |
 | Concurrency     | SERIALIZABLE isolation + SELECT ... FOR UPDATE (id ASC)     |
 | Immutability    | PostgreSQL trigger: prevent_ledger_mutation() (No UPDATE/DEL|
 | Idempotency     | Atomic INSERT ... ON CONFLICT DO NOTHING (Zero race window) |
 | Balance Guard   | Code check + PostgreSQL CHECK ("balancePence" >= -limit)    |
 | Security & Auth | JWT in-memory store + httpOnly refresh cookie + Role Guards |
-| Test Coverage   | 21/21 tests passing: 20-thread concurrency, conservation    |
+| Rate Limiting   | Distributed Redis / in-memory fallback (30 req/min/user)    |
+| Test Coverage   | 39/39 tests passing: 20-thread concurrency, chaos, authz    |
 +-------------------------------------------------------------------------------+
 ```
 
