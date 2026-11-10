@@ -131,13 +131,13 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
 
   if (loading) {
     return (
-      <div className="bg-surface border border-rule rounded-lg p-5 space-y-3 animate-pulse shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="h-4 w-32 bg-rule/50 rounded" />
+      <div className="p-5 space-y-3 rounded-lg border animate-pulse bg-surface border-rule shadow-xs">
+        <div className="flex justify-between items-center">
+          <div className="w-32 h-4 rounded bg-rule/50" />
           <div className="h-3.5 w-20 bg-rule/40 rounded" />
         </div>
-        <div className="h-52 bg-surface-secondary/70 border border-dashed border-rule rounded-lg flex items-center justify-center">
-          <span className="mono-num text-xs text-ink-faint">Loading balance history stream...</span>
+        <div className="flex justify-center items-center h-52 rounded-lg border border-dashed bg-surface-secondary/70 border-rule">
+          <span className="text-xs mono-num text-ink-faint">Loading balance history stream...</span>
         </div>
       </div>
     );
@@ -165,11 +165,11 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
   };
 
   return (
-    <div className="cosmic-card p-6 space-y-4 shadow-xs">
+    <div className="p-6 space-y-4 cosmic-card shadow-xs">
       {/* Header bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2.5">
-          <span className="text-xs text-ink font-semibold">Balance trajectory</span>
+          <span className="text-xs font-semibold text-ink">Balance trajectory</span>
           <span className="text-xs text-ink-muted">·</span>
           <span className="text-xs mono-num text-ink-muted">
             {coords.length} {coords.length === 1 ? 'record' : 'records'}
@@ -185,7 +185,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
       {/* Fixed-Height Scrubbing Ribbon (Guarantees ZERO layout shift / zero glitching on hover) */}
       <div className="min-h-[44px] h-[44px] bg-surface-secondary border border-rule rounded-xl px-4 flex items-center justify-between text-xs transition">
         {activePt ? (
-          <div className="flex items-center justify-between w-full gap-3">
+          <div className="flex gap-3 justify-between items-center w-full">
             <div className="flex items-center space-x-2 min-w-0">
               <span
                 className="w-2 h-2 rounded-full shrink-0"
@@ -202,7 +202,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
                 {activePt.entry.note || activePt.entry.type}
               </span>
               <span className="text-ink-muted">·</span>
-              <span className="mono-num text-xs text-ink-muted whitespace-nowrap">
+              <span className="text-xs whitespace-nowrap mono-num text-ink-muted">
                 {new Date(activePt.entry.createdAt).toLocaleString('en-IN', {
                   month: 'short',
                   day: 'numeric',
@@ -212,7 +212,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
               </span>
             </div>
 
-            <div className="flex items-center space-x-3 mono-num ml-auto shrink-0">
+            <div className="flex items-center ml-auto space-x-3 mono-num shrink-0">
               <span
                 className={`font-semibold ${
                   activePt.entry.status === 'REFUSED'
@@ -235,7 +235,7 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between w-full text-ink-muted">
+          <div className="flex justify-between items-center w-full text-ink-muted">
             <span className="flex items-center gap-1.5 text-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <span>Hover anywhere across the chart to inspect balance transitions</span>
@@ -248,10 +248,10 @@ function BalanceHistoryChart({ entries, loading }: { entries?: StatementEntry[];
       </div>
 
       {/* SVG Canvas with Generous Breathing Room */}
-      <div className="w-full relative">
+      <div className="relative w-full">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-52 overflow-visible select-none cursor-crosshair"
+          className="overflow-visible w-full h-52 select-none cursor-crosshair"
           preserveAspectRatio="none"
           onMouseMove={handleSvgMouseMove}
           onMouseLeave={() => setHoveredIdx(null)}
@@ -525,20 +525,20 @@ export default function AccountStatementPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="pb-12 mx-auto space-y-6 max-w-7xl">
       {/* Header */}
       <div className="space-y-1">
         <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
           ACCOUNTS / STATEMENT
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-rule">
+        <div className="flex flex-col gap-4 pb-4 border-b sm:flex-row sm:items-center sm:justify-between border-rule">
           <div className="flex items-center space-x-3">
             <Link
               href="/dashboard"
               className="p-2.5 border border-rule rounded-xl text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable bg-surface shadow-xs"
               title="Back to accounts"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
               <div className="flex items-center space-x-2">
@@ -549,19 +549,19 @@ export default function AccountStatementPage() {
                   {accountId.slice(0, 10)}...
                 </span>
               </div>
-              <p className="text-xs text-ink-muted mt-1">
+              <p className="mt-1 text-xs text-ink-muted">
                 Append-only audit trail with immutable balance tracking &amp; cryptographic seals.
               </p>
             </div>
           </div>
 
           {statement && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="text-right mr-2">
-                <span className="text-xs text-ink-muted font-medium block">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="mr-2 text-right">
+                <span className="block text-xs font-medium text-ink-muted">
                   Current balance
                 </span>
-                <span className="mono-num text-2xl sm:text-3xl font-bold text-ink">
+                <span className="text-2xl font-bold mono-num sm:text-3xl text-ink">
                   {formatPaiseToRupees(statement.balancePence)}
                 </span>
               </div>
@@ -593,7 +593,7 @@ export default function AccountStatementPage() {
 
       {error && (
         <div className="p-3.5 bg-paper border border-ledger-red rounded flex items-center space-x-3 text-ledger-red text-xs">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <p>{error}</p>
         </div>
       )}
@@ -601,7 +601,7 @@ export default function AccountStatementPage() {
       {reversalSuccess && (
         <div className="p-3.5 bg-paper border border-ledger-green rounded flex items-center justify-between text-ledger-green text-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <p>{reversalSuccess}</p>
           </div>
           <button
@@ -621,10 +621,10 @@ export default function AccountStatementPage() {
       ) : null}
 
       {/* Statement Table */}
-      <div className="cosmic-card overflow-hidden shadow-xs">
+      <div className="overflow-hidden cosmic-card shadow-xs">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-rule text-xs">
-            <thead className="sticky top-0 bg-surface-secondary text-ink font-semibold border-b border-rule z-10">
+          <table className="min-w-full text-xs divide-y divide-rule">
+            <thead className="sticky top-0 z-10 font-semibold border-b bg-surface-secondary text-ink border-rule">
               <tr>
                 <th scope="col" className="px-5 py-3.5 text-left font-semibold">
                   Date &amp; time
@@ -687,7 +687,7 @@ export default function AccountStatementPage() {
                       onClick={() => setInspectedEntry(entry as any)}
                       className={`cursor-pointer transition ${
                         isInspected
-                          ? 'bg-primary/10 ring-1 ring-primary/40 font-medium'
+                          ? 'font-medium ring-1 bg-primary/10 ring-primary/40'
                           : 'hover:bg-surface-secondary'
                       }`}
                       title="Click row to inspect cryptographic seal & double-entry details"
@@ -697,7 +697,7 @@ export default function AccountStatementPage() {
                       </td>
 
                       <td className="px-5 py-3 whitespace-nowrap">
-                        <span className="mono-num text-xs text-ink font-semibold">
+                        <span className="text-xs font-semibold mono-num text-ink">
                           {entry.type}
                         </span>
                       </td>
@@ -716,7 +716,7 @@ export default function AccountStatementPage() {
                       </td>
 
                       {/* Status Column */}
-                      <td className="px-5 py-3 whitespace-nowrap text-center">
+                      <td className="px-5 py-3 text-center whitespace-nowrap">
                         <span
                           className={`cosmic-pill ${
                             isPosted
@@ -734,7 +734,7 @@ export default function AccountStatementPage() {
                         </span>
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-right mono-num font-semibold text-ink">
+                      <td className="px-5 py-3 font-semibold text-right whitespace-nowrap mono-num text-ink">
                         {formatPaiseToRupees(entry.runningBalance)}
                       </td>
 
@@ -742,11 +742,11 @@ export default function AccountStatementPage() {
                         {entry.initiatedBy?.email || 'System'}
                       </td>
 
-                      <td className="px-5 py-3 text-ink-muted max-w-xs truncate">
+                      <td className="px-5 py-3 max-w-xs truncate text-ink-muted">
                         {entry.note || '—'}
                       </td>
 
-                      <td className="px-5 py-3 whitespace-nowrap text-right">
+                      <td className="px-5 py-3 text-right whitespace-nowrap">
                         {user?.role === 'ADMIN' && isPosted && entry.type !== 'ADJUSTMENT' ? (
                           <button
                             onClick={(e) => {
@@ -758,11 +758,11 @@ export default function AccountStatementPage() {
                             className="inline-flex items-center px-2.5 py-1 border border-rule rounded text-xs text-ink-muted hover:text-ink hover:bg-rule/30 transition"
                             title="Execute compensating-entry reversal"
                           >
-                            <RotateCcw className="mr-1 h-3 w-3" />
+                            <RotateCcw className="mr-1 w-3 h-3" />
                             Reverse
                           </button>
                         ) : entry.type === 'ADJUSTMENT' ? (
-                          <span className="text-ink-muted mono-num text-xs">Compensating leg</span>
+                          <span className="text-xs text-ink-muted mono-num">Compensating leg</span>
                         ) : (
                           <span className="text-ink-muted">—</span>
                         )}
@@ -776,7 +776,7 @@ export default function AccountStatementPage() {
         </div>
 
         {/* Pagination Footer: Plain text-sm text-ink-muted with chevron icons */}
-        <div className="px-5 py-3 bg-paper border-t border-rule flex items-center justify-between">
+        <div className="flex justify-between items-center px-5 py-3 border-t bg-paper border-rule">
           <span className="text-xs text-ink-muted mono-num">
             Page {currentPageIndex + 1}
           </span>
@@ -785,19 +785,19 @@ export default function AccountStatementPage() {
             <button
               onClick={handlePreviousPage}
               disabled={currentPageIndex === 0 || loading}
-              className="inline-flex items-center text-xs text-ink-muted hover:text-ink disabled:opacity-40 disabled:pointer-events-none transition"
+              className="inline-flex items-center text-xs transition text-ink-muted hover:text-ink disabled:opacity-40 disabled:pointer-events-none"
             >
-              <ChevronLeft className="mr-1 h-4 w-4" />
+              <ChevronLeft className="mr-1 w-4 h-4" />
               <span>Previous</span>
             </button>
 
             <button
               onClick={handleNextPage}
               disabled={!statement?.hasMore || loading}
-              className="inline-flex items-center text-xs text-ink-muted hover:text-ink disabled:opacity-40 disabled:pointer-events-none transition"
+              className="inline-flex items-center text-xs transition text-ink-muted hover:text-ink disabled:opacity-40 disabled:pointer-events-none"
             >
               <span>Next</span>
-              <ChevronRight className="ml-1 h-4 w-4" />
+              <ChevronRight className="ml-1 w-4 h-4" />
             </button>
           </div>
         </div>
@@ -805,9 +805,9 @@ export default function AccountStatementPage() {
 
       {/* Account Double-Entry Reconciliation Modal */}
       {showReconcileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-lg border border-rule max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-rule">
+        <div className="flex fixed inset-0 z-50 justify-center items-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="p-6 space-y-4 w-full max-w-lg rounded-lg border shadow-xl bg-surface border-rule">
+            <div className="flex justify-between items-center pb-3 border-b border-rule">
               <div>
                 <h3 className="text-sm font-semibold text-ink">
                   Account reconciliation proof
@@ -833,19 +833,19 @@ export default function AccountStatementPage() {
 
             <div className="py-2">
               {reconcileLoading ? (
-                <div className="py-6 text-center text-xs text-ink-muted">
+                <div className="py-6 text-xs text-center text-ink-muted">
                   Aggregating all immutable ledger credits and debits...
                 </div>
               ) : reconcileResult ? (
                 <div className="space-y-3 text-xs">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-paper border border-rule rounded">
+                    <div className="p-3 rounded border bg-paper border-rule">
                       <span className="text-[11px] text-ink-muted block">Total posted credits</span>
                       <span className="mono-num text-sm font-medium text-ledger-green mt-0.5 block">
                         +{formatPaiseToRupees(reconcileResult.totalCreditsPence)}
                       </span>
                     </div>
-                    <div className="p-3 bg-paper border border-rule rounded">
+                    <div className="p-3 rounded border bg-paper border-rule">
                       <span className="text-[11px] text-ink-muted block">Total posted debits</span>
                       <span className="mono-num text-sm font-medium text-ledger-red mt-0.5 block">
                         -{formatPaiseToRupees(reconcileResult.totalDebitsPence)}
@@ -856,13 +856,13 @@ export default function AccountStatementPage() {
                   <div className="p-3 bg-paper border border-rule rounded space-y-1.5">
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Computed net ledger:</span>
-                      <span className="mono-num font-medium text-ink">{formatPaiseToRupees(reconcileResult.computedBalance)}</span>
+                      <span className="font-medium mono-num text-ink">{formatPaiseToRupees(reconcileResult.computedBalance)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Stored account balance:</span>
-                      <span className="mono-num font-medium text-ink">{formatPaiseToRupees(reconcileResult.storedBalance)}</span>
+                      <span className="font-medium mono-num text-ink">{formatPaiseToRupees(reconcileResult.storedBalance)}</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t border-rule font-medium">
+                    <div className="flex justify-between pt-1 font-medium border-t border-rule">
                       <span className="text-ink">Discrepancy:</span>
                       <span className="mono-num text-ledger-green">{formatPaiseToRupees(reconcileResult.discrepancyPence)}</span>
                     </div>

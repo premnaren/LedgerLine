@@ -10,11 +10,13 @@
     "test:chaos": "pnpm --filter api test:chaos",
     "prisma:generate": "pnpm --filter api prisma:generate",
     "prisma:migrate": "pnpm --filter api prisma:migrate",
+    "prisma:deploy": "pnpm --filter api prisma:deploy",
     "prisma:seed": "pnpm --filter api prisma:seed",
     "bootstrap:admin": "node scripts/run-bootstrap.js",
     "db:bootstrap": "node scripts/run-bootstrap.js",
     "db:generate": "pnpm --filter api prisma:generate",
     "db:migrate": "pnpm --filter api prisma:migrate",
+    "db:deploy": "pnpm --filter api prisma:deploy",
     "db:seed": "pnpm --filter api prisma:seed"
   },
   "packageManager": "pnpm@9.1.0",
