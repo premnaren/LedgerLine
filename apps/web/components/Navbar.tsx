@@ -1,21 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getUser, logoutUser, subscribeAuth, UserSession } from '@/lib/auth';
-import {
-  Layers,
-  BookOpen,
-  Zap,
-  Search,
-  LogOut,
-  Menu,
-  X,
-} from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import CommandPalette from './CommandPalette';
 import ThemeToggle from './ThemeToggle';
 import { getTheme, setTheme, subscribeTheme, Theme } from '@/lib/theme';
+
+interface NavItem {
+  name: string;
+  href: string;
+  match: (path: string) => boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    name: 'Accounts',
+    href: '/dashboard',
+    match: (path: string) => path === '/dashboard' || path.startsWith('/accounts'),
+  },
+  {
+    name: 'Audit Ledger',
+    href: '/admin/audit',
+    match: (path: string) => path.startsWith('/admin/audit'),
+  },
+  {
+    name: 'Stress Lab',
+    href: '/admin/stress-lab',
+    match: (path: string) => path.startsWith('/admin/stress-lab'),
+  },
+  {
+    name: 'Users',
+    href: '/admin/users',
+    match: (path: string) => path.startsWith('/admin/users'),
+  },
+];
 
 export default function Navbar() {
   const [user, setUserState] = useState<UserSession | null>(null);
@@ -23,6 +44,19 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setCurrentTheme] = useState<Theme>('light');
   const pathname = usePathname();
+
+  // Sliding indicator state
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const navRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState<{
+    left: number;
+    width: number;
+    opacity: number;
+  }>({
+    left: 0,
+    width: 0,
+    opacity: 0,
+  });
 
   useEffect(() => {
     setUserState(getUser());
@@ -44,6 +78,32 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  // Determine active index
+  const activeIdx = Math.max(
+    0,
+    NAV_ITEMS.findIndex((item) => item.match(pathname))
+  );
+
+  const currentIdx = hoveredIdx !== null ? hoveredIdx : activeIdx;
+
+  // Reposition sliding indicator on index change or resize
+  useEffect(() => {
+    const updateIndicator = () => {
+      const el = navRefs.current[currentIdx];
+      if (el) {
+        setIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [currentIdx, pathname]);
+
   if (pathname === '/login') {
     return null;
   }
@@ -52,242 +112,159 @@ export default function Navbar() {
     setTheme(isDark ? 'dark' : 'light');
   };
 
-  const getRoleColor = (role?: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'var(--role-admin)';
-      case 'AUDITOR':
-        return 'var(--role-auditor)';
-      case 'HOLDER':
-      default:
-        return 'var(--role-holder)';
-    }
-  };
-
-  const roleColor = getRoleColor(user?.role);
-
   return (
     <>
-      <header className="glass-chrome sticky top-0 z-40 border-b border-rule">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Logo & Navigation Items */}
-          <div className="flex items-center space-x-6">
+      <header className="sticky top-0 z-40 w-full border-b glass-chrome border-rule bg-surface/80 backdrop-blur-md">
+        <div className="grid items-center w-full h-16 px-4 grid-cols-2 md:grid-cols-3 sm:px-6 lg:px-8">
+          {/* Left — Brand Identity (Absolute Left Corner) */}
+          <div className="flex items-center justify-start">
             <Link
               href="/dashboard"
-              className="flex items-center space-x-2.5 pressable focus:outline-hidden"
+              className="flex items-center py-1 space-x-2.5 rounded-lg pressable focus:outline-hidden focus:ring-1 focus:ring-primary/40"
+              title="LedgerLine Home"
             >
-              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-surface border border-rule text-primary shadow-xs">
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg border bg-surface border-rule text-primary shadow-xs">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="12" cy="12" r="3.5" fill="currentColor" fillOpacity="0.9" />
                   <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-30 12 12)" stroke="currentColor" strokeWidth="1.5" strokeDasharray="32 6" />
                   <circle cx="19" cy="8" r="1.5" fill="#A88AFF" />
                 </svg>
               </div>
-              <span className="font-bold text-lg tracking-tight text-ink flex items-center gap-0.5">
+              <span className="flex items-center text-lg font-bold tracking-tight text-ink gap-0.5">
                 Ledger<span className="text-primary">Line</span>
               </span>
             </Link>
+          </div>
 
+          {/* Center — Primary Navigation (Centered Relative to Viewport) */}
+          <div className="items-center justify-center hidden md:flex">
             {user && (
-              <nav className="hidden md:flex items-center space-x-1.5">
-                <Link
-                  href="/dashboard"
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition pressable ${
-                    pathname === '/dashboard'
-                      ? 'bg-primary text-white shadow-xs'
-                      : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
-                  }`}
-                >
-                  Accounts
-                </Link>
+              <nav
+                className="relative flex items-center p-1 border rounded-xl bg-surface-secondary/70 border-rule/60 backdrop-blur-md shadow-xs"
+                onMouseLeave={() => setHoveredIdx(null)}
+                aria-label="Primary Navigation"
+              >
+                {/* Smooth Sliding Hover/Active Highlight Indicator */}
+                <div
+                  className="absolute top-1 bottom-1 rounded-lg pointer-events-none transition-all duration-200 ease-out"
+                  style={{
+                    left: `${indicatorStyle.left}px`,
+                    width: `${indicatorStyle.width}px`,
+                    opacity: indicatorStyle.opacity,
+                    background: 'rgba(128, 85, 232, 0.12)',
+                    border: '1px solid rgba(168, 138, 255, 0.22)',
+                    boxShadow: '0 0 14px rgba(128, 85, 232, 0.12)',
+                  }}
+                />
 
-                {(user.role === 'ADMIN' || user.role === 'AUDITOR') && (
-                  <Link
-                    href="/admin/audit"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
-                      pathname === '/admin/audit'
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
-                    }`}
-                  >
-                    <BookOpen className="h-3.5 w-3.5" />
-                    <span>Audit ledger</span>
-                  </Link>
-                )}
+                {NAV_ITEMS.map((item, index) => {
+                  const isActive = activeIdx === index;
+                  const isHovered = hoveredIdx === index;
 
-                {user.role === 'ADMIN' && (
-                  <Link
-                    href="/admin/stress-lab"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
-                      pathname === '/admin/stress-lab'
-                        ? 'bg-[#F0B85A] text-[#080713] font-bold shadow-xs'
-                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
-                    }`}
-                  >
-                    <Zap className="h-3.5 w-3.5" />
-                    <span>Stress lab</span>
-                  </Link>
-                )}
-
-                {user.role === 'ADMIN' && (
-                  <Link
-                    href="/admin/users"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight flex items-center space-x-1.5 transition pressable ${
-                      pathname === '/admin/users'
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
-                    }`}
-                  >
-                    <span>Users</span>
-                  </Link>
-                )}
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      ref={(el) => {
+                        navRefs.current[index] = el;
+                      }}
+                      onMouseEnter={() => setHoveredIdx(index)}
+                      className={`relative z-10 px-3.5 py-1.5 text-xs tracking-tight transition-colors duration-150 rounded-lg flex items-center space-x-1.5 focus:outline-hidden focus:ring-1 focus:ring-primary/40 ${
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : isHovered
+                          ? 'text-ink font-medium'
+                          : 'text-ink-muted hover:text-ink font-medium'
+                      }`}
+                    >
+                      <span>{item.name}</span>
+                      {isActive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 animate-pulse" />
+                      )}
+                    </Link>
+                  );
+                })}
               </nav>
             )}
           </div>
 
-          {/* Quick Search & Profile */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Quick ⌘K Button */}
-            <button
-              onClick={() => setIsCommandOpen(true)}
-              className="hidden sm:inline-flex items-center space-x-2 px-3 py-1.5 bg-surface hover:bg-surface-secondary border border-rule rounded-lg text-xs text-ink-muted transition pressable shadow-xs"
-              title="Search commands, accounts, and actions"
-            >
-              <Search className="h-3.5 w-3.5 text-ink-faint" />
-              <span className="font-medium text-ink-muted">Quick actions</span>
-              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] mono-num text-ink-faint bg-paper border border-rule rounded">
-                ⌘K
-              </kbd>
-            </button>
-
-            {/* Theme Toggle Button */}
-            <div className="flex items-center">
-              <ThemeToggle
-                isDark={theme === 'dark'}
-                onToggle={handleToggleTheme}
-              />
-            </div>
+          {/* Right — Utility Controls (Far Right Corner) */}
+          <div className="flex items-center justify-end space-x-2 sm:space-x-3">
+            {/* Compact Theme Toggle */}
+            <ThemeToggle
+              compact
+              isDark={theme === 'dark'}
+              onToggle={handleToggleTheme}
+            />
 
             {user && (
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                {/* Role Console Badge */}
-                <span className="cosmic-pill hidden sm:inline-flex text-ink-muted">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: roleColor }} />
-                  {user.role} CONSOLE
-                </span>
-
-                <span className="text-xs text-ink-faint mono-num hidden lg:inline">
-                  {user.email}
-                </span>
-
+              <>
+                {/* Logout Control (Positioned at Far-Right End) */}
                 <button
                   onClick={() => logoutUser()}
-                  className="hidden sm:inline-flex p-1.5 rounded-lg text-ink-faint hover:text-ink hover:bg-surface-secondary transition pressable"
-                  title="Sign out"
+                  className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-rule/70 bg-surface/60 hover:bg-surface-secondary text-ink-muted hover:text-ledger-red transition duration-200 pressable text-xs font-medium focus:outline-hidden focus:ring-1 focus:ring-primary/40 shadow-xs"
+                  title="Sign out of LedgerLine"
                   aria-label="Sign out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign out</span>
                 </button>
 
-                {/* Mobile Menu Hamburger Toggle */}
+                {/* Mobile Hamburger Toggle for Small Screens */}
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-                  className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable md:hidden"
+                  className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-surface-secondary transition pressable md:hidden focus:outline-hidden focus:ring-1 focus:ring-primary/40"
                   aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
                   aria-expanded={isMobileMenuOpen}
                 >
-                  {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* Mobile Navigation Dropdown Drawer */}
+        {/* Responsive Mobile Drawer */}
         {user && isMobileMenuOpen && (
-          <div className="md:hidden border-t border-rule bg-paper px-4 py-4 space-y-3">
-            <div className="space-y-1">
-              <Link
-                href="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded text-sm font-medium tracking-tight transition pressable ${
-                  pathname === '/dashboard'
-                    ? 'bg-ink text-paper'
-                    : 'text-ink-muted hover:bg-rule/40'
-                }`}
-              >
-                <span>Accounts</span>
-                <span className="text-xs text-ink-faint">Overview</span>
-              </Link>
-
-              {(user.role === 'ADMIN' || user.role === 'AUDITOR') && (
+          <div className="px-4 py-3 space-y-1 border-t md:hidden border-rule bg-surface/95 backdrop-blur-md">
+            {NAV_ITEMS.map((item, index) => {
+              const isActive = activeIdx === index;
+              return (
                 <Link
-                  href="/admin/audit"
+                  key={item.name}
+                  href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded text-sm font-medium tracking-tight transition pressable ${
-                    pathname === '/admin/audit'
-                      ? 'bg-ink text-paper'
-                      : 'text-ink-muted hover:bg-rule/40'
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-semibold tracking-tight transition pressable ${
+                    isActive
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-ink-muted hover:text-ink hover:bg-surface-secondary'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <BookOpen className="h-4 w-4 text-ink-faint" />
-                    <span>Audit ledger</span>
-                  </div>
-                  <span className="text-xs text-ink-faint mono-num">SHA-256</span>
+                  <span>{item.name}</span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                  )}
                 </Link>
-              )}
-
-              {user.role === 'ADMIN' && (
-                <Link
-                  href="/admin/stress-lab"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded text-sm font-medium tracking-tight transition pressable ${
-                    pathname === '/admin/stress-lab'
-                      ? 'bg-ink text-paper'
-                      : 'text-ink-muted hover:bg-rule/40 border border-rule'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Zap className="h-4 w-4 text-accent" />
-                    <span>Stress lab</span>
-                  </div>
-                  <span className="text-xs mono-num font-medium text-ink-muted">ACID</span>
-                </Link>
-              )}
-            </div>
-
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                setIsCommandOpen(true);
-              }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 bg-paper hover:bg-rule/40 border border-rule rounded text-xs text-ink-muted transition pressable"
-            >
-              <div className="flex items-center space-x-2">
-                <Search className="h-4 w-4 text-ink-faint" />
-                <span className="font-medium text-ink">Quick actions</span>
-              </div>
-              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] mono-num text-ink-faint bg-paper border border-rule rounded">
-                ⌘K
-              </kbd>
-            </button>
-
-            <div className="pt-2 border-t border-rule flex items-center justify-between text-xs text-ink-muted">
-              <span className="mono-num truncate">{user.email}</span>
+              );
+            })}
+            <div className="flex justify-end pt-2 mt-2 border-t border-rule">
               <button
-                onClick={() => logoutUser()}
-                className="font-medium text-ledger-red hover:underline p-1 pressable"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logoutUser();
+                }}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-medium text-ledger-red hover:bg-surface-secondary transition pressable"
               >
-                Sign out
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign out</span>
               </button>
             </div>
           </div>
         )}
       </header>
 
-      {/* Global Command Palette */}
+      {/* Global Command Palette (Keyboard shortcuts preserved) */}
       <CommandPalette
         isOpen={isCommandOpen}
         onClose={() => setIsCommandOpen(false)}

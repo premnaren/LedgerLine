@@ -1,16 +1,41 @@
 'use client';
 
 import React from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 interface ThemeToggleProps {
   className?: string;
   isDark: boolean;
   onToggle: (nextDark: boolean) => void;
+  compact?: boolean;
 }
 
-export default function ThemeToggle({ className, isDark, onToggle }: ThemeToggleProps) {
+export default function ThemeToggle({
+  className = '',
+  isDark,
+  onToggle,
+  compact = false,
+}: ThemeToggleProps) {
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggle(!isDark)}
+        className={`relative inline-flex items-center justify-center w-8 h-8 rounded-lg border border-rule/70 bg-surface/60 hover:bg-surface-secondary text-ink-muted hover:text-ink transition-all duration-200 pressable shadow-xs focus:outline-none focus:ring-1 focus:ring-primary/40 ${className}`}
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        {isDark ? (
+          <Sun className="w-4 h-4 text-[#F0B85A] transition-transform duration-200 rotate-0 hover:rotate-45" />
+        ) : (
+          <Moon className="w-4 h-4 text-primary transition-transform duration-200 -rotate-12 hover:rotate-0" />
+        )}
+      </button>
+    );
+  }
+
   return (
-    <div className={`theme-switch-wrapper ${className || ''}`}>
+    <div className={`theme-switch-wrapper ${className}`}>
       <label
         className="theme-switch"
         htmlFor="theme-toggle-switch"
