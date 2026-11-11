@@ -43,8 +43,10 @@ export default function LoginPage() {
     return unsub;
   }, []);
 
-  const handleToggleTheme = (isDark: boolean) => {
-    setTheme(isDark ? 'dark' : 'light');
+  const handleToggleTheme = (nextDark: boolean) => {
+    const target = nextDark ? 'dark' : 'light';
+    setTheme(target);
+    setCurrentTheme(target);
   };
 
   const isDark = theme === 'dark';

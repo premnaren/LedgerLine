@@ -19,7 +19,8 @@ interface CelestialFeature {
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   glowColor: string;
-  baseRadius: number; // visual size hierarchy
+  radius: number; // visual radius (3.5 to 5.5px)
+  rayLength: number; // 4-point sparkle ray length
 }
 
 const CELESTIAL_STARS: CelestialFeature[] = [
@@ -28,11 +29,12 @@ const CELESTIAL_STARS: CelestialFeature[] = [
     title: 'Accounts',
     badge: 'Dual-Leg Ledger',
     description: 'Organized financial accounts, balances and account management.',
-    principle: 'Every account balance is bound by strict row-level serializable locks.',
+    principle: 'Every account balance is bound by strict row-level serializable database locks.',
     icon: Wallet,
-    color: '#F8F7FC', // Pearl White
-    glowColor: 'rgba(221, 211, 244, 0.70)', // Pastel Lavender
-    baseRadius: 8.5,
+    color: '#FFFFFF', // Pearl White
+    glowColor: 'rgba(221, 211, 244, 0.75)', // Pastel Lavender
+    radius: 4.8,
+    rayLength: 7.5,
   },
   {
     id: 'transactions',
@@ -42,8 +44,9 @@ const CELESTIAL_STARS: CelestialFeature[] = [
     principle: 'Idempotent, atomic debit-and-credit transfers with zero intermediate exposure.',
     icon: ArrowLeftRight,
     color: '#D8D7E0', // Moon Silver
-    glowColor: 'rgba(201, 185, 237, 0.70)', // Celestial Lilac
-    baseRadius: 9.5,
+    glowColor: 'rgba(201, 185, 237, 0.75)', // Celestial Lilac
+    radius: 5.4,
+    rayLength: 8.5,
   },
   {
     id: 'integrity',
@@ -53,8 +56,9 @@ const CELESTIAL_STARS: CelestialFeature[] = [
     principle: 'Database-level CHECK constraints guarantee overdraft invariants on every balance mutation.',
     icon: ShieldCheck,
     color: '#DDD3F4', // Pastel Lavender
-    glowColor: 'rgba(139, 124, 255, 0.65)', // Soft Nebula / Lavender
-    baseRadius: 8.0,
+    glowColor: 'rgba(139, 124, 255, 0.70)', // Soft Nebula
+    radius: 4.2,
+    rayLength: 6.8,
   },
   {
     id: 'audit',
@@ -64,23 +68,16 @@ const CELESTIAL_STARS: CelestialFeature[] = [
     principle: 'Append-only database triggers reject and record unauthorized tampering attempts.',
     icon: Search,
     color: '#C9B9ED', // Celestial Lilac
-    glowColor: 'rgba(169, 155, 216, 0.70)', // Soft Nebula
-    baseRadius: 9.0,
+    glowColor: 'rgba(169, 155, 216, 0.75)', // Soft Nebula
+    radius: 5.0,
+    rayLength: 8.0,
   },
 ];
 
-interface OrbitParams {
-  cx: number;
-  cy: number;
-  rx: number;
-  ry: number;
-  tilt: number; // degrees
-}
-
 export default function LunarOrbitalSystem() {
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({
-    width: 1200,
-    height: 800,
+    width: 1440,
+    height: 900,
   });
 
   const [angle, setAngle] = useState(0);
@@ -137,53 +134,43 @@ export default function LunarOrbitalSystem() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedStar]);
 
-  // 4. Calculate responsive orbit parameters aligned with moon in lunar-bg.jpg
-  const getOrbitParams = useCallback((): OrbitParams => {
-    const { width: w, height: h } = dimensions;
+  // 4. Exact Shared Coordinate Anchor: follow background image scaling and cropping
+  const getRenderedMoon = useCallback(() => {
+    const { width: W, height: H } = dimensions;
 
-    if (w >= 1024) {
-      // Desktop: Moon centered at ~68.5% X, ~44% Y
-      return {
-        cx: w * 0.685,
-        cy: h * 0.44,
-        rx: Math.min(w * 0.22, 330),
-        ry: Math.min(h * 0.20, 160),
-        tilt: -18,
-      };
-    } else if (w >= 768) {
-      // Tablet: Moon centered at ~72% X, ~47% Y
-      return {
-        cx: w * 0.72,
-        cy: h * 0.47,
-        rx: Math.min(w * 0.25, 250),
-        ry: Math.min(h * 0.18, 125),
-        tilt: -18,
-      };
-    } else if (w >= 640) {
-      // Small Tablet: Moon centered at ~76% X, ~46% Y
-      return {
-        cx: w * 0.76,
-        cy: h * 0.46,
-        rx: Math.min(w * 0.28, 200),
-        ry: Math.min(h * 0.17, 105),
-        tilt: -18,
-      };
-    } else {
-      // Mobile: Moon centered in upper right ~78% X, ~32% Y
-      return {
-        cx: w * 0.78,
-        cy: h * 0.32,
-        rx: Math.min(w * 0.34, 150),
-        ry: Math.min(h * 0.16, 80),
-        tilt: -18,
-      };
-    }
+    const natW = 1024;
+    const natH = 576;
+    // Exact geometric center of the celestial moon in lunar-bg.jpg (from pixel perimeter fit)
+    const natMoonX = 724.5;
+    const natMoonY = 185.6;
+    const natMoonR = 150.4;
+
+    const objectPosX = W >= 640 ? 0.70 : 0.75;
+    const objectPosY = W >= 640 ? 0.40 : 0.35;
+
+    const S = Math.max(W / natW, H / natH);
+    const renderedW = natW * S;
+    const renderedH = natH * S;
+
+    const offsetX = (W - renderedW) * objectPosX;
+    const offsetY = (H - renderedH) * objectPosY;
+
+    const cx = offsetX + (natMoonX / natW) * renderedW;
+    const cy = offsetY + (natMoonY / natH) * renderedH;
+    const moonR = (natMoonR / natH) * renderedH;
+
+    // Tightly encircle the moon body, complementing the background rings
+    const rx = moonR * 1.28;
+    const ry = moonR * 0.68;
+    const tilt = -17; // matches planetary ring inclination angle
+
+    return { cx, cy, rx, ry, tilt, moonR };
   }, [dimensions]);
 
-  const { cx, cy, rx, ry, tilt } = getOrbitParams();
+  const { cx, cy, rx, ry, tilt } = getRenderedMoon();
   const tiltRad = (tilt * Math.PI) / 180;
 
-  // 5. Continuous Smooth Orbital Animation Loop (60–90 seconds per revolution)
+  // 5. Continuous Smooth Orbital Animation (60–90 seconds per revolution)
   useEffect(() => {
     let animId: number;
 
@@ -194,15 +181,14 @@ export default function LunarOrbitalSystem() {
         // Base velocity: full revolution every 75 seconds (0.0837 rad/sec)
         const baseVelocity = (2 * Math.PI) / 75;
 
-        // If reduced motion is requested, pause rotation
         if (reducedMotionRef.current) {
-          // Stationary
+          // Stationary when reduced motion is preferred
         } else if (selectedRef.current) {
-          // Temporarily paused when feature panel is opened
+          // Slow to 5% when star panel is active
           angleRef.current = (angleRef.current + baseVelocity * 0.05 * deltaSec) % (2 * Math.PI);
           setAngle(angleRef.current);
         } else if (hoveredRef.current) {
-          // Smooth slow-down to 35% on hover
+          // Subtle slow-down to 35% on hover
           angleRef.current = (angleRef.current + baseVelocity * 0.35 * deltaSec) % (2 * Math.PI);
           setAngle(angleRef.current);
         } else {
@@ -220,27 +206,25 @@ export default function LunarOrbitalSystem() {
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  // 6. Calculate Star Positions on the Tilted Ellipse
+  // 6. Calculate Star Coordinates along Tilted Ellipse
   const starPositions = CELESTIAL_STARS.map((star, idx) => {
-    // 4 stars equally spaced: 0, PI/2, PI, 3PI/2
+    // 4 stars distributed along orbit: 0, PI/2, PI, 3PI/2
     const starAngle = angle + idx * (Math.PI / 2);
 
-    // Parametric coordinates on untilted ellipse
     const cosT = Math.cos(starAngle);
     const sinT = Math.sin(starAngle);
     const xUnrotated = rx * cosT;
     const yUnrotated = ry * sinT;
 
-    // Apply ellipse tilt rotation
     const cosA = Math.cos(tiltRad);
     const sinA = Math.sin(tiltRad);
     const x = cx + xUnrotated * cosA - yUnrotated * sinA;
     const y = cy + xUnrotated * sinA + yUnrotated * cosA;
 
-    // Celestial depth factor (-1 far back to +1 near front)
+    // Depth factor: sinT < 0 is back arc, sinT > 0 is front arc
     const depth = sinT;
-    const scale = 0.90 + 0.15 * ((depth + 1) / 2); // 0.90 to 1.05
-    const opacity = 0.78 + 0.22 * ((depth + 1) / 2); // 0.78 to 1.0
+    const scale = 0.88 + 0.18 * ((depth + 1) / 2); // 0.88 to 1.06
+    const opacity = 0.75 + 0.25 * ((depth + 1) / 2); // 0.75 to 1.0
 
     return {
       star,
@@ -256,74 +240,55 @@ export default function LunarOrbitalSystem() {
   return (
     <div className="fixed inset-0 z-10 pointer-events-none select-none overflow-hidden">
       {/* ============================================================ */}
-      {/* 1. SVG ORBITAL TRAJECTORY LAYER                              */}
+      {/* 1. SINGLE SUBTLE ORBITAL TRAJECTORY LAYER                    */}
       {/* ============================================================ */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Subtle celestial trajectory gradient */}
-          <linearGradient id="orbitalGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#DDD3F4" stopOpacity="0.55" />
-            <stop offset="50%" stopColor="#B6A9D9" stopOpacity="0.30" />
-            <stop offset="100%" stopColor="#C9B9ED" stopOpacity="0.55" />
+          <linearGradient id="orbitTraceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#DDD3F4" stopOpacity="0.45" />
+            <stop offset="50%" stopColor="#B6A9D9" stopOpacity="0.20" />
+            <stop offset="100%" stopColor="#C9B9ED" stopOpacity="0.45" />
           </linearGradient>
-
-          {/* Star soft halo filter */}
-          <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3.5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
 
         <g transform={`rotate(${tilt}, ${cx}, ${cy})`}>
-          {/* Soft atmospheric halo along orbital trajectory */}
+          {/* Subtle soft blur backing for atmospheric integration */}
           <ellipse
             cx={cx}
             cy={cy}
             rx={rx}
             ry={ry}
             fill="none"
-            stroke="rgba(221, 211, 244, 0.22)"
-            strokeWidth={4.5}
-            strokeDasharray="none"
+            stroke="rgba(221, 211, 244, 0.16)"
+            strokeWidth={3}
           />
 
-          {/* Secondary delicate orbital trace */}
-          <ellipse
-            cx={cx}
-            cy={cy}
-            rx={rx + 10}
-            ry={ry + 6}
-            fill="none"
-            stroke="rgba(182, 169, 217, 0.16)"
-            strokeWidth={1}
-            strokeDasharray="3 6"
-          />
-
-          {/* Primary thin silver-lavender orbital trajectory */}
+          {/* Delicate silver-lavender orbital trajectory line */}
           <ellipse
             cx={cx}
             cy={cy}
             rx={rx}
             ry={ry}
             fill="none"
-            stroke="url(#orbitalGlowGrad)"
-            strokeWidth={1.3}
-            strokeDasharray="6 4"
+            stroke="url(#orbitTraceGrad)"
+            strokeWidth={1.2}
+            strokeDasharray="4 6"
           />
         </g>
       </svg>
 
       {/* ============================================================ */}
-      {/* 2. INTERACTIVE ORBITING STARS                                */}
+      {/* 2. REAL CELESTIAL ORBITING STARS (NO PERMANENT ICONS)        */}
       {/* ============================================================ */}
       <div className="absolute inset-0 w-full h-full pointer-events-none">
         {starPositions.map(({ star, x, y, scale, opacity }) => {
           const isHovered = hoveredStarId === star.id;
           const isSelected = selectedStar?.id === star.id;
-          const Icon = star.icon;
+          const r = star.radius * scale;
+          const rayL = star.rayLength * scale * (isHovered ? 1.3 : 1.0);
 
           return (
             <div
@@ -336,71 +301,74 @@ export default function LunarOrbitalSystem() {
                 zIndex: isSelected ? 35 : isHovered ? 30 : 20,
               }}
             >
-              {/* Keyboard accessible interactive target */}
+              {/* Accessible Touch / Keyboard Activation Target */}
               <button
                 type="button"
                 role="button"
                 tabIndex={0}
-                aria-label={`Explore ${star.title}: ${star.description}`}
+                aria-label={`Celestial star: ${star.title}. ${star.description}`}
                 onClick={() => setSelectedStar(isSelected ? null : star)}
                 onMouseEnter={() => setHoveredStarId(star.id)}
                 onMouseLeave={() => setHoveredStarId(null)}
                 onFocus={() => setHoveredStarId(star.id)}
                 onBlur={() => setHoveredStarId(null)}
-                className="group relative flex items-center justify-center w-11 h-11 rounded-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/60"
+                className="group relative flex items-center justify-center w-9 h-9 rounded-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50"
               >
-                {/* Expanding pulse ring when selected */}
+                {/* Active Selection Concentric Ring */}
                 {isSelected && (
                   <span
-                    className="absolute inset-0 rounded-full border-[1.5px] border-[#8B7CFF] animate-ping opacity-35"
+                    className="absolute w-8 h-8 rounded-full border border-[#8B7CFF]/60 animate-ping opacity-40"
                     style={{ animationDuration: '2.5s' }}
                   />
                 )}
 
-                {/* Outer Concentric Orbital Indicator on Hover/Select */}
+                {/* Subtle Lavender Halo on Hover / Select */}
                 <span
                   className={`absolute rounded-full transition-all duration-300 pointer-events-none ${
                     isSelected
-                      ? 'w-10 h-10 border border-[#8B7CFF]/60 bg-[#DDD3F4]/25 shadow-[0_0_16px_rgba(139,124,255,0.30)]'
+                      ? 'w-7 h-7 bg-[#DDD3F4]/30 border border-[#8B7CFF]/40 shadow-[0_0_12px_rgba(139,124,255,0.40)]'
                       : isHovered
-                      ? 'w-9 h-9 border border-[#A99BD8]/50 bg-[#DDD3F4]/15 shadow-[0_0_12px_rgba(169,155,216,0.25)]'
-                      : 'w-7 h-7 border border-[#DDD3F4]/30 bg-transparent'
+                      ? 'w-6 h-6 bg-[#DDD3F4]/20 border border-[#A99BD8]/35 shadow-[0_0_8px_rgba(169,155,216,0.30)]'
+                      : 'w-4 h-4 bg-transparent'
                   }`}
                 />
 
-                {/* Star Core Body */}
-                <span
-                  className={`relative flex items-center justify-center rounded-full transition-all duration-300 shadow-sm ${
-                    isSelected
-                      ? 'bg-[#7864CB] text-white border-2 border-white shadow-[0_0_14px_rgba(120,100,203,0.50)] scale-110'
-                      : isHovered
-                      ? 'bg-white text-[#7864CB] border border-[#7864CB] shadow-[0_2px_10px_rgba(120,100,203,0.25)] scale-110'
-                      : 'bg-white/95 text-[#55516D] border border-[#DDD7EA] shadow-[0_1px_6px_rgba(63,48,100,0.12)]'
+                {/* Real Celestial Four-Point Sparkle Star */}
+                <svg
+                  width={rayL * 2 + 4}
+                  height={rayL * 2 + 4}
+                  viewBox={`-${rayL + 2} -${rayL + 2} ${(rayL + 2) * 2} ${(rayL + 2) * 2}`}
+                  className={`pointer-events-none transition-transform duration-300 ${
+                    isHovered || isSelected ? 'scale-125' : 'scale-100'
                   }`}
-                  style={{
-                    width: `${star.baseRadius * 2.2 * scale}px`,
-                    height: `${star.baseRadius * 2.2 * scale}px`,
-                    opacity,
-                  }}
+                  style={{ opacity }}
                 >
-                  <Icon
-                    className={`transition-all duration-200 ${
-                      isSelected || isHovered ? 'w-3.5 h-3.5' : 'w-3 h-3'
-                    }`}
+                  {/* Four-Point Delicate Star Spikes */}
+                  <path
+                    d={`M 0 -${rayL} Q 0 0 ${rayL} 0 Q 0 0 0 ${rayL} Q 0 0 -${rayL} 0 Q 0 0 0 -${rayL} Z`}
+                    fill={isHovered || isSelected ? '#FFFFFF' : '#DDD3F4'}
+                    opacity={isHovered || isSelected ? 0.95 : 0.75}
                   />
-                </span>
+
+                  {/* Brilliant Pearl-White Star Core */}
+                  <circle
+                    cx="0"
+                    cy="0"
+                    r={isHovered ? r * 1.15 : r}
+                    fill={isHovered || isSelected ? '#FFFFFF' : star.color}
+                    stroke="#D8D7E0"
+                    strokeWidth={0.8}
+                  />
+                </svg>
               </button>
 
-              {/* Compact Feature Tooltip on Hover */}
+              {/* Minimal Floating Feature Label on Hover */}
               {isHovered && !selectedStar && (
                 <div
-                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-md border border-[#A99BD8]/40 shadow-[0_4px_12px_rgba(63,48,100,0.10)] text-[11px] font-semibold text-[#242039] whitespace-nowrap pointer-events-none transition-all duration-200"
-                  style={{ animation: 'fadeInView 0.2s ease-out' }}
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2.5 py-0.8 rounded-md bg-white/95 backdrop-blur-md border border-[#A99BD8]/40 shadow-[0_2px_8px_rgba(63,48,100,0.10)] text-[11px] font-semibold text-[#242039] whitespace-nowrap pointer-events-none transition-all duration-150"
+                  style={{ animation: 'fadeInView 0.15s ease-out' }}
                 >
-                  <div className="flex items-center space-x-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#7864CB]" />
-                    <span>{star.title}</span>
-                  </div>
+                  <span>{star.title}</span>
                 </div>
               )}
             </div>
@@ -409,16 +377,16 @@ export default function LunarOrbitalSystem() {
       </div>
 
       {/* ============================================================ */}
-      {/* 3. FROSTED-GLASS FEATURE INFORMATION PANEL                   */}
+      {/* 3. COMPACT FROSTED-GLASS INFORMATION PANEL (ON CLICK)        */}
       {/* ============================================================ */}
       {selectedStar && (
         <div
           className="fixed inset-0 z-40 pointer-events-auto flex items-start justify-end px-6 sm:px-10 lg:px-16 pt-24 sm:pt-28"
           onClick={() => setSelectedStar(null)}
         >
-          {/* Modal Container — Positioned on the Right (Never covering Login Form) */}
+          {/* Frosted Panel — Anchored to Right (Never Obstructing Login Form) */}
           <div
-            className="w-full max-w-[340px] rounded-2xl p-5 border shadow-[0_16px_40px_rgba(63,48,100,0.12),0_2px_6px_rgba(63,48,100,0.04)] transition-all duration-300"
+            className="w-full max-w-[320px] rounded-2xl p-5 border shadow-[0_16px_36px_rgba(63,48,100,0.12),0_2px_6px_rgba(63,48,100,0.04)] transition-all duration-300"
             style={{
               background: 'rgba(255, 255, 255, 0.92)',
               backdropFilter: 'blur(18px)',
@@ -427,7 +395,7 @@ export default function LunarOrbitalSystem() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header: Icon, Title, Badge & Dismiss Button */}
+            {/* Header: Relevant Capability Icon, Title & Dismiss */}
             <div className="flex items-start justify-between pb-3 border-b border-[#DDD7EA]">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-[#7864CB]/12 border border-[#7864CB]/30 flex items-center justify-center text-[#7864CB]">
@@ -454,7 +422,7 @@ export default function LunarOrbitalSystem() {
               </button>
             </div>
 
-            {/* Body: Product Description & Architectural Principle */}
+            {/* Description & Principle */}
             <div className="pt-3 space-y-2.5">
               <p className="text-xs text-[#242039] font-medium leading-relaxed">
                 {selectedStar.description}
@@ -469,15 +437,15 @@ export default function LunarOrbitalSystem() {
               </div>
             </div>
 
-            {/* Footer Prompt */}
-            <div className="mt-4 pt-2.5 flex items-center justify-between text-[10.5px] text-[#716B86] border-t border-[#DDD7EA]/60">
-              <span>Continuous celestial orbit</span>
+            {/* Subtle Footer Prompt */}
+            <div className="mt-4 pt-2 flex items-center justify-between text-[10px] text-[#716B86] border-t border-[#DDD7EA]/60">
+              <span>Celestial orbital system</span>
               <button
                 type="button"
                 onClick={() => setSelectedStar(null)}
                 className="text-[#7864CB] hover:text-[#6651B9] font-semibold"
               >
-                Resume &times;
+                Resume orbit &times;
               </button>
             </div>
           </div>

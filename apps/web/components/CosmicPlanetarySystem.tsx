@@ -51,7 +51,7 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
           <img
             src="/lunar-bg.jpg"
             alt="Lunar White — Pastel Cosmic Landscape"
-            className="object-cover object-right-top sm:object-right md:object-[72%_center] lg:object-[68%_center] absolute inset-0 w-full h-full transition-opacity duration-700"
+            className="object-cover object-[75%_35%] sm:object-[70%_40%] absolute inset-0 w-full h-full transition-opacity duration-700"
           />
 
           {/* Subtle localized soft white translucent shadow/overlay behind the left authentication card only */}
