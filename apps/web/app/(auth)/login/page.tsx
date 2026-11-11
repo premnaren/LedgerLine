@@ -188,20 +188,8 @@ export default function LoginPage() {
       {/* LAYER 5: Left-Aligned Cosmic Glassmorphic Auth Card          */}
       {/* ============================================================ */}
       <main className="flex z-20 items-center justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-6 sm:py-10 my-auto pointer-events-none flex-1">
-        <div className="login-wrapper pointer-events-auto">
-          <div className="login-card">
-            <input
-              type="checkbox"
-              id="reg-toggle"
-              className="reg-toggle"
-              checked={mode === 'signup'}
-              onChange={(e) => {
-                setMode(e.target.checked ? 'signup' : 'signin');
-                setError(null);
-              }}
-              style={{ display: 'none' }}
-            />
-
+        <div className={`login-wrapper pointer-events-auto ${isDark ? 'dark-card' : 'light-card'}`}>
+          <div className={`login-card ${isDark ? 'dark-card' : 'light-card'}`}>
             <div className="glow-blob blob-1"></div>
             <div className="glow-blob blob-2"></div>
             <div className="dark-overlay"></div>
@@ -225,11 +213,15 @@ export default function LoginPage() {
 
               {/* Password Recovery Notice */}
               {showForgotNotice && (
-                <div className="mb-4 flex items-start p-3 space-x-2 text-xs rounded-xl border bg-[#100D20]/95 border-[#34304D] text-[#F7F4FF]">
-                  <Info className="h-4 w-4 shrink-0 text-[#BD75E9] mt-0.5" />
+                <div className={`mb-4 flex items-start p-3 space-x-2 text-xs rounded-xl border ${
+                  isDark
+                    ? 'bg-[#100D20]/95 border-[#34304D] text-[#F7F4FF]'
+                    : 'bg-white/95 border-[#DED9EA] text-[#17142B] shadow-sm'
+                }`}>
+                  <Info className="h-4 w-4 shrink-0 text-[#8155D9] mt-0.5" />
                   <div className="flex-1">
                     <p className="font-semibold text-xs">Password recovery</p>
-                    <p className="text-[#C0BAD5] text-[11px] mt-0.5 leading-relaxed">
+                    <p className={`text-[11px] mt-0.5 leading-relaxed ${isDark ? 'text-[#C0BAD5]' : 'text-[#55516D]'}`}>
                       Managed by ledger operations. Use pre-configured demo credentials or contact admin@ledgerline.dev.
                     </p>
                   </div>
@@ -244,214 +236,230 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* ----------------- SIGN IN VIEW ----------------- */}
-              <div className="form-view" id="login-view">
-                <div className="header">
-                  <div className="decorative-dot"></div>
-                  <div className="title">Welcome Back</div>
-                  <p className="subtitle">Please enter your details to sign in.</p>
-                </div>
+              {mode === 'signin' ? (
+                /* ----------------- SIGN IN VIEW ----------------- */
+                <div className="form-view" id="login-view" key="signin">
+                  <div className="header">
+                    <div className="decorative-dot"></div>
+                    <div className="title">Welcome Back</div>
+                    <p className="subtitle">Please enter your details to sign in.</p>
+                  </div>
 
-                <form onSubmit={handleSignIn}>
-                  <div className="input-group">
-                    <input
-                      type="email"
-                      className="input-field"
-                      placeholder="Email address"
-                      required
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setActiveRole(null);
+                  <form onSubmit={handleSignIn}>
+                    <div className="input-group">
+                      <input
+                        type="email"
+                        className="input-field"
+                        placeholder="Email address"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setActiveRole(null);
+                        }}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <input
+                        type="password"
+                        className="input-field"
+                        placeholder="Password"
+                        required
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <a
+                      href="#"
+                      className="forgot-link"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowForgotNotice(true);
                       }}
-                    />
-                  </div>
+                    >
+                      Forgot password?
+                    </a>
 
-                  <div className="input-group">
-                    <input
-                      type="password"
-                      className="input-field"
-                      placeholder="Password"
-                      required
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
+                    <button type="submit" className="animated-button" disabled={loading}>
+                      <svg viewBox="0 0 24 24" className="arr-2" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                        ></path>
+                      </svg>
+                      <span className="text">{loading ? 'SIGNING IN...' : 'SIGN IN'}</span>
+                      <span className="circle"></span>
+                      <svg viewBox="0 0 24 24" className="arr-1" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                        ></path>
+                      </svg>
+                    </button>
+                  </form>
 
-                  <a
-                    href="#"
-                    className="forgot-link"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowForgotNotice(true);
-                    }}
-                  >
-                    Forgot password?
-                  </a>
-
-                  <button type="submit" className="animated-button" disabled={loading}>
-                    <svg viewBox="0 0 24 24" className="arr-2" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
-                      ></path>
-                    </svg>
-                    <span className="text">{loading ? 'SIGNING IN...' : 'SIGN IN'}</span>
-                    <span className="circle"></span>
-                    <svg viewBox="0 0 24 24" className="arr-1" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
-                      ></path>
-                    </svg>
-                  </button>
-                </form>
-
-                <div className="signup-prompt">
-                  Don&apos;t have an account?{' '}
-                  <label
-                    htmlFor="reg-toggle"
-                    className="toggle-link"
-                    onClick={() => {
-                      setMode('signup');
-                      setError(null);
-                    }}
-                  >
-                    Sign up
-                  </label>
-                </div>
-
-                {/* Quick Demo Access Pills */}
-                <div className="mt-5 pt-3 border-t border-white/10">
-                  <div className="text-[11px] font-semibold text-center text-white/50 mb-2">
-                    Demo accounts
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="signup-prompt">
+                    Don&apos;t have an account?{' '}
                     <button
                       type="button"
-                      onClick={() => handleQuickLogin('ADMIN', 'admin@ledgerline.dev', 'Admin1234!')}
-                      className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] ${
-                        activeRole === 'ADMIN'
-                          ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                          : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                      }`}
+                      className="toggle-link"
+                      onClick={() => {
+                        setMode('signup');
+                        setError(null);
+                      }}
                     >
-                      Admin
+                      Sign up
                     </button>
+                  </div>
+
+                  {/* Quick Demo Access Pills */}
+                  <div className={`mt-5 pt-3 border-t ${isDark ? 'border-white/10' : 'border-[#DED9EA]'}`}>
+                    <div className={`text-[11px] font-semibold text-center mb-2 ${
+                      isDark ? 'text-white/50' : 'text-[#747B91]'
+                    }`}>
+                      Demo accounts
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin('ADMIN', 'admin@ledgerline.dev', 'Admin1234!')}
+                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                          activeRole === 'ADMIN'
+                            ? isDark
+                              ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
+                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                            : isDark
+                            ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                        }`}
+                      >
+                        Admin
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin('HOLDER', 'holder@ledgerline.dev', 'Holder1234!')}
+                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                          activeRole === 'HOLDER'
+                            ? isDark
+                              ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
+                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                            : isDark
+                            ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                        }`}
+                      >
+                        Holder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickLogin('AUDITOR', 'auditor@ledgerline.dev', 'Audit1234!')}
+                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                          activeRole === 'AUDITOR'
+                            ? isDark
+                              ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
+                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                            : isDark
+                            ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                        }`}
+                      >
+                        Auditor
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ----------------- SIGN UP VIEW ----------------- */
+                <div className="form-view" id="signup-view" key="signup">
+                  <div className="header">
+                    <div className="decorative-dot"></div>
+                    <div className="title">Create Account</div>
+                    <p className="subtitle">Join us to get started.</p>
+                  </div>
+
+                  <form onSubmit={handleSignUp}>
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="Account Name (e.g. Acme Ops)"
+                        autoComplete="name"
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <input
+                        type="email"
+                        className="input-field"
+                        placeholder="Email address"
+                        required
+                        autoComplete="email"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <input
+                        type="password"
+                        className="input-field"
+                        placeholder="Password (min 6 chars)"
+                        required
+                        autoComplete="new-password"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="input-group">
+                      <input
+                        type="password"
+                        className="input-field"
+                        placeholder="Confirm Password"
+                        required
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ height: '8px' }}></div>
+
+                    <button type="submit" className="animated-button" disabled={loading}>
+                      <svg viewBox="0 0 24 24" className="arr-2" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                        ></path>
+                      </svg>
+                      <span className="text">{loading ? 'CREATING...' : 'SIGN UP'}</span>
+                      <span className="circle"></span>
+                      <svg viewBox="0 0 24 24" className="arr-1" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                        ></path>
+                      </svg>
+                    </button>
+                  </form>
+
+                  <div className="signup-prompt">
+                    Already have an account?{' '}
                     <button
                       type="button"
-                      onClick={() => handleQuickLogin('HOLDER', 'holder@ledgerline.dev', 'Holder1234!')}
-                      className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] ${
-                        activeRole === 'HOLDER'
-                          ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                          : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                      }`}
+                      className="toggle-link"
+                      onClick={() => {
+                        setMode('signin');
+                        setError(null);
+                      }}
                     >
-                      Holder
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin('AUDITOR', 'auditor@ledgerline.dev', 'Audit1234!')}
-                      className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] ${
-                        activeRole === 'AUDITOR'
-                          ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                          : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      Auditor
+                      Sign in
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* ----------------- SIGN UP VIEW ----------------- */}
-              <div className="form-view" id="signup-view">
-                <div className="header">
-                  <div className="decorative-dot"></div>
-                  <div className="title">Create Account</div>
-                  <p className="subtitle">Join us to get started.</p>
-                </div>
-
-                <form onSubmit={handleSignUp}>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="input-field"
-                      placeholder="Account Name (e.g. Acme Ops)"
-                      autoComplete="name"
-                      value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <input
-                      type="email"
-                      className="input-field"
-                      placeholder="Email address"
-                      required
-                      autoComplete="email"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <input
-                      type="password"
-                      className="input-field"
-                      placeholder="Password (min 6 chars)"
-                      required
-                      autoComplete="new-password"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <input
-                      type="password"
-                      className="input-field"
-                      placeholder="Confirm Password"
-                      required
-                      autoComplete="new-password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                  </div>
-
-                  <div style={{ height: '8px' }}></div>
-
-                  <button type="submit" className="animated-button" disabled={loading}>
-                    <svg viewBox="0 0 24 24" className="arr-2" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
-                      ></path>
-                    </svg>
-                    <span className="text">{loading ? 'CREATING...' : 'SIGN UP'}</span>
-                    <span className="circle"></span>
-                    <svg viewBox="0 0 24 24" className="arr-1" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
-                      ></path>
-                    </svg>
-                  </button>
-                </form>
-
-                <div className="signup-prompt">
-                  Already have an account?{' '}
-                  <label
-                    htmlFor="reg-toggle"
-                    className="toggle-link"
-                    onClick={() => {
-                      setMode('signin');
-                      setError(null);
-                    }}
-                  >
-                    Sign in
-                  </label>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

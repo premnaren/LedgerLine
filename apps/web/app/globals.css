@@ -436,6 +436,14 @@ body {
   transform: translateY(30px);
 }
 
+.login-wrapper.light-card,
+html:not(.dark) .login-wrapper {
+  --blob-1-color: #ff8533;
+  --blob-2-color: #9d6fff;
+  --btn-hover-glow: rgba(110, 86, 207, 0.3);
+  --input-focus-glow: rgba(129, 85, 217, 0.2);
+}
+
 @keyframes floatUp {
   to {
     opacity: 1;
@@ -455,9 +463,24 @@ body {
     0 24px 48px rgba(0, 0, 0, 0.4),
     0 8px 16px rgba(0, 0, 0, 0.2);
   transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease,
     transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Light Theme Card Variant */
+.login-card.light-card,
+html:not(.dark) .login-card {
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(139, 124, 255, 0.28);
+  box-shadow:
+    0 24px 50px -10px rgba(129, 85, 217, 0.18),
+    0 8px 24px -6px rgba(23, 20, 43, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .login-wrapper:hover .login-card {
@@ -465,6 +488,14 @@ body {
   box-shadow:
     0 32px 64px rgba(0, 0, 0, 0.5),
     0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.login-wrapper.light-card:hover .login-card,
+html:not(.dark) .login-wrapper:hover .login-card {
+  box-shadow:
+    0 32px 64px -10px rgba(129, 85, 217, 0.25),
+    0 12px 28px -6px rgba(23, 20, 43, 0.12),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 .glow-blob {
@@ -480,9 +511,20 @@ body {
   pointer-events: none;
 }
 
+.login-card.light-card .glow-blob,
+html:not(.dark) .login-card .glow-blob {
+  opacity: 0.38;
+}
+
 .login-wrapper:hover .glow-blob {
   opacity: 0.75;
   filter: blur(40px);
+}
+
+.login-wrapper.light-card:hover .glow-blob,
+html:not(.dark) .login-wrapper:hover .glow-blob {
+  opacity: 0.52;
+  filter: blur(38px);
 }
 
 .blob-1 {
@@ -525,6 +567,17 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   border-radius: inherit;
   pointer-events: none;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.login-card.light-card .dark-overlay,
+html:not(.dark) .login-card .dark-overlay {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(244, 241, 250, 0.15) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
 .view-container {
@@ -535,25 +588,13 @@ body {
 .form-view {
   display: flex;
   flex-direction: column;
-  animation: fadeInView 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-#signup-view {
-  display: none;
-}
-
-.reg-toggle:checked ~ .view-container #login-view {
-  display: none;
-}
-
-.reg-toggle:checked ~ .view-container #signup-view {
-  display: flex;
+  animation: fadeInView 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeInView {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -575,6 +616,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: border-color 0.4s ease;
+}
+
+.login-card.light-card .decorative-dot,
+html:not(.dark) .login-card .decorative-dot {
+  border: 1px solid rgba(129, 85, 217, 0.35);
+  background: rgba(129, 85, 217, 0.06);
 }
 
 .decorative-dot::after {
@@ -595,18 +643,39 @@ body {
   );
 }
 
+.login-card.light-card .decorative-dot::after,
+html:not(.dark) .login-card .decorative-dot::after {
+  background-image: radial-gradient(
+    circle at center,
+    #8155D9 40%,
+    transparent 50%
+  );
+}
+
 .title {
   color: #ffffff;
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.5px;
   margin-bottom: 4px;
+  transition: color 0.4s ease;
+}
+
+.login-card.light-card .title,
+html:not(.dark) .login-card .title {
+  color: #17142B;
 }
 
 .subtitle {
   color: rgba(255, 255, 255, 0.6);
   font-size: 13px;
   font-weight: 400;
+  transition: color 0.4s ease;
+}
+
+.login-card.light-card .subtitle,
+html:not(.dark) .login-card .subtitle {
+  color: #55516D;
 }
 
 .input-group {
@@ -639,6 +708,26 @@ body {
   transform: translateY(-1px);
 }
 
+.login-card.light-card .input-field,
+html:not(.dark) .login-card .input-field {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(200, 192, 222, 0.85);
+  color: #17142B;
+}
+
+.login-card.light-card .input-field::placeholder,
+html:not(.dark) .login-card .input-field::placeholder {
+  color: #8F8BA3;
+}
+
+.login-card.light-card .input-field:focus,
+html:not(.dark) .login-card .input-field:focus {
+  background: #ffffff;
+  border-color: #8155D9;
+  box-shadow: 0 0 0 3px rgba(129, 85, 217, 0.2);
+  transform: translateY(-1px);
+}
+
 .forgot-link {
   display: block;
   text-align: right;
@@ -652,6 +741,16 @@ body {
 
 .forgot-link:hover {
   color: #ffffff;
+}
+
+.login-card.light-card .forgot-link,
+html:not(.dark) .login-card .forgot-link {
+  color: #6553B8;
+}
+
+.login-card.light-card .forgot-link:hover,
+html:not(.dark) .login-card .forgot-link:hover {
+  color: #17142B;
 }
 
 .btn-submit {
@@ -685,24 +784,46 @@ body {
   text-align: center;
   color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
+  transition: color 0.4s ease;
+}
+
+.login-card.light-card .signup-prompt,
+html:not(.dark) .login-card .signup-prompt {
+  color: #55516D;
 }
 
 .signup-prompt .toggle-link {
   color: #ffffff;
-  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  font-family: inherit;
+  font-size: inherit;
   font-weight: 600;
   margin-left: 4px;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease;
+  padding: 0;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .signup-prompt .toggle-link:hover {
   border-color: #ffffff;
 }
 
+.login-card.light-card .signup-prompt .toggle-link,
+html:not(.dark) .login-card .signup-prompt .toggle-link {
+  color: #6E56CF;
+  font-weight: 700;
+}
+
+.login-card.light-card .signup-prompt .toggle-link:hover,
+html:not(.dark) .login-card .signup-prompt .toggle-link:hover {
+  border-color: #6E56CF;
+  color: #533EB4;
+}
+
 /* ============================================================ */
-/* Animated Submit Button (Neon Cyan Glider)                    */
+/* Animated Submit Button (Adaptive Cyan / Violet Glider)       */
 /* ============================================================ */
 .animated-button {
   position: relative;
@@ -726,12 +847,27 @@ body {
   width: 100%;
 }
 
+.animated-button * {
+  pointer-events: none;
+}
+
+.login-card.light-card .animated-button,
+html:not(.dark) .login-card .animated-button {
+  color: #6E56CF;
+  box-shadow: 0 0 0 2px #6E56CF;
+}
+
 .animated-button svg {
   position: absolute;
   width: 22px;
   fill: rgb(47, 255, 255);
   z-index: 9;
   transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.login-card.light-card .animated-button svg,
+html:not(.dark) .login-card .animated-button svg {
+  fill: #6E56CF;
 }
 
 .animated-button .arr-1 {
@@ -755,6 +891,11 @@ body {
   transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+.login-card.light-card .animated-button .circle,
+html:not(.dark) .login-card .animated-button .circle {
+  background-color: #6E56CF;
+}
+
 .animated-button .text {
   position: relative;
   z-index: 1;
@@ -766,6 +907,12 @@ body {
   box-shadow: 0 0 0 12px transparent;
   color: #101426;
   border-radius: 12px;
+}
+
+.login-card.light-card .animated-button:hover,
+html:not(.dark) .login-card .animated-button:hover {
+  box-shadow: 0 0 0 12px transparent, 0 8px 24px rgba(110, 86, 207, 0.3);
+  color: #ffffff;
 }
 
 .animated-button:hover .arr-1 {
@@ -782,6 +929,11 @@ body {
 
 .animated-button:hover svg {
   fill: #101426;
+}
+
+.login-card.light-card .animated-button:hover svg,
+html:not(.dark) .login-card .animated-button:hover svg {
+  fill: #ffffff;
 }
 
 .animated-button:active {
