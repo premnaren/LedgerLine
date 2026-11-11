@@ -177,7 +177,7 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 4: Navigation Bar (Minimal Clean Inline Header)        */}
       {/* ============================================================ */}
-      <header className="flex z-30 justify-between items-center px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 w-full max-w-7xl pointer-events-none">
+      <header className="flex z-30 justify-between items-center px-6 pt-6 w-full max-w-7xl pointer-events-none sm:px-8 lg:px-10 sm:pt-8">
         {/* Left: Clean inline LedgerLine Brand without box or border */}
         <div className="flex items-center space-x-2.5 pointer-events-auto">
           <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#7864CB] dark:text-[#BD75E9]" />
@@ -195,7 +195,7 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 5: Left-Aligned Cosmic Glassmorphic Auth Card          */}
       {/* ============================================================ */}
-      <main className="flex z-20 items-center justify-center sm:justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-4 sm:py-8 my-auto pointer-events-none flex-1">
+      <main className="flex z-20 flex-1 justify-center items-center px-6 py-4 my-auto w-full max-w-7xl pointer-events-none sm:justify-start sm:px-8 lg:px-12 sm:py-8">
         <div className={`login-wrapper pointer-events-auto ${isDark ? 'dark-card' : 'light-card'}`}>
           <div className={`login-card ${isDark ? 'dark-card' : 'light-card'}`}>
             <div className="glow-blob blob-1"></div>
@@ -228,7 +228,7 @@ export default function LoginPage() {
                 }`}>
                   <Info className="h-4 w-4 shrink-0 text-[#8155D9] mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-xs">Password recovery</p>
+                    <p className="text-xs font-semibold">Password recovery</p>
                     <p className={`text-[11px] mt-0.5 leading-relaxed ${isDark ? 'text-[#C0BAD5]' : 'text-[#55516D]'}`}>
                       Managed by ledger operations. Use pre-configured demo credentials or contact admin@ledgerline.dev.
                     </p>
