@@ -291,3 +291,512 @@ body {
     transform: none !important;
   }
 }
+
+/* ============================================================ */
+/* Theme Toggle Switch (Animated Sun/Moon)                      */
+/* ============================================================ */
+.theme-switch-wrapper {
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-switch {
+  --transition: 300ms;
+  --transition500: 500ms;
+  --color-dark: #0c0f14;
+  --color-darkGray: #21262e;
+  --color-gray: #52555a;
+  --color-offwhite: #cecece;
+  --shadow-color: var(--color-dark);
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 60px;
+  height: 33px;
+  background-color: var(--color-dark);
+  border-radius: 30px;
+  padding: 4px;
+  transition: var(--transition500);
+  user-select: none;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.theme-switch .svg {
+  transition: var(--transition);
+  position: absolute;
+  left: 6px;
+}
+
+.theme-switch .moon {
+  width: 17px;
+  fill: var(--color-gray);
+  opacity: 1;
+}
+
+.theme-switch .sun {
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  left: calc(100% - 21.5px);
+  top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scale: 0.8;
+  opacity: 0;
+}
+
+.theme-switch .sun .dot {
+  position: relative;
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: white;
+  z-index: 1;
+  box-shadow: 11px 0px 0px var(--shadow-color),
+    10.3px 0px 0px var(--shadow-color), -11px 0px 0px var(--shadow-color),
+    -10.3px 0px 0px var(--shadow-color), 0px -11px 0px var(--shadow-color),
+    0px -10.3px 0px var(--shadow-color), 0px 11px 0px var(--shadow-color),
+    0px 10.3px 0px var(--shadow-color), 8px 8px 0px var(--shadow-color),
+    7.3px 7.3px 0px var(--shadow-color), 8px -8px 0px var(--shadow-color),
+    7.3px -7.3px 0px var(--shadow-color), -8px -8px 0px var(--shadow-color),
+    -7.3px -7.3px 0px var(--shadow-color), -8px 8px 0px var(--shadow-color),
+    -7.3px 7.3px 0px var(--shadow-color);
+}
+
+.theme-switch .sun .dot::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--color-dark);
+}
+
+.theme-switch .circle {
+  appearance: none;
+  position: relative;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  left: 0;
+  background-color: var(--color-darkGray);
+  border: 1px solid var(--color-darkGray);
+  transition: var(--transition500);
+  box-shadow: 1px 1px 20px 3px var(--color-darkGray);
+  cursor: pointer;
+}
+
+.theme-switch:has(.circle:checked) {
+  background: var(--color-offwhite);
+}
+
+.theme-switch .circle:hover {
+  margin-left: 3px;
+}
+
+.theme-switch .circle:checked:hover {
+  margin-left: -3px;
+}
+
+.theme-switch .circle:checked {
+  left: calc(100% - 25px);
+  background: white;
+  border-color: white;
+  box-shadow: 1px 1px 30px 12px white;
+}
+
+.theme-switch:has(.circle:checked) > .sun {
+  opacity: 1;
+}
+
+.theme-switch:has(.circle:checked) > .moon {
+  opacity: 0;
+}
+
+/* ============================================================ */
+/* Cosmic Login & Register Glassmorphic Card System             */
+/* ============================================================ */
+.login-wrapper {
+  --blob-1-color: #ff5e00;
+  --blob-2-color: #7000ff;
+  --btn-hover-glow: rgba(112, 0, 255, 0.25);
+  --input-focus-glow: rgba(112, 0, 255, 0.15);
+  position: relative;
+  animation: floatUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+@keyframes floatUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-card {
+  position: relative;
+  width: 350px;
+  max-width: 100%;
+  background-color: #0d0f14;
+  border-radius: 24px;
+  padding: 32px 26px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.4),
+    0 8px 16px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-wrapper:hover .login-card {
+  transform: translateY(-4px);
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.5),
+    0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.glow-blob {
+  position: absolute;
+  filter: blur(45px);
+  border-radius: 50%;
+  z-index: 0;
+  opacity: 0.6;
+  animation: pulseGlow 4s infinite alternate ease-in-out;
+  transition:
+    opacity 0.5s ease,
+    filter 0.5s ease;
+  pointer-events: none;
+}
+
+.login-wrapper:hover .glow-blob {
+  opacity: 0.75;
+  filter: blur(40px);
+}
+
+.blob-1 {
+  top: -30px;
+  right: -30px;
+  width: 170px;
+  height: 170px;
+  background: var(--blob-1-color);
+}
+
+.blob-2 {
+  bottom: -50px;
+  left: -50px;
+  width: 210px;
+  height: 210px;
+  background: var(--blob-2-color);
+  animation-delay: -2s;
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+.dark-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(5, 5, 8, 0.85) 30%,
+    transparent 100%
+  );
+  z-index: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.view-container {
+  position: relative;
+  z-index: 10;
+}
+
+.form-view {
+  display: flex;
+  flex-direction: column;
+  animation: fadeInView 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+#signup-view {
+  display: none;
+}
+
+.reg-toggle:checked ~ .view-container #login-view {
+  display: none;
+}
+
+.reg-toggle:checked ~ .view-container #signup-view {
+  display: flex;
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.decorative-dot {
+  width: 2.2em;
+  height: 2.2em;
+  margin: 0 auto 0.75em auto;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.decorative-dot::after {
+  content: "";
+  width: 1.1em;
+  height: 1.1em;
+  background-image: radial-gradient(
+    circle at center,
+    #ffffff 40%,
+    transparent 50%
+  );
+  background-size: 3.5px 3.5px;
+  mask-image: radial-gradient(circle at center, black 100%, transparent 100%);
+  -webkit-mask-image: -webkit-radial-gradient(
+    circle at center,
+    black 100%,
+    transparent 100%
+  );
+}
+
+.title {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.input-group {
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.85em 1.1em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-field:focus {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(47, 248, 255, 0.4);
+  box-shadow: 0 0 20px var(--input-focus-glow);
+  transform: translateY(-1px);
+}
+
+.forgot-link {
+  display: block;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  text-decoration: none;
+  margin-top: -4px;
+  margin-bottom: 18px;
+  transition: color 0.2s ease;
+}
+
+.forgot-link:hover {
+  color: #ffffff;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 0.9em;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-submit:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--btn-hover-glow);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+.signup-prompt {
+  margin-top: 18px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+.signup-prompt .toggle-link {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 4px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.signup-prompt .toggle-link:hover {
+  border-color: #ffffff;
+}
+
+/* ============================================================ */
+/* Animated Submit Button (Neon Cyan Glider)                    */
+/* ============================================================ */
+.animated-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 13px 28px;
+  border: 4px solid;
+  border-color: transparent;
+  font-size: 15px;
+  background-color: transparent;
+  border-radius: 100px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgb(47, 248, 255);
+  box-shadow: 0 0 0 2px rgb(47, 255, 238);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  width: 100%;
+}
+
+.animated-button svg {
+  position: absolute;
+  width: 22px;
+  fill: rgb(47, 255, 255);
+  z-index: 9;
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.animated-button .arr-1 {
+  right: 18px;
+}
+
+.animated-button .arr-2 {
+  left: -25%;
+}
+
+.animated-button .circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  background-color: rgb(47, 224, 255);
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.animated-button .text {
+  position: relative;
+  z-index: 1;
+  transform: translateX(-10px);
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.animated-button:hover {
+  box-shadow: 0 0 0 12px transparent;
+  color: #101426;
+  border-radius: 12px;
+}
+
+.animated-button:hover .arr-1 {
+  right: -25%;
+}
+
+.animated-button:hover .arr-2 {
+  left: 18px;
+}
+
+.animated-button:hover .text {
+  transform: translateX(10px);
+}
+
+.animated-button:hover svg {
+  fill: #101426;
+}
+
+.animated-button:active {
+  transform: scale(0.96);
+  box-shadow: 0 0 0 4px #5DD6A0;
+}
+
+.animated-button:hover .circle {
+  width: 420px;
+  height: 420px;
+  opacity: 1;
+}
+
+.animated-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
