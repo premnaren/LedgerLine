@@ -7,6 +7,7 @@ import CosmicPlanetarySystem from '@/components/CosmicPlanetarySystem';
 import InteractiveLedgerNetwork, {
   InteractiveLedgerNetworkHandle,
 } from '@/components/InteractiveLedgerNetwork';
+import LunarOrbitalSystem from '@/components/LunarOrbitalSystem';
 import ThemeToggle from '@/components/ThemeToggle';
 import { getTheme, setTheme, subscribeTheme, Theme } from '@/lib/theme';
 import {
@@ -162,9 +163,14 @@ export default function LoginPage() {
       <CosmicPlanetarySystem isDark={isDark} />
 
       {/* ============================================================ */}
-      {/* LAYER 3: Full-Viewport Interactive Constellation Network     */}
+      {/* LAYER 3: Dark Mode — Deep Cosmos Interactive Constellation   */}
       {/* ============================================================ */}
-      <InteractiveLedgerNetwork ref={networkRef} isDark={isDark} />
+      {isDark && <InteractiveLedgerNetwork ref={networkRef} isDark={true} />}
+
+      {/* ============================================================ */}
+      {/* LAYER 3: Light Mode — Lunar White Interactive Orbital System */}
+      {/* ============================================================ */}
+      {!isDark && <LunarOrbitalSystem />}
 
       {/* ============================================================ */}
       {/* LAYER 4: Navigation Bar (Minimal Clean Inline Header)        */}
