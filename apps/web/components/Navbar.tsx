@@ -190,9 +190,8 @@ export default function Navbar() {
 
           {/* Right — Utility Controls (Far Right Corner) */}
           <div className="flex items-center justify-end space-x-2 sm:space-x-3">
-            {/* Compact Theme Toggle */}
+            {/* Unified Theme Toggle */}
             <ThemeToggle
-              compact
               isDark={theme === 'dark'}
               onToggle={handleToggleTheme}
             />

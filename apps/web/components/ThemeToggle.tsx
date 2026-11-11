@@ -14,33 +14,14 @@ export default function ThemeToggle({
   className = '',
   isDark,
   onToggle,
-  compact = false,
 }: ThemeToggleProps) {
-  if (compact) {
-    return (
-      <button
-        type="button"
-        onClick={() => onToggle(!isDark)}
-        className={`relative inline-flex items-center justify-center w-8 h-8 rounded-lg border border-rule/70 bg-surface/60 hover:bg-surface-secondary text-ink-muted hover:text-ink transition-all duration-200 pressable shadow-xs focus:outline-none focus:ring-1 focus:ring-primary/40 ${className}`}
-        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-      >
-        {isDark ? (
-          <Sun className="w-4 h-4 text-[#F0B85A] transition-transform duration-200 rotate-0 hover:rotate-45" />
-        ) : (
-          <Moon className="w-4 h-4 text-primary transition-transform duration-200 -rotate-12 hover:rotate-0" />
-        )}
-      </button>
-    );
-  }
-
   return (
     <button
       type="button"
       role="switch"
       aria-checked={!isDark}
       onClick={() => onToggle(!isDark)}
-      className={`group relative inline-flex items-center w-[52px] h-[28px] rounded-full p-[2.5px] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 cursor-pointer select-none ${
+      className={`group relative inline-flex items-center w-[52px] h-[28px] rounded-full p-[2.5px] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 cursor-pointer select-none shrink-0 ${
         isDark
           ? 'bg-[#100E22]/90 border border-white/15 shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
           : 'bg-[#F0EDF9] border-[1.5px] border-[#A99BD8]/45 shadow-[0_2px_8px_rgba(120,100,203,0.12)]'
@@ -65,5 +46,3 @@ export default function ThemeToggle({
     </button>
   );
 }
-
-
