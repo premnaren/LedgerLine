@@ -187,7 +187,7 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 5: Left-Aligned Cosmic Glassmorphic Auth Card          */}
       {/* ============================================================ */}
-      <main className="flex z-20 items-center justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-6 sm:py-10 my-auto pointer-events-none flex-1">
+      <main className="flex z-20 items-center justify-center sm:justify-start w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-4 sm:py-8 my-auto pointer-events-none flex-1">
         <div className={`login-wrapper pointer-events-auto ${isDark ? 'dark-card' : 'light-card'}`}>
           <div className={`login-card ${isDark ? 'dark-card' : 'light-card'}`}>
             <div className="glow-blob blob-1"></div>
@@ -315,8 +315,8 @@ export default function LoginPage() {
                   </div>
 
                   {/* Quick Demo Access Pills */}
-                  <div className={`mt-5 pt-3 border-t ${isDark ? 'border-white/10' : 'border-[#DDD7EA]'}`}>
-                    <div className={`text-[11px] font-semibold text-center mb-2 ${
+                  <div className={`mt-3.5 pt-2.5 border-t ${isDark ? 'border-white/10' : 'border-[#DDD7EA]'}`}>
+                    <div className={`text-[10.5px] font-semibold text-center mb-1.5 ${
                       isDark ? 'text-white/50' : 'text-[#716B86]'
                     }`}>
                       Demo accounts
@@ -325,7 +325,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('ADMIN', 'admin@ledgerline.dev', 'Admin1234!')}
-                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                        className={`py-1.2 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
                           activeRole === 'ADMIN'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
@@ -340,7 +340,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('HOLDER', 'holder@ledgerline.dev', 'Holder1234!')}
-                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                        className={`py-1.2 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
                           activeRole === 'HOLDER'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
@@ -355,7 +355,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('AUDITOR', 'auditor@ledgerline.dev', 'Audit1234!')}
-                        className={`py-1.5 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
+                        className={`py-1.2 px-1 rounded-lg text-center border transition-all text-[11px] font-medium ${
                           activeRole === 'AUDITOR'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
@@ -468,7 +468,7 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 6: Balanced Footer                                     */}
       {/* ============================================================ */}
-      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#716B86] dark:text-[#C0BAD5] z-30 pointer-events-none">
+      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-4 sm:py-5 flex items-center justify-between text-xs text-[#716B86] dark:text-[#C0BAD5] z-30 pointer-events-none">
         <div className="font-medium pointer-events-auto">
           LedgerLine &copy; 2026 &middot; Double-entry core engine
         </div>

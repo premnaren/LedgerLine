@@ -35,29 +35,51 @@ export default function ThemeToggle({
   }
 
   return (
-    <div className={`theme-switch-wrapper ${className}`}>
-      <label
-        className="theme-switch"
-        htmlFor="theme-toggle-switch"
-        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-      >
-        <input
-          id="theme-toggle-switch"
-          type="checkbox"
-          className="circle"
-          checked={!isDark}
-          onChange={(e) => onToggle(!e.target.checked)}
-          aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={!isDark}
+      onClick={() => onToggle(!isDark)}
+      className={`group relative inline-flex items-center w-[54px] h-[28px] rounded-full p-[2px] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 cursor-pointer select-none ${
+        isDark
+          ? 'bg-[#141226]/90 border border-white/15 shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+          : 'bg-[#F8F7FC] border-[1.5px] border-[#A99BD8]/45 shadow-[0_2px_8px_rgba(120,100,203,0.12)]'
+      } ${className}`}
+      title={isDark ? 'Switch to Light Mode (Lunar White)' : 'Switch to Dark Mode (Cosmic Dark)'}
+      aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+    >
+      {/* Background Icons */}
+      <span className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none">
+        {/* Moon Icon (Visible in Dark Mode) */}
+        <Moon
+          className={`w-3.5 h-3.5 transition-all duration-300 ${
+            isDark ? 'text-[#C4C9D1] opacity-90 scale-100' : 'text-[#A99BD8] opacity-0 scale-75'
+          }`}
         />
-        <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" className="moon svg">
-          {/* Font Awesome Free 6.5.1 by @fontawesome */}
-          <path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z" />
-        </svg>
-        <div className="sun svg">
-          <span className="dot" />
-        </div>
-      </label>
-    </div>
+        {/* Sun Icon (Visible in Light Mode) */}
+        <Sun
+          className={`w-3.5 h-3.5 transition-all duration-300 ${
+            !isDark ? 'text-[#7864CB] opacity-100 scale-100' : 'text-[#ECCA2F] opacity-0 scale-75'
+          }`}
+        />
+      </span>
+
+      {/* Sliding Thumb */}
+      <span
+        className={`relative flex items-center justify-center w-[22px] h-[22px] rounded-full transition-transform duration-300 ease-out z-10 ${
+          isDark
+            ? 'translate-x-[26px] bg-[#221F38] border border-white/20 shadow-[0_1px_4px_rgba(0,0,0,0.5)]'
+            : 'translate-x-0 bg-white border border-[#DDD7EA] shadow-[0_2px_6px_rgba(120,100,203,0.22)]'
+        }`}
+      >
+        {isDark ? (
+          <Moon className="w-2.5 h-2.5 text-[#BD75E9]" />
+        ) : (
+          <Sun className="w-2.5 h-2.5 text-[#E6A23C]" />
+        )}
+      </span>
+    </button>
   );
 }
+
 

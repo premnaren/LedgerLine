@@ -1257,18 +1257,18 @@ const InteractiveLedgerNetwork = forwardRef<
         ctx.strokeStyle = isSelectedEdge
           ? isDark
             ? `rgba(189, 117, 233, ${effAlpha.toFixed(3)})`
-            : `rgba(70, 81, 110, ${effAlpha.toFixed(3)})` // Deep Slate #46516E
+            : `rgba(70, 81, 110, ${(effAlpha * 0.75).toFixed(3)})` // Deep Slate #46516E
           : isHoveredEdge
           ? isDark
             ? `rgba(100, 142, 255, ${effAlpha.toFixed(3)})`
-            : `rgba(169, 155, 216, ${effAlpha.toFixed(3)})` // Soft Nebula #A99BD8
+            : `rgba(169, 155, 216, ${(effAlpha * 0.65).toFixed(3)})` // Soft Nebula #A99BD8
           : edge.isSecondary
           ? isDark
             ? `rgba(117, 200, 240, ${(effAlpha * 0.7).toFixed(3)})`
-            : `rgba(182, 169, 217, ${effAlpha.toFixed(3)})` // Pale Lavender #B6A9D9
+            : `rgba(182, 169, 217, ${(effAlpha * 0.38).toFixed(3)})` // Pale Lavender #B6A9D9 (approx 35-38%)
           : isDark
           ? `rgba(142, 105, 230, ${effAlpha.toFixed(3)})`
-          : `rgba(137, 144, 171, ${effAlpha.toFixed(3)})`; // Muted Slate #8990AB
+          : `rgba(137, 144, 171, ${(effAlpha * 0.62).toFixed(3)})`; // Muted Slate #8990AB (approx 38-42%)
 
         ctx.lineWidth = lineWidth;
         if (edge.isSecondary && mode !== 'CRUMPLED') {
@@ -1319,15 +1319,17 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.setLineDash([]);
         }
 
-        // Outer halo bloom for major stars or active state
+        // Outer halo bloom for major stars or active state (subtle in light mode)
         if (importance === 'major' || isHovered || isDragged || highlight > 0.05) {
-          const haloR = radius + (isDragged ? 8 : isHovered ? 6 : 4 + (importance === 'major' ? 3 * starPulse : 0));
+          const haloR = isDark
+            ? radius + (isDragged ? 8 : isHovered ? 6 : 4 + (importance === 'major' ? 3 * starPulse : 0))
+            : (radius * 0.85) + (isDragged ? 5 : isHovered ? 4 : 2.5 + (importance === 'major' ? 1.8 * starPulse : 0));
           ctx.beginPath();
           ctx.arc(x, y, haloR, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
             ? `rgba(189, 117, 233, ${(0.35 + 0.20 * starPulse).toFixed(3)})`
-            : `rgba(169, 155, 216, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
-          ctx.lineWidth = isDragged ? 2 : isHovered ? 1.6 : 1;
+            : `rgba(169, 155, 216, ${(0.14 + 0.08 * starPulse).toFixed(3)})`;
+          ctx.lineWidth = isDragged ? (isDark ? 2 : 1.5) : isHovered ? (isDark ? 1.6 : 1.2) : 1;
           ctx.stroke();
         }
 
@@ -1340,9 +1342,11 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.stroke();
         }
 
-        // Main star body
+        // Main star body (slightly reduced radius in light mode)
         ctx.beginPath();
-        const curRadius = radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight);
+        const curRadius = isDark
+          ? radius + (isDragged ? 2.5 : isHovered ? 2 : isSelected ? 1.5 : highlight)
+          : (radius * 0.85) + (isDragged ? 2 : isHovered ? 1.6 : isSelected ? 1.2 : highlight * 0.8);
         ctx.arc(x, y, curRadius, 0, Math.PI * 2);
 
         // Color coding: red supergiant warmth vs electric blue/white
@@ -1373,7 +1377,7 @@ const InteractiveLedgerNetwork = forwardRef<
         ctx.fill();
 
         ctx.strokeStyle = isSelected ? (isDark ? '#FFFFFF' : '#242039') : isDark ? '#EBE6FF' : '#FFFFFF';
-        ctx.lineWidth = isSelected ? 1.8 : 1.2;
+        ctx.lineWidth = isSelected ? (isDark ? 1.8 : 1.4) : (isDark ? 1.2 : 1.0);
         ctx.stroke();
       }
 
