@@ -15,28 +15,28 @@ interface NavItem {
   match: (path: string) => boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  {
+const ALL_NAV_ITEMS: Record<string, NavItem> = {
+  accounts: {
     name: 'Accounts',
     href: '/dashboard',
     match: (path: string) => path === '/dashboard' || path.startsWith('/accounts'),
   },
-  {
+  audit: {
     name: 'Audit Ledger',
     href: '/admin/audit',
     match: (path: string) => path.startsWith('/admin/audit'),
   },
-  {
+  stress: {
     name: 'Stress Lab',
     href: '/admin/stress-lab',
     match: (path: string) => path.startsWith('/admin/stress-lab'),
   },
-  {
+  users: {
     name: 'Users',
     href: '/admin/users',
     match: (path: string) => path.startsWith('/admin/users'),
   },
-];
+};
 
 export default function Navbar() {
   const [user, setUserState] = useState<UserSession | null>(null);
@@ -44,6 +44,26 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setCurrentTheme] = useState<Theme>('light');
   const pathname = usePathname();
+
+  // Role-Based Navigation Items:
+  // - HOLDER: Only Accounts (no Audit Ledger, Stress Lab, or Users)
+  // - AUDITOR: Accounts and Audit Ledger only (no Stress Lab or Users)
+  // - ADMIN: Full operational suite (Accounts, Audit Ledger, Stress Lab, Users)
+  const navItems = React.useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'HOLDER') {
+      return [ALL_NAV_ITEMS.accounts];
+    }
+    if (user.role === 'AUDITOR') {
+      return [ALL_NAV_ITEMS.accounts, ALL_NAV_ITEMS.audit];
+    }
+    return [
+      ALL_NAV_ITEMS.accounts,
+      ALL_NAV_ITEMS.audit,
+      ALL_NAV_ITEMS.stress,
+      ALL_NAV_ITEMS.users,
+    ];
+  }, [user]);
 
   // Sliding indicator state
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -78,31 +98,31 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Determine active index
-  const activeIdx = Math.max(
-    0,
-    NAV_ITEMS.findIndex((item) => item.match(pathname))
-  );
+  // Determine active index within role-filtered nav items
+  const matchedIdx = navItems.findIndex((item) => item.match(pathname));
+  const activeIdx = matchedIdx !== -1 ? matchedIdx : 0;
 
   const currentIdx = hoveredIdx !== null ? hoveredIdx : activeIdx;
 
-  // Reposition sliding indicator on index change or resize
+  // Reposition sliding indicator on index change, role change, or resize
   useEffect(() => {
     const updateIndicator = () => {
       const el = navRefs.current[currentIdx];
-      if (el) {
+      if (el && navItems.length > 0) {
         setIndicatorStyle({
           left: el.offsetLeft,
           width: el.offsetWidth,
           opacity: 1,
         });
+      } else {
+        setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
       }
     };
 
     updateIndicator();
     window.addEventListener('resize', updateIndicator);
     return () => window.removeEventListener('resize', updateIndicator);
-  }, [currentIdx, pathname]);
+  }, [currentIdx, pathname, navItems]);
 
   if (pathname === '/login') {
     return null;
@@ -157,7 +177,7 @@ export default function Navbar() {
                   }}
                 />
 
-                {NAV_ITEMS.map((item, index) => {
+                {navItems.map((item, index) => {
                   const isActive = activeIdx === index;
                   const isHovered = hoveredIdx === index;
 
@@ -198,6 +218,31 @@ export default function Navbar() {
 
             {user && (
               <>
+                {/* Role Pill Indicator */}
+                <span
+                  className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
+                    user.role === 'ADMIN'
+                      ? 'bg-[#F08091]/10 text-[#F08091] border-[#F08091]/30'
+                      : user.role === 'AUDITOR'
+                      ? 'bg-[#B6A9FF]/10 text-[#B6A9FF] border-[#B6A9FF]/30'
+                      : 'bg-[#5DD6A0]/10 text-[#5DD6A0] border-[#5DD6A0]/30'
+                  }`}
+                  title={`Logged in as ${user.email} (${user.role})`}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background:
+                        user.role === 'ADMIN'
+                          ? '#F08091'
+                          : user.role === 'AUDITOR'
+                          ? '#B6A9FF'
+                          : '#5DD6A0',
+                    }}
+                  />
+                  {user.role}
+                </span>
+
                 {/* Logout Control (Positioned at Far-Right End) */}
                 <button
                   onClick={() => logoutUser()}
@@ -206,7 +251,7 @@ export default function Navbar() {
                   aria-label="Sign out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign out</span>
+                  <span className="hidden md:inline">Sign out</span>
                 </button>
 
                 {/* Mobile Hamburger Toggle for Small Screens */}
@@ -227,7 +272,7 @@ export default function Navbar() {
         {/* Responsive Mobile Drawer */}
         {user && isMobileMenuOpen && (
           <div className="px-4 py-3 space-y-1 border-t md:hidden border-rule bg-surface/95 backdrop-blur-md">
-            {NAV_ITEMS.map((item, index) => {
+            {navItems.map((item, index) => {
               const isActive = activeIdx === index;
               return (
                 <Link

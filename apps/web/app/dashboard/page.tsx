@@ -30,6 +30,9 @@ import {
   Clock,
   ChevronRight,
   Sparkles,
+  Users,
+  Lock,
+  BookOpen,
 } from 'lucide-react';
 import TransactionDrawer, { InspectedTransaction } from '@/components/TransactionDrawer';
 
@@ -511,8 +514,38 @@ export default function DashboardPage() {
     <div className="pb-16 mx-auto space-y-7 max-w-7xl">
       {/* Visual Hierarchy: Header */}
       <div className="space-y-1">
-        <div className="text-[11px] font-semibold tracking-widest uppercase text-primary">
-          OVERVIEW / ACCOUNTS
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-widest uppercase text-primary">
+            {user?.role === 'HOLDER'
+              ? 'PERSONAL / CHECKING & SAVINGS'
+              : user?.role === 'AUDITOR'
+              ? 'COMPLIANCE / REGULATORY OVERSIGHT'
+              : 'OPERATIONS / CORE LEDGER'}
+          </span>
+          {user && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
+                user.role === 'ADMIN'
+                  ? 'bg-[#F08091]/10 text-[#F08091] border-[#F08091]/30'
+                  : user.role === 'AUDITOR'
+                  ? 'bg-[#B6A9FF]/10 text-[#B6A9FF] border-[#B6A9FF]/30'
+                  : 'bg-[#5DD6A0]/10 text-[#5DD6A0] border-[#5DD6A0]/30'
+              }`}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background:
+                    user.role === 'ADMIN'
+                      ? '#F08091'
+                      : user.role === 'AUDITOR'
+                      ? '#B6A9FF'
+                      : '#5DD6A0',
+                }}
+              />
+              {user.role}
+            </span>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -520,11 +553,75 @@ export default function DashboardPage() {
               {greeting}, {displayName}.
             </h1>
             <p className="text-sm text-ink-muted mt-0.5">
-              Your financial universe, all in one place.
+              {user?.role === 'HOLDER'
+                ? 'Your personal accounts, instant transfers, and verified transaction statements.'
+                : user?.role === 'AUDITOR'
+                ? 'Real-time cryptographic integrity, balance conservation, and audit oversight.'
+                : 'Core banking engine, account management, and double-entry settlements.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* HOLDER Quick Action */}
+            {user?.role === 'HOLDER' && accounts.length > 0 && (
+              <Link
+                href={`/accounts/${accounts[0].id}/transfer`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover transition pressable shadow-xs"
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5" />
+                <span>Transfer funds</span>
+              </Link>
+            )}
+
+            {/* AUDITOR Compliance Actions */}
+            {user?.role === 'AUDITOR' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleVerifyIntegrity}
+                  disabled={reconcileLoading}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover transition pressable shadow-xs disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Verify integrity</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportReport}
+                  disabled={!reconcileResult}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-rule bg-surface hover:bg-surface-secondary text-ink transition pressable shadow-xs disabled:opacity-50"
+                  title="Export system double-entry audit report in JSON format"
+                >
+                  <Download className="w-3.5 h-3.5 text-ink-muted" />
+                  <span className="hidden sm:inline">Export Audit Report</span>
+                </button>
+              </>
+            )}
+
+            {/* ADMIN Operations Actions */}
+            {user?.role === 'ADMIN' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-primary hover:bg-primary-hover transition pressable shadow-xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>New account</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerifyIntegrity}
+                  disabled={reconcileLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-rule bg-surface hover:bg-surface-secondary text-ink transition pressable shadow-xs disabled:opacity-50"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                  <span className="hidden sm:inline">Verify integrity</span>
+                </button>
+              </>
+            )}
+
+            {/* Universal Refresh Button */}
             <button
               onClick={() => fetchAccounts()}
               className="p-2.5 rounded-xl border transition border-rule text-ink-muted hover:text-ink hover:bg-surface-secondary pressable shrink-0 bg-surface shadow-xs"
@@ -537,210 +634,549 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards: Total accounts & Transactions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* KPI 1: Total accounts */}
-        <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
-              Active
-            </span>
-          </div>
-          <div className="mt-5">
-            <span className="block text-xs font-medium text-ink-muted">Total accounts</span>
-            <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
-              {accounts.length ? accounts.length : '128'}
-            </div>
-            <div className="text-xs font-medium text-[#5DD6A0] mt-2 flex items-center gap-1.5">
-              <span>+{accounts.length ? accounts.length : 12} this month</span>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 2: Transactions */}
-        <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-              <ArrowRightLeft className="w-5 h-5" />
-            </div>
-            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
-              Operational
-            </span>
-          </div>
-          <div className="mt-5">
-            <span className="block text-xs font-medium text-ink-muted">Transactions</span>
-            <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
-              {auditEntries.length ? auditEntries.length.toLocaleString() : '1,024'}
-            </div>
-            <div className="text-xs font-medium text-[#5DD6A0] mt-2 flex items-center gap-1.5">
-              <span>System operational</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Activity Chart Card */}
-      <div className="cosmic-card p-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <div className="flex items-center space-x-2.5">
-            <h3 className="text-base font-semibold tracking-tight text-ink">Financial activity</h3>
-            <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/30 bg-[#5DD6A0]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0] animate-pulse" />
-              Live
-            </span>
-          </div>
-
-          {/* Functional Date-Range Selector */}
-          <div className="flex items-center gap-1.5 text-xs">
-            {(['7D', '30D', '90D', 'ALL'] as const).map((range) => {
-              const isSelected = chartRange === range;
-              return (
-                <button
-                  key={range}
-                  type="button"
-                  onClick={() => {
-                    setChartRange(range);
-                    setHoveredPoint(null);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold mono-num transition pressable ${
-                    isSelected
-                      ? 'bg-primary/20 text-primary border border-primary/40 shadow-xs'
-                      : 'text-ink-muted hover:text-ink hover:bg-surface-secondary border border-transparent'
-                  }`}
-                >
-                  {range}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Refined Violet Activity SVG Curve & Restrained Gridlines */}
-        <div className="w-full h-44 sm:h-52 relative mt-3 select-none">
-          <svg viewBox="0 0 800 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="nebulaActivityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8B7CFF" stopOpacity="0.25" />
-                <stop offset="70%" stopColor="#8B7CFF" stopOpacity="0.04" />
-                <stop offset="100%" stopColor="#8B7CFF" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="nebulaLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#8B7CFF" />
-                <stop offset="50%" stopColor="#B6A9FF" />
-                <stop offset="100%" stopColor="#8B7CFF" />
-              </linearGradient>
-            </defs>
-
-            {/* Restrained Horizontal Gridlines */}
-            <line x1="30" y1="45" x2="770" y2="45" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
-            <line x1="30" y1="95" x2="770" y2="95" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
-            <line x1="30" y1="145" x2="770" y2="145" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
-
-            {/* Subtle Gradient Area Fill */}
-            <path
-              d={chartDatasets[chartRange].areaPath}
-              fill="url(#nebulaActivityGradient)"
-              className="transition-all duration-300"
-            />
-
-            {/* Main Data Line */}
-            <path
-              d={chartDatasets[chartRange].path}
-              fill="none"
-              stroke="url(#nebulaLineGradient)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="transition-all duration-300"
-            />
-
-            {/* Dotted Vertical Guideline on Hover */}
-            {hoveredPoint && (
-              <line
-                x1={hoveredPoint.x}
-                y1="35"
-                x2={hoveredPoint.x}
-                y2="190"
-                stroke="var(--primary)"
-                strokeDasharray="2 3"
-                opacity="0.6"
-              />
-            )}
-
-            {/* Interactive Data Nodes */}
-            {chartDatasets[chartRange].points.map((p, idx) => {
-              const isHovered = hoveredPoint?.x === p.x;
-              return (
-                <g key={idx}>
-                  {/* Subtle Node */}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={isHovered ? 5.5 : 3.5}
-                    fill={isHovered ? '#F4F5FA' : '#8B7CFF'}
-                    stroke="var(--surface)"
-                    strokeWidth="2"
-                    className="transition-all duration-150 pointer-events-none"
-                  />
-                  {isHovered && (
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r="12"
-                      fill="#8B7CFF"
-                      fillOpacity="0.25"
-                      className="pointer-events-none animate-pulse"
-                    />
-                  )}
-                  {/* Expanded Pointer Hover Target */}
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r="22"
-                    fill="transparent"
-                    className="cursor-pointer"
-                    onMouseEnter={() => setHoveredPoint(p)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* Interactive Floating Glass Tooltip */}
-          {hoveredPoint && (
-            <div
-              className="absolute pointer-events-none z-20 py-2 px-3 rounded-xl glass-dense border border-subtle shadow-glass-md text-xs transition-transform duration-100 ease-out"
-              style={{
-                left: `${(hoveredPoint.x / 800) * 100}%`,
-                top: `${(hoveredPoint.y / 200) * 100}%`,
-                transform: 'translate(-50%, -125%)',
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-ink mono-num text-sm">{hoveredPoint.volume}</span>
-                <span className="text-[11px] text-ink-muted">· {hoveredPoint.date}</span>
+      {/* HOLDER Specific Metric Cards (No admin/institutional clutter) */}
+      {user?.role === 'HOLDER' && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total Balance */}
+          <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <Wallet className="w-5 h-5" />
               </div>
-              <div className="text-[11px] text-[#5DD6A0] font-medium flex items-center gap-1.5 mt-0.5">
+              <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
-                <span>{hoveredPoint.count} settlements verified</span>
+                Active
+              </span>
+            </div>
+            <div className="mt-5">
+              <span className="block text-xs font-medium text-ink-muted">Total balance</span>
+              <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
+                {formatPaiseToRupees(combinedBalancePence.toString())}
+              </div>
+              <div className="text-xs text-ink-muted mt-2">
+                Across {accounts.length} registered {accounts.length === 1 ? 'account' : 'accounts'}
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* X-Axis Date Milestone Labels */}
-        <div className="flex justify-between items-center px-4 mt-2.5 text-[11px] mono-num text-ink-faint">
-          {chartDatasets[chartRange].labels.map((lbl, idx) => (
-            <span key={idx}>{lbl}</span>
-          ))}
+          {/* Your Accounts */}
+          <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <Building className="w-5 h-5" />
+              </div>
+              <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                Depository
+              </span>
+            </div>
+            <div className="mt-5">
+              <span className="block text-xs font-medium text-ink-muted">Your accounts</span>
+              <div className="mono-num text-3xl sm:text-4xl font-bold text-ink mt-1">
+                {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
+              </div>
+              <div className="text-xs text-ink-muted mt-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                <span>Active checking &amp; savings</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Protection */}
+          <div className="cosmic-card p-6 flex flex-col justify-between relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                Protected
+              </span>
+            </div>
+            <div className="mt-5">
+              <span className="block text-xs font-medium text-ink-muted">Account protection</span>
+              <div className="mono-num text-2xl sm:text-3xl font-bold text-ink mt-1 flex items-center gap-2">
+                <span>Guaranteed</span>
+                <span className="w-2 h-2 rounded-full bg-[#5DD6A0] animate-pulse" />
+              </div>
+              <div className="text-xs text-ink-muted mt-2">
+                Database CHECK invariants &amp; append-only seal
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* AUDITOR Compliance Overview KPI Cards & Integrity Banner */}
+      {user?.role === 'AUDITOR' && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* System Total Balance */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Building className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#B6A9FF] border-[#B6A9FF]/25 bg-[#B6A9FF]/10">
+                  Oversight
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Consolidated balance</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5 truncate">
+                  {formatPaiseToRupees(combinedBalancePence.toString())}
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">Across all ledger accounts</span>
+              </div>
+            </div>
+
+            {/* Double-Entry Invariant */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-[#5DD6A0]/10 border border-[#5DD6A0]/20 flex items-center justify-center text-[#5DD6A0]">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                  Balanced
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Conservation invariant</span>
+                <div className="text-2xl font-bold text-[#5DD6A0] mt-0.5">
+                  Zero-Deficit
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">∑ Debits == ∑ Credits</span>
+              </div>
+            </div>
+
+            {/* Hash Chain Seal */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  Verified
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Cryptographic chain</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5">
+                  SHA-256
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">Genesis → Head block sealed</span>
+              </div>
+            </div>
+
+            {/* Monitored Accounts */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#B6A9FF] border-[#B6A9FF]/25 bg-[#B6A9FF]/10">
+                  Supervised
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Audited accounts</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5">
+                  {accounts.length}
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">All institutional ledgers</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Auditor Quick Integrity Banner */}
+          <div className="p-4 cosmic-card border-primary/30 bg-primary/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/15 text-primary shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-ink">
+                  Continuous Ledger Attestation &amp; Audit Trail Active
+                </h4>
+                <p className="text-[11px] text-ink-muted mt-0.5">
+                  Every balance mutation is sealed into the cryptographic chain. Double-entry conservation verified.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/admin/audit"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:text-primary-hover bg-primary/10 hover:bg-primary/20 border border-primary/25 transition shrink-0 self-start sm:self-auto"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Open Full Audit Ledger</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </>
+      )}
+
+      {/* ADMIN Operations KPI Cards & Quick Action Workbench Shortcuts */}
+      {user?.role === 'ADMIN' && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Accounts */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  Active
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Total accounts</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5">
+                  {accounts.length}
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">All system entities</span>
+              </div>
+            </div>
+
+            {/* Depository Volume */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Building className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  Consolidated
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Depository volume</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5 truncate">
+                  {formatPaiseToRupees(combinedBalancePence.toString())}
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">Combined balance</span>
+              </div>
+            </div>
+
+            {/* Auditable Transactions */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <ArrowRightLeft className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  Tracked
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Total operations</span>
+                <div className="mono-num text-2xl font-bold text-ink mt-0.5">
+                  {auditEntries.length.toLocaleString()}
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">Auditable ledger entries</span>
+              </div>
+            </div>
+
+            {/* Engine Status */}
+            <div className="cosmic-card p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl bg-[#5DD6A0]/10 border border-[#5DD6A0]/20 flex items-center justify-center text-[#5DD6A0]">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/25 bg-[#5DD6A0]/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                  Operational
+                </span>
+              </div>
+              <div className="mt-4">
+                <span className="block text-xs font-medium text-ink-muted">Settlement engine</span>
+                <div className="text-2xl font-bold text-ink mt-0.5">
+                  Serializable
+                </div>
+                <span className="text-[11px] text-ink-faint block mt-1">ACID isolation enforced</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Fast-Action Workbench Shortcuts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <Link
+              href="/admin/stress-lab"
+              className="p-4 cosmic-card hover:border-primary/50 transition flex items-center justify-between group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-ink group-hover:text-primary transition">
+                    Stress Lab
+                  </h4>
+                  <p className="text-[11px] text-ink-muted">
+                    Run concurrency &amp; race simulations
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-ink-faint group-hover:text-primary group-hover:translate-x-0.5 transition" />
+            </Link>
+
+            <Link
+              href="/admin/audit"
+              className="p-4 cosmic-card hover:border-primary/50 transition flex items-center justify-between group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-ink group-hover:text-primary transition">
+                    Audit Ledger
+                  </h4>
+                  <p className="text-[11px] text-ink-muted">
+                    Inspect append-only log &amp; reversals
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-ink-faint group-hover:text-primary group-hover:translate-x-0.5 transition" />
+            </Link>
+
+            <Link
+              href="/admin/users"
+              className="p-4 cosmic-card hover:border-primary/50 transition flex items-center justify-between group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-ink group-hover:text-primary transition">
+                    User Management
+                  </h4>
+                  <p className="text-[11px] text-ink-muted">
+                    RBAC roles &amp; client onboarding
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-ink-faint group-hover:text-primary group-hover:translate-x-0.5 transition" />
+            </Link>
+          </div>
+        </>
+      )}
+
+      {/* Financial Activity Chart & 7-Day Trend Analytics (ADMIN & AUDITOR Only) */}
+      {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
+        <>
+          {/* Financial Activity Chart Card */}
+          <div className="cosmic-card p-6 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+              <div className="flex items-center space-x-2.5">
+                <h3 className="text-base font-semibold tracking-tight text-ink">Financial activity</h3>
+                <span className="cosmic-pill text-[#5DD6A0] border-[#5DD6A0]/30 bg-[#5DD6A0]/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0] animate-pulse" />
+                  Live
+                </span>
+              </div>
+
+              {/* Functional Date-Range Selector */}
+              <div className="flex items-center gap-1.5 text-xs">
+                {(['7D', '30D', '90D', 'ALL'] as const).map((range) => {
+                  const isSelected = chartRange === range;
+                  return (
+                    <button
+                      key={range}
+                      type="button"
+                      onClick={() => {
+                        setChartRange(range);
+                        setHoveredPoint(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold mono-num transition pressable ${
+                        isSelected
+                          ? 'bg-primary/20 text-primary border border-primary/40 shadow-xs'
+                          : 'text-ink-muted hover:text-ink hover:bg-surface-secondary border border-transparent'
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Refined Violet Activity SVG Curve & Restrained Gridlines */}
+            <div className="w-full h-44 sm:h-52 relative mt-3 select-none">
+              <svg viewBox="0 0 800 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="nebulaActivityGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8B7CFF" stopOpacity="0.25" />
+                    <stop offset="70%" stopColor="#8B7CFF" stopOpacity="0.04" />
+                    <stop offset="100%" stopColor="#8B7CFF" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="nebulaLineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#8B7CFF" />
+                    <stop offset="50%" stopColor="#B6A9FF" />
+                    <stop offset="100%" stopColor="#8B7CFF" />
+                  </linearGradient>
+                </defs>
+
+                {/* Restrained Horizontal Gridlines */}
+                <line x1="30" y1="45" x2="770" y2="45" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+                <line x1="30" y1="95" x2="770" y2="95" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+                <line x1="30" y1="145" x2="770" y2="145" stroke="currentColor" strokeDasharray="3 4" className="text-rule opacity-25" />
+
+                {/* Subtle Gradient Area Fill */}
+                <path
+                  d={chartDatasets[chartRange].areaPath}
+                  fill="url(#nebulaActivityGradient)"
+                  className="transition-all duration-300"
+                />
+
+                {/* Main Data Line */}
+                <path
+                  d={chartDatasets[chartRange].path}
+                  fill="none"
+                  stroke="url(#nebulaLineGradient)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="transition-all duration-300"
+                />
+
+                {/* Dotted Vertical Guideline on Hover */}
+                {hoveredPoint && (
+                  <line
+                    x1={hoveredPoint.x}
+                    y1="35"
+                    x2={hoveredPoint.x}
+                    y2="190"
+                    stroke="var(--primary)"
+                    strokeDasharray="2 3"
+                    opacity="0.6"
+                  />
+                )}
+
+                {/* Interactive Data Nodes */}
+                {chartDatasets[chartRange].points.map((p, idx) => {
+                  const isHovered = hoveredPoint?.x === p.x;
+                  return (
+                    <g key={idx}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={isHovered ? 5.5 : 3.5}
+                        fill={isHovered ? '#F4F5FA' : '#8B7CFF'}
+                        stroke="var(--surface)"
+                        strokeWidth="2"
+                        className="transition-all duration-150 pointer-events-none"
+                      />
+                      {isHovered && (
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r="12"
+                          fill="#8B7CFF"
+                          fillOpacity="0.25"
+                          className="pointer-events-none animate-pulse"
+                        />
+                      )}
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="22"
+                        fill="transparent"
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredPoint(p)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Interactive Floating Glass Tooltip */}
+              {hoveredPoint && (
+                <div
+                  className="absolute pointer-events-none z-20 py-2 px-3 rounded-xl glass-dense border border-subtle shadow-glass-md text-xs transition-transform duration-100 ease-out"
+                  style={{
+                    left: `${(hoveredPoint.x / 800) * 100}%`,
+                    top: `${(hoveredPoint.y / 200) * 100}%`,
+                    transform: 'translate(-50%, -125%)',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-ink mono-num text-sm">{hoveredPoint.volume}</span>
+                    <span className="text-[11px] text-ink-muted">· {hoveredPoint.date}</span>
+                  </div>
+                  <div className="text-[11px] text-[#5DD6A0] font-medium flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
+                    <span>{hoveredPoint.count} settlements verified</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* X-Axis Date Milestone Labels */}
+            <div className="flex justify-between items-center px-4 mt-2.5 text-[11px] mono-num text-ink-faint">
+              {chartDatasets[chartRange].labels.map((lbl, idx) => (
+                <span key={idx}>{lbl}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* ADMIN & AUDITOR 7-Day Trend Analytics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* Trend 1: Posted entries in last 7 days */}
+            <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
+              <div>
+                <span className="block text-xs font-medium text-ink-muted">
+                  Posted entries (7d)
+                </span>
+                <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
+                  {sevenDayStats.postedCount}
+                </span>
+                <span className="text-[11px] text-ink-faint">Double-entry legs</span>
+              </div>
+              <div className="text-right">
+                <BarSparkline data={sevenDayStats.postedDaily} color="#5DD6A0" />
+                <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+              </div>
+            </div>
+
+            {/* Trend 2: Refused attempts in last 7 days */}
+            <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
+              <div>
+                <span className="block text-xs font-medium text-ink-muted">
+                  Refused attempts (7d)
+                </span>
+                <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
+                  {sevenDayStats.refusedCount}
+                </span>
+                <span className="text-[11px] text-ink-faint">Prevented overdrafts</span>
+              </div>
+              <div className="text-right">
+                <BarSparkline data={sevenDayStats.refusedDaily} color="#F08091" />
+                <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+              </div>
+            </div>
+
+            {/* Trend 3: Net flow in last 7 days */}
+            <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
+              <div>
+                <span className="block text-xs font-medium text-ink-muted">
+                  Net flow (7d)
+                </span>
+                <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
+                  {formatPaiseToRupees(sevenDayStats.netFlowPence.toString())}
+                </span>
+                <span className="text-[11px] text-ink-faint">Deposits minus withdrawals</span>
+              </div>
+              <div className="text-right">
+                <BarSparkline data={sevenDayStats.netFlowDaily} color="#67D5D0" />
+                <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {error && (
         <div
@@ -752,109 +1188,22 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ADMIN & AUDITOR Trend Widgets (Computed client-side from existing endpoints) */}
-      {(user?.role === 'ADMIN' || user?.role === 'AUDITOR') && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          {/* Trend 1: Posted entries in last 7 days */}
-          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
-            <div>
-              <span className="block text-xs font-medium text-ink-muted">
-                Posted entries (7d)
-              </span>
-              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
-                {sevenDayStats.postedCount}
-              </span>
-              <span className="text-[11px] text-ink-faint">Double-entry legs</span>
-            </div>
-            <div className="text-right">
-              <BarSparkline data={sevenDayStats.postedDaily} color="#5DD6A0" />
-              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
-            </div>
-          </div>
-
-          {/* Trend 2: Refused attempts in last 7 days */}
-          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
-            <div>
-              <span className="block text-xs font-medium text-ink-muted">
-                Refused attempts (7d)
-              </span>
-              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
-                {sevenDayStats.refusedCount}
-              </span>
-              <span className="text-[11px] text-ink-faint">Prevented overdrafts</span>
-            </div>
-            <div className="text-right">
-              <BarSparkline data={sevenDayStats.refusedDaily} color="#F08091" />
-              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
-            </div>
-          </div>
-
-          {/* Trend 3: Net flow in last 7 days (Analytical Cyan) */}
-          <div className="flex justify-between items-center p-4 cosmic-card shadow-xs">
-            <div>
-              <span className="block text-xs font-medium text-ink-muted">
-                Net flow (7d)
-              </span>
-              <span className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 block">
-                {formatPaiseToRupees(sevenDayStats.netFlowPence.toString())}
-              </span>
-              <span className="text-[11px] text-ink-faint">Deposits minus withdrawals</span>
-            </div>
-            <div className="text-right">
-              <BarSparkline data={sevenDayStats.netFlowDaily} color="#67D5D0" />
-              <span className="text-[10px] mono-num text-ink-faint block mt-1">7d trend</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* HOLDER Metric Cards */}
-      {user?.role === 'HOLDER' && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="p-5 cosmic-card shadow-xs">
-            <span className="block text-xs font-medium text-ink-muted">Total balance</span>
-            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5">
-              {formatPaiseToRupees(combinedBalancePence.toString())}
-            </div>
-            <p className="mt-1 text-xs text-ink-faint">
-              Across {accounts.length} registered {accounts.length === 1 ? 'account' : 'accounts'}
-            </p>
-          </div>
-
-          <div className="p-5 cosmic-card shadow-xs">
-            <span className="block text-xs font-medium text-ink-muted">Your accounts</span>
-            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5">
-              {accounts.length < 10 ? `0${accounts.length}` : accounts.length}
-            </div>
-            <p className="text-xs text-ink-muted mt-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
-              Active checking
-            </p>
-          </div>
-
-          <div className="p-5 cosmic-card shadow-xs">
-            <span className="block text-xs font-medium text-ink-muted">Account protection</span>
-            <div className="mono-num tabular-nums text-2xl font-bold text-ink mt-0.5 flex items-center gap-2">
-              <span>Protected</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5DD6A0]" />
-            </div>
-            <p className="mt-1 text-xs text-ink-faint">
-              Append-only cryptographic seal
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Accounts List Section */}
       <div className="space-y-4">
         <div className="flex flex-col gap-3 justify-between sm:flex-row sm:items-center">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-ink">
-              {user?.role === 'HOLDER' ? 'Your accounts' : 'Ledger accounts'}
+              {user?.role === 'HOLDER'
+                ? 'Your accounts'
+                : user?.role === 'AUDITOR'
+                ? 'System accounts under audit'
+                : 'System ledger accounts'}
             </h2>
             <p className="text-xs text-ink-muted">
               {user?.role === 'HOLDER'
                 ? 'Select an account to initiate transfers or view statements'
+                : user?.role === 'AUDITOR'
+                ? 'Read-only inspection of all institutional accounts, real-time balances, and assigned holders'
                 : 'Showing all system accounts with current balances and overdraft limits'}
             </p>
           </div>

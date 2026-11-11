@@ -247,7 +247,7 @@ export default function LunarOrbitalSystem() {
   });
 
   return (
-    <div className="fixed inset-0 z-10 pointer-events-none select-none overflow-hidden">
+    <div className="overflow-hidden fixed inset-0 z-10 pointer-events-none select-none">
       {/* ============================================================ */}
       {/* 1. 3D CELESTIAL ORBITAL RING LAYER (BACK & FRONT ARCS)       */}
       {/* ============================================================ */}
@@ -392,7 +392,7 @@ export default function LunarOrbitalSystem() {
                 aria-label={`Celestial star: ${star.title}`}
                 onMouseEnter={() => !isOccluded && setHoveredStarId(star.id)}
                 onMouseLeave={() => setHoveredStarId(null)}
-                className="group relative flex items-center justify-center w-10 h-10 rounded-full cursor-pointer select-none"
+                className="flex relative justify-center items-center w-10 h-10 rounded-full cursor-pointer select-none group"
               >
                 {/* Subtle Lavender Halo on Hover */}
                 <span

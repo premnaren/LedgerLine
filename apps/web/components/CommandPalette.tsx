@@ -213,17 +213,33 @@ export default function CommandPalette({
     [currentUser, onClose, router, onTriggerReconcile]
   );
 
-  // Filter commands based on search query
+  // Filter commands based on role permissions and search query
   const filtered = useMemo(() => {
-    if (!query.trim()) return commands;
+    // 1. Role-based permission filter
+    const roleAllowed = commands.filter((cmd) => {
+      if (cmd.requiredRole === 'ADMIN') {
+        return currentUser?.role === 'ADMIN';
+      }
+      if (cmd.requiredRole === 'AUDITOR') {
+        return currentUser?.role === 'ADMIN' || currentUser?.role === 'AUDITOR';
+      }
+      if (cmd.id === 'transfer-funds' && currentUser?.role === 'AUDITOR') {
+        // Auditors cannot initiate fund transfers (read-only compliance)
+        return false;
+      }
+      return true;
+    });
+
+    // 2. Search query filter
+    if (!query.trim()) return roleAllowed;
     const q = query.toLowerCase().trim();
-    return commands.filter((cmd) => {
+    return roleAllowed.filter((cmd) => {
       const matchTitle = cmd.title.toLowerCase().includes(q);
       const matchDesc = cmd.description.toLowerCase().includes(q);
       const matchKeywords = cmd.keywords.some((kw) => kw.toLowerCase().includes(q));
       return matchTitle || matchDesc || matchKeywords;
     });
-  }, [commands, query]);
+  }, [commands, query, currentUser]);
 
   const groupedResults = useMemo(() => {
     const groups: { [cat: string]: CommandItem[] } = {};
