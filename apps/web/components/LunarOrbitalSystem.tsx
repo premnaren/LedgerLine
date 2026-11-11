@@ -78,7 +78,6 @@ export default function LunarOrbitalSystem() {
     height: 900,
   });
 
-  const [angle, setAngle] = useState(0);
   const [hoveredStarId, setHoveredStarId] = useState<string | null>(null);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
 
@@ -86,6 +85,11 @@ export default function LunarOrbitalSystem() {
   const lastTimeRef = useRef<number | null>(null);
   const hoveredRef = useRef<string | null>(null);
   const reducedMotionRef = useRef(false);
+
+  // Direct DOM Refs for 60fps GPU animation (prevents React re-renders)
+  const starRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const backStreamRef = useRef<SVGPathElement | null>(null);
+  const frontStreamRef = useRef<SVGPathElement | null>(null);
 
   hoveredRef.current = hoveredStarId;
   reducedMotionRef.current = isReducedMotion;
@@ -152,6 +156,8 @@ export default function LunarOrbitalSystem() {
 
   const { cx, cy, rx, ry, tilt, moonR } = getRenderedMoon();
   const tiltRad = (tilt * Math.PI) / 180;
+  const cosA = Math.cos(tiltRad);
+  const sinA = Math.sin(tiltRad);
 
   // Front & Back arc path definitions in unrotated space
   const frontD = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 0 ${cx + rx} ${cy}`;
@@ -161,29 +167,71 @@ export default function LunarOrbitalSystem() {
   // Ellipse circumference approximation for continuous dash streaming
   const ellipseCircumference =
     Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
-  const streamDashOffset = -angle * (ellipseCircumference / (2 * Math.PI));
 
-  // 4. Continuous Smooth Orbital Animation (75 seconds per revolution)
+  // 4. Ultra-Smooth 60/120fps Direct DOM Animation (Zero React Re-renders!)
   useEffect(() => {
     let animId: number;
 
     const animate = (time: number) => {
       if (lastTimeRef.current !== null) {
         const deltaSec = (time - lastTimeRef.current) / 1000;
-
         // Base velocity: full revolution every 75 seconds (0.0837 rad/sec)
         const baseVelocity = (2 * Math.PI) / 75;
 
-        if (reducedMotionRef.current) {
-          // Stationary when reduced motion is preferred
-        } else if (hoveredRef.current) {
-          // Subtle slow-down to 40% on hover
-          angleRef.current = (angleRef.current + baseVelocity * 0.40 * deltaSec) % (2 * Math.PI);
-          setAngle(angleRef.current);
-        } else {
-          // Normal continuous smooth orbital movement
-          angleRef.current = (angleRef.current + baseVelocity * deltaSec) % (2 * Math.PI);
-          setAngle(angleRef.current);
+        if (!reducedMotionRef.current) {
+          const speedFactor = hoveredRef.current ? 0.40 : 1.0;
+          angleRef.current = (angleRef.current + baseVelocity * speedFactor * deltaSec) % (2 * Math.PI);
+
+          const currentAngle = angleRef.current;
+
+          // 1. Direct GPU Transform Updates for Stars
+          for (let idx = 0; idx < CELESTIAL_STARS.length; idx++) {
+            const starEl = starRefs.current[idx];
+            if (!starEl) continue;
+
+            const starAngle = currentAngle + idx * (Math.PI / 2);
+            const cosT = Math.cos(starAngle);
+            const sinT = Math.sin(starAngle);
+            const xUnrotated = rx * cosT;
+            const yUnrotated = ry * sinT;
+
+            const x = cx + xUnrotated * cosA - yUnrotated * sinA;
+            const y = cy + xUnrotated * sinA + yUnrotated * cosA;
+
+            const isFront = yUnrotated > 0;
+            const distFromCenter = Math.sqrt(xUnrotated * xUnrotated + yUnrotated * yUnrotated);
+
+            let opacity = 1.0;
+            let isOccluded = false;
+
+            if (!isFront) {
+              if (distFromCenter < moonR * 0.98) {
+                opacity = 0.0;
+                isOccluded = true;
+              } else if (distFromCenter < moonR * 1.05) {
+                const fade = (distFromCenter - moonR * 0.98) / (moonR * 0.07);
+                opacity = Math.max(0, Math.min(1, fade)) * 0.85;
+              } else {
+                opacity = 0.85;
+              }
+            }
+
+            const scale = isFront ? 1.05 : 0.85;
+
+            starEl.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`;
+            starEl.style.opacity = `${opacity}`;
+            starEl.style.zIndex = isFront ? '30' : '10';
+            starEl.style.pointerEvents = isOccluded ? 'none' : 'auto';
+          }
+
+          // 2. Direct SVG Dash-Offset Updates
+          const streamDashOffset = -currentAngle * (ellipseCircumference / (2 * Math.PI));
+          if (backStreamRef.current) {
+            backStreamRef.current.style.strokeDashoffset = `${streamDashOffset}`;
+          }
+          if (frontStreamRef.current) {
+            frontStreamRef.current.style.strokeDashoffset = `${streamDashOffset}`;
+          }
         }
       }
 
@@ -193,57 +241,22 @@ export default function LunarOrbitalSystem() {
 
     animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [cx, cy, rx, ry, cosA, sinA, moonR, ellipseCircumference]);
 
-  // 5. Calculate Star Coordinates with 3D Depth & Planetary Occlusion
-  const starPositions = CELESTIAL_STARS.map((star, idx) => {
-    // 4 stars distributed along orbit: 0, PI/2, PI, 3PI/2
-    const starAngle = angle + idx * (Math.PI / 2);
-
+  // Initial SSR / Hydration Coordinates (at angle = 0)
+  const initialStarPositions = CELESTIAL_STARS.map((star, idx) => {
+    const starAngle = idx * (Math.PI / 2);
     const cosT = Math.cos(starAngle);
     const sinT = Math.sin(starAngle);
     const xUnrotated = rx * cosT;
     const yUnrotated = ry * sinT;
 
-    const cosA = Math.cos(tiltRad);
-    const sinA = Math.sin(tiltRad);
     const x = cx + xUnrotated * cosA - yUnrotated * sinA;
     const y = cy + xUnrotated * sinA + yUnrotated * cosA;
-
-    // 3D Depth: yUnrotated > 0 is front arc (in front of moon), yUnrotated <= 0 is back arc (behind moon)
     const isFront = yUnrotated > 0;
-    const distFromCenter = Math.sqrt(xUnrotated * xUnrotated + yUnrotated * yUnrotated);
-
-    let opacity = 1.0;
-    let isOccluded = false;
-
-    if (!isFront) {
-      if (distFromCenter < moonR * 0.98) {
-        // Completely occluded behind the solid lunar planet body
-        opacity = 0.0;
-        isOccluded = true;
-      } else if (distFromCenter < moonR * 1.05) {
-        // Smooth fade as it slips behind the lunar limb
-        const fade = (distFromCenter - moonR * 0.98) / (moonR * 0.07);
-        opacity = Math.max(0, Math.min(1, fade)) * 0.85;
-      } else {
-        // In background space outside the moon disk
-        opacity = 0.85;
-      }
-    }
-
     const scale = isFront ? 1.05 : 0.85;
 
-    return {
-      star,
-      x,
-      y,
-      isFront,
-      isOccluded,
-      scale,
-      opacity,
-      idx,
-    };
+    return { star, x, y, scale, isFront };
   });
 
   return (
@@ -312,14 +325,14 @@ export default function LunarOrbitalSystem() {
               strokeWidth={1.1}
               strokeOpacity={0.85}
             />
-            {/* Rotating starlight dash stream */}
+            {/* Rotating starlight dash stream (Direct Ref Animated) */}
             <path
+              ref={backStreamRef}
               d={backD}
               fill="none"
               stroke="#FFFFFF"
               strokeWidth={2.0}
               strokeDasharray="24 48"
-              strokeDashoffset={streamDashOffset}
               strokeOpacity={0.9}
             />
           </g>
@@ -350,24 +363,24 @@ export default function LunarOrbitalSystem() {
             strokeWidth={1.4}
             strokeOpacity={0.95}
           />
-          {/* Rotating animated starlight dash stream */}
+          {/* Rotating animated starlight dash stream (Direct Ref Animated) */}
           <path
+            ref={frontStreamRef}
             d={frontD}
             fill="none"
             stroke="#FFFFFF"
             strokeWidth={2.6}
             strokeDasharray="28 50"
-            strokeDashoffset={streamDashOffset}
             strokeOpacity={0.95}
           />
         </g>
       </svg>
 
       {/* ============================================================ */}
-      {/* 2. REAL CELESTIAL ORBITING STARS (3D DEPTH & OCCLUSION)      */}
+      {/* 2. REAL CELESTIAL ORBITING STARS (DIRECT GPU TRANSFORM)      */}
       {/* ============================================================ */}
       <div className="absolute inset-0 w-full h-full pointer-events-none">
-        {starPositions.map(({ star, x, y, scale, opacity, isFront, isOccluded }) => {
+        {initialStarPositions.map(({ star, x, y, scale, isFront }, idx) => {
           const isHovered = hoveredStarId === star.id;
           const r = star.radius * scale;
           const rayL = star.rayLength * scale * (isHovered ? 1.35 : 1.0);
@@ -375,22 +388,23 @@ export default function LunarOrbitalSystem() {
           return (
             <div
               key={star.id}
-              className={`absolute transition-opacity duration-200 ${
-                isOccluded ? 'pointer-events-none' : 'pointer-events-auto'
-              }`}
+              ref={(el) => {
+                starRefs.current[idx] = el;
+              }}
+              className="absolute pointer-events-auto"
               style={{
-                left: `${x}px`,
-                top: `${y}px`,
-                transform: 'translate(-50%, -50%)',
-                opacity,
+                top: 0,
+                left: 0,
+                transform: `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`,
                 zIndex: isHovered ? 35 : isFront ? 30 : 10,
+                willChange: 'transform, opacity',
               }}
             >
               {/* Accessible Star Element (Hoverable, No Dialog Popup) */}
               <div
                 role="img"
                 aria-label={`Celestial star: ${star.title}`}
-                onMouseEnter={() => !isOccluded && setHoveredStarId(star.id)}
+                onMouseEnter={() => setHoveredStarId(star.id)}
                 onMouseLeave={() => setHoveredStarId(null)}
                 className="flex relative justify-center items-center w-10 h-10 rounded-full cursor-pointer select-none group"
               >
@@ -432,7 +446,7 @@ export default function LunarOrbitalSystem() {
               </div>
 
               {/* Minimal Floating Feature Label on Hover */}
-              {isHovered && !isOccluded && (
+              {isHovered && (
                 <div
                   className="absolute bottom-full mb-2.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md border border-[#A99BD8]/40 shadow-[0_2px_8px_rgba(63,48,100,0.12)] text-[11px] font-semibold text-[#242039] whitespace-nowrap pointer-events-none transition-all duration-150"
                   style={{ animation: 'fadeInView 0.15s ease-out' }}

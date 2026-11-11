@@ -231,9 +231,11 @@ export default function DashboardPage() {
   const [reconcileResult, setReconcileResult] = useState<SystemReconciliationResult | null>(null);
   const [reconcileLoading, setReconcileLoading] = useState(false);
 
-  const fetchAccounts = useCallback(async () => {
+  const fetchAccounts = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       const currentUser = getUser();
       const data = await api.get<Account[]>('/accounts');
@@ -263,7 +265,7 @@ export default function DashboardPage() {
 
       // If user is a HOLDER, fetch recent statements for their registered accounts
       if (currentUser?.role === 'HOLDER' && data.length > 0) {
-        setEntriesLoading(true);
+        if (!silent) setEntriesLoading(true);
         try {
           const promises = data.slice(0, 3).map((acc) =>
             api.get<{ entries: StatementEntry[] }>(`/accounts/${acc.id}/statement?limit=5`)
@@ -289,7 +291,7 @@ export default function DashboardPage() {
         } catch (stmtErr) {
           console.error('Error fetching recent holder transactions:', stmtErr);
         } finally {
-          setEntriesLoading(false);
+          if (!silent) setEntriesLoading(false);
         }
       }
     } catch (err: any) {
@@ -299,7 +301,7 @@ export default function DashboardPage() {
       }
       setError(err.message || 'Failed to fetch accounts');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [router]);
 
@@ -310,10 +312,11 @@ export default function DashboardPage() {
       return;
     }
     setUser(currentUser);
-    fetchAccounts();
+    fetchAccounts(false);
 
+    // Silent background refresh on focus (prevents skeleton flash / UI stutter)
     const onFocus = () => {
-      fetchAccounts();
+      fetchAccounts(true);
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);

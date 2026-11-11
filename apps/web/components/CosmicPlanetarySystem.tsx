@@ -15,7 +15,7 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
           <img
             src="/cosmic-bg.jpg"
             alt="Cosmic Planetary System"
-            className="object-cover object-center absolute inset-0 w-full h-full transition-opacity duration-700"
+            className="object-cover object-center absolute inset-0 w-full h-full transition-opacity duration-700 transform-gpu"
           />
 
           {/* Deep space radial vignette for overall contrast and depth */}
@@ -29,7 +29,7 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
 
           {/* Local atmospheric shadow behind the left authentication card */}
           <div
-            className="absolute top-[20%] left-[4%] w-[620px] max-w-[92vw] h-[600px] rounded-full blur-[85px] pointer-events-none opacity-80"
+            className="absolute top-[20%] left-[4%] w-[620px] max-w-[92vw] h-[600px] rounded-full blur-[85px] pointer-events-none opacity-80 transform-gpu"
             style={{
               background:
                 'radial-gradient(ellipse at 50% 50%, rgba(8, 7, 18, 0.90) 0%, rgba(8, 7, 18, 0.50) 60%, transparent 85%)',
@@ -38,7 +38,7 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
 
           {/* Subtle atmospheric violet glow bloom accentuating the planetary crescent */}
           <div
-            className="absolute -top-[10%] -right-[5%] w-[850px] h-[850px] rounded-full blur-[120px] opacity-35 pointer-events-none"
+            className="absolute -top-[10%] -right-[5%] w-[850px] h-[850px] rounded-full blur-[120px] opacity-35 pointer-events-none transform-gpu"
             style={{
               background:
                 'radial-gradient(circle, rgba(189, 117, 233, 0.40) 0%, rgba(129, 85, 217, 0.25) 45%, transparent 75%)',
@@ -51,12 +51,12 @@ export default function CosmicPlanetarySystem({ isDark = true }: CosmicPlanetary
           <img
             src="/lunar-bg.jpg"
             alt="Lunar White — Pastel Cosmic Landscape"
-            className="object-cover object-[75%_35%] sm:object-[70%_40%] absolute inset-0 w-full h-full transition-opacity duration-700"
+            className="object-cover object-[75%_35%] sm:object-[70%_40%] absolute inset-0 w-full h-full transition-opacity duration-700 transform-gpu"
           />
 
           {/* Subtle localized soft white translucent shadow/overlay behind the left authentication card only */}
           <div
-            className="absolute top-[16%] left-[2%] w-[580px] max-w-[94vw] h-[640px] rounded-[36px] blur-[60px] pointer-events-none opacity-65"
+            className="absolute top-[16%] left-[2%] w-[580px] max-w-[94vw] h-[640px] rounded-[36px] blur-[60px] pointer-events-none opacity-65 transform-gpu"
             style={{
               background:
                 'radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.85) 0%, rgba(248, 247, 252, 0.45) 55%, transparent 80%)',
