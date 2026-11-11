@@ -438,10 +438,10 @@ body {
 
 .login-wrapper.light-card,
 html:not(.dark) .login-wrapper {
-  --blob-1-color: #ff8533;
-  --blob-2-color: #9d6fff;
-  --btn-hover-glow: rgba(110, 86, 207, 0.3);
-  --input-focus-glow: rgba(129, 85, 217, 0.2);
+  --blob-1-color: rgba(221, 211, 244, 0.55);
+  --blob-2-color: rgba(201, 185, 237, 0.50);
+  --btn-hover-glow: rgba(120, 100, 203, 0.20);
+  --input-focus-glow: rgba(139, 124, 255, 0.20);
 }
 
 @keyframes floatUp {
@@ -470,17 +470,15 @@ html:not(.dark) .login-wrapper {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Light Theme Card Variant */
+/* Lunar White — Frosted Lunar Glass Panel (Light Theme) */
 .login-card.light-card,
 html:not(.dark) .login-card {
-  background-color: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(139, 124, 255, 0.28);
-  box-shadow:
-    0 24px 50px -10px rgba(129, 85, 217, 0.18),
-    0 8px 24px -6px rgba(23, 20, 43, 0.08),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(169, 155, 216, 0.30);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(63, 48, 100, 0.10);
 }
 
 .login-wrapper:hover .login-card {
@@ -492,10 +490,8 @@ html:not(.dark) .login-card {
 
 .login-wrapper.light-card:hover .login-card,
 html:not(.dark) .login-wrapper:hover .login-card {
-  box-shadow:
-    0 32px 64px -10px rgba(129, 85, 217, 0.25),
-    0 12px 28px -6px rgba(23, 20, 43, 0.12),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 48px rgba(63, 48, 100, 0.14);
 }
 
 .glow-blob {
@@ -513,7 +509,8 @@ html:not(.dark) .login-wrapper:hover .login-card {
 
 .login-card.light-card .glow-blob,
 html:not(.dark) .login-card .glow-blob {
-  opacity: 0.38;
+  opacity: 0.28;
+  filter: blur(50px);
 }
 
 .login-wrapper:hover .glow-blob {
@@ -523,8 +520,7 @@ html:not(.dark) .login-card .glow-blob {
 
 .login-wrapper.light-card:hover .glow-blob,
 html:not(.dark) .login-wrapper:hover .glow-blob {
-  opacity: 0.52;
-  filter: blur(38px);
+  opacity: 0.38;
 }
 
 .blob-1 {
@@ -574,10 +570,10 @@ html:not(.dark) .login-wrapper:hover .glow-blob {
 html:not(.dark) .login-card .dark-overlay {
   background: radial-gradient(
     circle at 50% 0%,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(244, 241, 250, 0.15) 100%
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(248, 247, 252, 0.10) 100%
   );
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.70);
 }
 
 .view-container {
@@ -621,8 +617,8 @@ html:not(.dark) .login-card .dark-overlay {
 
 .login-card.light-card .decorative-dot,
 html:not(.dark) .login-card .decorative-dot {
-  border: 1px solid rgba(129, 85, 217, 0.35);
-  background: rgba(129, 85, 217, 0.06);
+  border: 1px solid rgba(169, 155, 216, 0.40);
+  background: rgba(221, 211, 244, 0.15);
 }
 
 .decorative-dot::after {
@@ -647,7 +643,7 @@ html:not(.dark) .login-card .decorative-dot {
 html:not(.dark) .login-card .decorative-dot::after {
   background-image: radial-gradient(
     circle at center,
-    #8155D9 40%,
+    #7864CB 40%,
     transparent 50%
   );
 }
@@ -663,7 +659,7 @@ html:not(.dark) .login-card .decorative-dot::after {
 
 .login-card.light-card .title,
 html:not(.dark) .login-card .title {
-  color: #17142B;
+  color: #242039;
 }
 
 .subtitle {
@@ -675,7 +671,7 @@ html:not(.dark) .login-card .title {
 
 .login-card.light-card .subtitle,
 html:not(.dark) .login-card .subtitle {
-  color: #55516D;
+  color: #716B86;
 }
 
 .input-group {
@@ -710,21 +706,21 @@ html:not(.dark) .login-card .subtitle {
 
 .login-card.light-card .input-field,
 html:not(.dark) .login-card .input-field {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(200, 192, 222, 0.85);
-  color: #17142B;
+  background: rgba(248, 247, 252, 0.88);
+  border: 1px solid #DDD7EA;
+  color: #242039;
 }
 
 .login-card.light-card .input-field::placeholder,
 html:not(.dark) .login-card .input-field::placeholder {
-  color: #8F8BA3;
+  color: #9892A7;
 }
 
 .login-card.light-card .input-field:focus,
 html:not(.dark) .login-card .input-field:focus {
-  background: #ffffff;
-  border-color: #8155D9;
-  box-shadow: 0 0 0 3px rgba(129, 85, 217, 0.2);
+  background: #FFFFFF;
+  border-color: #7864CB;
+  box-shadow: 0 0 0 3px rgba(139, 124, 255, 0.30);
   transform: translateY(-1px);
 }
 
@@ -745,12 +741,12 @@ html:not(.dark) .login-card .input-field:focus {
 
 .login-card.light-card .forgot-link,
 html:not(.dark) .login-card .forgot-link {
-  color: #6553B8;
+  color: #7661C5;
 }
 
 .login-card.light-card .forgot-link:hover,
 html:not(.dark) .login-card .forgot-link:hover {
-  color: #17142B;
+  color: #242039;
 }
 
 .btn-submit {
@@ -789,7 +785,7 @@ html:not(.dark) .login-card .forgot-link:hover {
 
 .login-card.light-card .signup-prompt,
 html:not(.dark) .login-card .signup-prompt {
-  color: #55516D;
+  color: #716B86;
 }
 
 .signup-prompt .toggle-link {
@@ -812,18 +808,18 @@ html:not(.dark) .login-card .signup-prompt {
 
 .login-card.light-card .signup-prompt .toggle-link,
 html:not(.dark) .login-card .signup-prompt .toggle-link {
-  color: #6E56CF;
+  color: #7661C5;
   font-weight: 700;
 }
 
 .login-card.light-card .signup-prompt .toggle-link:hover,
 html:not(.dark) .login-card .signup-prompt .toggle-link:hover {
-  border-color: #6E56CF;
-  color: #533EB4;
+  border-color: #7661C5;
+  color: #6651B9;
 }
 
 /* ============================================================ */
-/* Animated Submit Button (Adaptive Cyan / Violet Glider)       */
+/* Animated Submit Button (Neon Cyan Glider / Lunar Lavender)   */
 /* ============================================================ */
 .animated-button {
   position: relative;
@@ -851,23 +847,13 @@ html:not(.dark) .login-card .signup-prompt .toggle-link:hover {
   pointer-events: none;
 }
 
-.login-card.light-card .animated-button,
-html:not(.dark) .login-card .animated-button {
-  color: #6E56CF;
-  box-shadow: 0 0 0 2px #6E56CF;
-}
-
+/* Dark Theme Glider Specifics (Intact) */
 .animated-button svg {
   position: absolute;
   width: 22px;
   fill: rgb(47, 255, 255);
   z-index: 9;
   transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.login-card.light-card .animated-button svg,
-html:not(.dark) .login-card .animated-button svg {
-  fill: #6E56CF;
 }
 
 .animated-button .arr-1 {
@@ -891,11 +877,6 @@ html:not(.dark) .login-card .animated-button svg {
   transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.login-card.light-card .animated-button .circle,
-html:not(.dark) .login-card .animated-button .circle {
-  background-color: #6E56CF;
-}
-
 .animated-button .text {
   position: relative;
   z-index: 1;
@@ -907,12 +888,6 @@ html:not(.dark) .login-card .animated-button .circle {
   box-shadow: 0 0 0 12px transparent;
   color: #101426;
   border-radius: 12px;
-}
-
-.login-card.light-card .animated-button:hover,
-html:not(.dark) .login-card .animated-button:hover {
-  box-shadow: 0 0 0 12px transparent, 0 8px 24px rgba(110, 86, 207, 0.3);
-  color: #ffffff;
 }
 
 .animated-button:hover .arr-1 {
@@ -931,11 +906,6 @@ html:not(.dark) .login-card .animated-button:hover {
   fill: #101426;
 }
 
-.login-card.light-card .animated-button:hover svg,
-html:not(.dark) .login-card .animated-button:hover svg {
-  fill: #ffffff;
-}
-
 .animated-button:active {
   transform: scale(0.96);
   box-shadow: 0 0 0 4px #5DD6A0;
@@ -945,6 +915,53 @@ html:not(.dark) .login-card .animated-button:hover svg {
   width: 420px;
   height: 420px;
   opacity: 1;
+}
+
+/* Light Theme Button Override (Lunar White Refined Lavender Button) */
+.login-card.light-card .animated-button,
+html:not(.dark) .login-card .animated-button {
+  background: #7864CB;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(120, 100, 203, 0.25);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 13px 24px;
+}
+
+.login-card.light-card .animated-button svg,
+html:not(.dark) .login-card .animated-button svg {
+  fill: #FFFFFF;
+}
+
+.login-card.light-card .animated-button:hover,
+html:not(.dark) .login-card .animated-button:hover {
+  background: #6651B9;
+  color: #FFFFFF;
+  box-shadow: 0 6px 20px rgba(102, 81, 185, 0.35);
+  border-radius: 14px;
+  filter: brightness(1.05);
+}
+
+.login-card.light-card .animated-button:hover svg,
+html:not(.dark) .login-card .animated-button:hover svg {
+  fill: #FFFFFF;
+}
+
+.login-card.light-card .animated-button:focus-visible,
+html:not(.dark) .login-card .animated-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 124, 255, 0.30);
+}
+
+.login-card.light-card .animated-button:active,
+html:not(.dark) .login-card .animated-button:active {
+  transform: scale(0.98);
+  background: #5d48ab;
+}
+
+.login-card.light-card .animated-button .circle,
+html:not(.dark) .login-card .animated-button .circle {
+  display: none;
 }
 
 .animated-button:disabled {

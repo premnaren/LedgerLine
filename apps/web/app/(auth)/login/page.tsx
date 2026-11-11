@@ -153,7 +153,7 @@ export default function LoginPage() {
   return (
     <div
       className={`min-h-screen w-full relative overflow-x-hidden flex flex-col justify-between items-center transition-colors duration-700 select-none ${
-        isDark ? 'dark bg-[#080712] text-[#F7F4FF]' : 'bg-[#F4F1FA] text-[#17142B]'
+        isDark ? 'dark bg-[#080712] text-[#F7F4FF]' : 'bg-[#F8F7FC] text-[#242039]'
       }`}
     >
       {/* ============================================================ */}
@@ -172,9 +172,9 @@ export default function LoginPage() {
       <header className="flex z-30 justify-between items-center px-6 sm:px-8 lg:px-10 pt-6 sm:pt-8 w-full max-w-7xl pointer-events-none">
         {/* Left: Clean inline LedgerLine Brand without box or border */}
         <div className="flex items-center space-x-2.5 pointer-events-auto">
-          <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#648EFF] dark:text-[#BD75E9]" />
-          <span className="text-lg sm:text-xl font-bold tracking-tight text-[#17142B] dark:text-[#F7F4FF]">
-            Ledger<span className="text-[#648EFF] dark:text-[#BD75E9]">Line</span>
+          <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-[#7864CB] dark:text-[#BD75E9]" />
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-[#242039] dark:text-[#F7F4FF]">
+            Ledger<span className="text-[#7864CB] dark:text-[#BD75E9]">Line</span>
           </span>
         </div>
 
@@ -315,9 +315,9 @@ export default function LoginPage() {
                   </div>
 
                   {/* Quick Demo Access Pills */}
-                  <div className={`mt-5 pt-3 border-t ${isDark ? 'border-white/10' : 'border-[#DED9EA]'}`}>
+                  <div className={`mt-5 pt-3 border-t ${isDark ? 'border-white/10' : 'border-[#DDD7EA]'}`}>
                     <div className={`text-[11px] font-semibold text-center mb-2 ${
-                      isDark ? 'text-white/50' : 'text-[#747B91]'
+                      isDark ? 'text-white/50' : 'text-[#716B86]'
                     }`}>
                       Demo accounts
                     </div>
@@ -329,10 +329,10 @@ export default function LoginPage() {
                           activeRole === 'ADMIN'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                              : 'border-[#7864CB] bg-[#7864CB]/12 text-[#7864CB] font-bold shadow-xs'
                             : isDark
                             ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                            : 'border-[#DDD7EA] bg-[#F8F7FC]/88 text-[#242039] hover:bg-white hover:border-[#A99BD8] shadow-2xs'
                         }`}
                       >
                         Admin
@@ -344,10 +344,10 @@ export default function LoginPage() {
                           activeRole === 'HOLDER'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                              : 'border-[#7864CB] bg-[#7864CB]/12 text-[#7864CB] font-bold shadow-xs'
                             : isDark
                             ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                            : 'border-[#DDD7EA] bg-[#F8F7FC]/88 text-[#242039] hover:bg-white hover:border-[#A99BD8] shadow-2xs'
                         }`}
                       >
                         Holder
@@ -359,10 +359,10 @@ export default function LoginPage() {
                           activeRole === 'AUDITOR'
                             ? isDark
                               ? 'border-[#2ff8ff] bg-[#2ff8ff]/15 text-[#2ff8ff] font-bold'
-                              : 'border-[#6E56CF] bg-[#6E56CF]/12 text-[#6E56CF] font-bold shadow-sm'
+                              : 'border-[#7864CB] bg-[#7864CB]/12 text-[#7864CB] font-bold shadow-xs'
                             : isDark
                             ? 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                            : 'border-[#DED9EA] bg-white/80 text-[#17142B] hover:bg-white shadow-xs'
+                            : 'border-[#DDD7EA] bg-[#F8F7FC]/88 text-[#242039] hover:bg-white hover:border-[#A99BD8] shadow-2xs'
                         }`}
                       >
                         Auditor
@@ -468,7 +468,7 @@ export default function LoginPage() {
       {/* ============================================================ */}
       {/* LAYER 6: Balanced Footer                                     */}
       {/* ============================================================ */}
-      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#55516D] dark:text-[#C0BAD5] z-30 pointer-events-none">
+      <footer className="w-full max-w-7xl px-6 sm:px-8 lg:px-12 py-5 sm:py-6 flex items-center justify-between text-xs text-[#716B86] dark:text-[#C0BAD5] z-30 pointer-events-none">
         <div className="font-medium pointer-events-auto">
           LedgerLine &copy; 2026 &middot; Double-entry core engine
         </div>

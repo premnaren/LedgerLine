@@ -1257,14 +1257,18 @@ const InteractiveLedgerNetwork = forwardRef<
         ctx.strokeStyle = isSelectedEdge
           ? isDark
             ? `rgba(189, 117, 233, ${effAlpha.toFixed(3)})`
-            : `rgba(41, 75, 122, ${effAlpha.toFixed(3)})`
+            : `rgba(70, 81, 110, ${effAlpha.toFixed(3)})` // Deep Slate #46516E
           : isHoveredEdge
           ? isDark
             ? `rgba(100, 142, 255, ${effAlpha.toFixed(3)})`
-            : `rgba(32, 61, 101, ${effAlpha.toFixed(3)})`
+            : `rgba(169, 155, 216, ${effAlpha.toFixed(3)})` // Soft Nebula #A99BD8
+          : edge.isSecondary
+          ? isDark
+            ? `rgba(117, 200, 240, ${(effAlpha * 0.7).toFixed(3)})`
+            : `rgba(182, 169, 217, ${effAlpha.toFixed(3)})` // Pale Lavender #B6A9D9
           : isDark
           ? `rgba(142, 105, 230, ${effAlpha.toFixed(3)})`
-          : `rgba(41, 75, 122, ${effAlpha.toFixed(3)})`;
+          : `rgba(137, 144, 171, ${effAlpha.toFixed(3)})`; // Muted Slate #8990AB
 
         ctx.lineWidth = lineWidth;
         if (edge.isSecondary && mode !== 'CRUMPLED') {
@@ -1296,20 +1300,20 @@ const InteractiveLedgerNetwork = forwardRef<
         if (isSelected) {
           ctx.beginPath();
           ctx.arc(x, y, radius + 7, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(100, 142, 255, 0.85)' : 'rgba(41, 75, 122, 0.80)';
+          ctx.strokeStyle = isDark ? 'rgba(100, 142, 255, 0.85)' : 'rgba(70, 81, 110, 0.75)';
           ctx.lineWidth = 1.6;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.arc(x, y, radius + 13, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.80)' : 'rgba(124, 58, 237, 0.50)';
+          ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.80)' : 'rgba(169, 155, 216, 0.60)';
           ctx.lineWidth = 1.4;
           ctx.stroke();
 
           ctx.beginPath();
           ctx.setLineDash([3, 4]);
           ctx.arc(x, y, radius + 19, 0, Math.PI * 2);
-          ctx.strokeStyle = isDark ? 'rgba(117, 200, 240, 0.55)' : 'rgba(41, 75, 122, 0.35)';
+          ctx.strokeStyle = isDark ? 'rgba(117, 200, 240, 0.55)' : 'rgba(182, 169, 217, 0.45)';
           ctx.lineWidth = 1.2;
           ctx.stroke();
           ctx.setLineDash([]);
@@ -1322,7 +1326,7 @@ const InteractiveLedgerNetwork = forwardRef<
           ctx.arc(x, y, haloR, 0, Math.PI * 2);
           ctx.strokeStyle = isDark
             ? `rgba(189, 117, 233, ${(0.35 + 0.20 * starPulse).toFixed(3)})`
-            : `rgba(41, 75, 122, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
+            : `rgba(169, 155, 216, ${(0.25 + 0.15 * starPulse).toFixed(3)})`;
           ctx.lineWidth = isDragged ? 2 : isHovered ? 1.6 : 1;
           ctx.stroke();
         }
@@ -1354,21 +1358,21 @@ const InteractiveLedgerNetwork = forwardRef<
             ? '#FFA07A'
             : isDark
             ? '#F48C42'
-            : '#D9531E';
+            : '#B7813C';
         } else {
           ctx.fillStyle = isSelected
-            ? '#BD75E9'
+            ? isDark ? '#BD75E9' : '#46516E' // Deep Slate #46516E
             : isHovered
-            ? '#FFFFFF'
+            ? isDark ? '#FFFFFF' : '#A99BD8' // Soft Nebula #A99BD8
             : importance === 'major'
-            ? '#9DC4FF'
+            ? isDark ? '#9DC4FF' : '#716B86' // Secondary Text
             : isDark
             ? '#648EFF'
-            : '#294B7A';
+            : '#8990AB'; // Muted Slate #8990AB
         }
         ctx.fill();
 
-        ctx.strokeStyle = isSelected ? '#FFFFFF' : isDark ? '#EBE6FF' : '#17142B';
+        ctx.strokeStyle = isSelected ? (isDark ? '#FFFFFF' : '#242039') : isDark ? '#EBE6FF' : '#FFFFFF';
         ctx.lineWidth = isSelected ? 1.8 : 1.2;
         ctx.stroke();
       }
@@ -1403,21 +1407,21 @@ const InteractiveLedgerNetwork = forwardRef<
         } else {
           ctx.rect(boxX, boxY, boxW, boxH);
         }
-        ctx.fillStyle = isDark ? 'rgba(25, 23, 43, 0.94)' : 'rgba(255, 255, 255, 0.96)';
+        ctx.fillStyle = isDark ? 'rgba(25, 23, 43, 0.94)' : 'rgba(255, 255, 255, 0.92)';
         ctx.fill();
-        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.55)' : 'rgba(41, 75, 122, 0.35)';
+        ctx.strokeStyle = isDark ? 'rgba(189, 117, 233, 0.55)' : 'rgba(169, 155, 216, 0.40)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
         // Title: Real star name
         ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillStyle = isDark ? '#F7F4FF' : '#17142B';
+        ctx.fillStyle = isDark ? '#F7F4FF' : '#242039';
         ctx.textAlign = 'left';
         ctx.fillText(star.name, boxX + padX, boxY + 16);
 
         // Subtitle: Constellation & Designation
         ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillStyle = isDark ? '#BD75E9' : '#294B7A';
+        ctx.fillStyle = isDark ? '#BD75E9' : '#716B86';
         ctx.fillText(subtitle, boxX + padX, boxY + 30);
 
         ctx.restore();
@@ -1444,7 +1448,7 @@ const InteractiveLedgerNetwork = forwardRef<
         } else {
           ctx.rect(boxX, boxY, boxW, boxH);
         }
-        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.95)' : 'rgba(41, 75, 122, 0.94)';
+        ctx.fillStyle = isDark ? 'rgba(189, 117, 233, 0.95)' : '#7864CB';
         ctx.fill();
         ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'center';
